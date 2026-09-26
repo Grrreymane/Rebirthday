@@ -1,0 +1,2337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#140c2a">
+<meta name="description" content="人生重开物语：竖屏像素风人生模拟器。抽天赋、分属性，一年一年过完这辈子，看看这次能活成什么样。">
+<title>人生重开物语 Rebirthday</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="人生重开物语 Rebirthday">
+<meta property="og:description" content="抽三个天赋，分二十点属性，然后一年一年地过完这一生。这辈子不行？那就重开。">
+<meta property="og:url" content="https://grrreymane.github.io/Rebirthday/">
+<meta property="og:image" content="https://grrreymane.github.io/Rebirthday/cover.png">
+<meta property="og:image:width" content="1920">
+<meta property="og:image:height" content="1080">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://grrreymane.github.io/Rebirthday/cover.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap">
+<style>
+  :root { --ground: #140c2a; color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: var(--ground); overflow: hidden; overscroll-behavior: none; }
+  body { touch-action: none; -webkit-tap-highlight-color: transparent; }
+  * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none; }
+  #wrap {
+    position: fixed; inset: 0; box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  #c { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" aria-label="人生重开物语游戏画面"></canvas></div>
+<script>
+(() => {
+'use strict';
+const SCRIPT_TEXT = document.currentScript ? document.currentScript.textContent : '';
+// ============================================================ constants
+const W = 180, H = 320, OUT = '#1b1b2f', SY = 28, SH = 120; // scene strip sits at y=SY and is SH tall
+const FONT = '"ZCOOL QingKe HuangYou","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif';
+const rand = (a, b) => a + Math.random() * (b - a);
+const ri = (a, b) => Math.floor(rand(a, b + 1));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const chance = p => Math.random() < p;
+const R = Math.round;
+function wpick(items, wf) {
+  let tot = 0; const ws = items.map(it => { const w = Math.max(0, wf(it)); tot += w; return w; });
+  if (tot <= 0) return null;
+  let r = Math.random() * tot;
+  for (let i = 0; i < items.length; i++) { r -= ws[i]; if (r < 0) return items[i]; }
+  return items[items.length - 1];
+}
+function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+// ============================================================ pixel painter
+class Grid {
+  constructor(w, h) { this.w = w; this.h = h; this.d = new Array(w * h).fill(null); }
+  set(x, y, c) { x |= 0; y |= 0; if (c && x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = c; }
+  clr(x, y) { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = null; }
+  get(x, y) { return (x < 0 || y < 0 || x >= this.w || y >= this.h) ? null : this.d[y * this.w + x]; }
+  ell(cx, cy, rx, ry, c) {
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+      const dx = (x + .5 - cx) / rx, dy = (y + .5 - cy) / ry;
+      if (dx * dx + dy * dy <= 1) this.set(x, y, typeof c === 'function' ? c(x, y) : c);
+    }
+  }
+  rect(x, y, w, h, c) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, c); }
+  px(list, c) { for (const [x, y] of list) this.set(x, y, c); }
+  outline(col = OUT) {
+    const add = [];
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++)
+      if (!this.get(x, y) && (this.get(x - 1, y) || this.get(x + 1, y) || this.get(x, y - 1) || this.get(x, y + 1))) add.push([x, y]);
+    add.forEach(([x, y]) => this.set(x, y, col));
+  }
+  canvas() {
+    const c = mk(this.w, this.h), x = c.getContext('2d');
+    for (let j = 0; j < this.h; j++) for (let i = 0; i < this.w; i++) { const col = this.d[j * this.w + i]; if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } }
+    return c;
+  }
+}
+function paint(w, h, fn, outline = true) { const G = new Grid(w, h); fn(G); if (outline) G.outline(); return G.canvas(); }
+function rows(rs, pal, outline = true) {
+  return paint(rs[0].length + 2, rs.length + 2, G => rs.forEach((r, y) => [...r].forEach((ch, x) => { if (pal[ch]) G.set(x + 1, y + 1, pal[ch]); })), outline);
+}
+function flipC(c) { const o = mk(c.width, c.height), x = o.getContext('2d'); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(c, 0, 0); return o; }
+function tintC(c, col, a) {
+  const o = mk(c.width, c.height), x = o.getContext('2d'); x.drawImage(c, 0, 0);
+  x.globalCompositeOperation = 'source-atop'; x.globalAlpha = a; x.fillStyle = col; x.fillRect(0, 0, c.width, c.height); return o;
+}
+
+// ============================================================ people
+// Every person on screen is painted from parameters: life stage, hair, outfit and a few extras.
+// The sprite is 20x34 with the feet (shoe outline) on row ay-1, so it is drawn at (x-10, y-ay).
+const SKIN = '#ffdcb8', SKIN_D = '#efb994', BLUSH = '#ff9fae', EYE = OUT;
+const HAIRC = {
+  black: ['#2e2438', '#4d3f60'], brown: ['#6b4226', '#96623a'], dye: ['#ffd23f', '#fff3a0'],
+  grey: ['#8e8ea2', '#bdbdcf'], white: ['#e2e2ec', '#ffffff'], silver: ['#cfe0f0', '#ffffff'], pink: ['#ff8fc0', '#ffc8e0'],
+};
+const TOPS = ['#e8534a', '#4a90d9', '#5fb85a', '#f2a93b', '#9b6bd6', '#e86fa8', '#3fb8b0', '#e8c84a', '#f4f4f4'];
+const BOTS = ['#3d5fa8', '#4a4a5c', '#8a6a4a', '#2e3a5c', '#5a7a4a', '#7a4a5a'];
+const ELDER_TOPS = ['#8a7a6a', '#6a7a8a', '#9a6a6a', '#7a8a6a'];
+const BODY = { tod: [3, 1], kid: [4, 2], teen: [5, 3], adult: [6, 3], mid: [6, 3], old: [6, 3] }; // torso rows, leg rows
+function stageOf(age) { return age < 2 ? 'baby' : age < 6 ? 'tod' : age < 13 ? 'kid' : age < 19 ? 'teen' : age < 45 ? 'adult' : age < 65 ? 'mid' : 'old'; }
+const FITS = {
+  casual: {}, elder: {},
+  school_p: { top: '#f6f6f6', bot: '#3d5fa8', scarf: 1 },
+  school_t: { top: '#f6f6f6', arm: '#3d6fc8', bot: '#3d5fa8', stripe: '#f6f6f6', shoulder: '#3d6fc8' },
+  suit: { top: '#2e3a5c', bot: '#2e3a5c', shirt: '#f4f4f4', tie: '#d8403a' },
+  groom: { top: '#26263a', bot: '#26263a', shirt: '#f4f4f4', tie: '#26263a', flower: '#e8453c' },
+  bride: { top: '#fbfbff', bot: '#fbfbff', dress: 1, veil: '#e6eeff', flower: '#ff8fae' },
+  doctor: { top: '#f6f6f6', bot: '#3fb8b0', coat: 1, shirt: '#3fb8b0' },
+  lab: { top: '#f6f6f6', bot: '#4a4a5c', coat: 1, shirt: '#4a90d9' },
+  chef: { top: '#f6f6f6', bot: '#4a4a5c', hat: 'chef', btn: '#c8c8d0' },
+  worker: { top: '#f07830', bot: '#3d5fa8', hat: 'hard', band: '#ffe14a' },
+  rider: { top: '#ffc02a', bot: '#4a4a5c', hat: 'helmet', band: '#26263a' },
+  star: { top: '#e86fa8', bot: '#f4f4f4', sparkle: 1 },
+  athlete: { top: '#e8453c', bot: '#e8453c', shorts: 1, num: '#ffffff' },
+  esports: { top: '#26263a', bot: '#26263a', band: '#4ae0e0', phones: 1 },
+  robe: { top: '#eaf4ff', bot: '#eaf4ff', dress: 1, band: '#4a90d9', wide: 1 },
+  armor: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#c8283a', band: '#8a5a34', metal: 1 },
+  king: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#8a2ad0', band: '#ffd23f', metal: 1, hat: 'crown' },
+  space: { top: '#f0f0f4', bot: '#f0f0f4', band: '#f07830', visor: 1 },
+  farmer: { top: '#4a7fc0', bot: '#6a5a3a', hat: 'straw', plaid: '#3a62a0' },
+  rich: { top: '#7a2238', bot: '#3a1a28', shirt: '#f4f4f4', tie: '#ffd23f', btn: '#ffd23f' },
+  teacher: { top: '#8a6a4a', bot: '#4a4a5c', shirt: '#f4f4f4', glasses: 1 },
+  ghost: { top: '#f4f8ff', bot: '#f4f8ff', dress: 1 },
+};
+const PERS = new Map();
+// o: { st, g:'m'|'f', hair, style, fit, top, bot, skirt, gl, bald, mood:'n'|'h'|'s'|'z', blink, fr:0|1|2, cane, beard, shades }
+function person(o) {
+  const key = [o.st, o.g, o.hair, o.style, o.fit, o.top, o.bot, o.skirt, o.gl, o.bald, o.mood, o.blink, o.fr, o.cane, o.beard, o.shades].join('|');
+  let s = PERS.get(key); if (s) return s;
+  if (PERS.size > 600) PERS.clear();
+  const G = new Grid(20, 34), oy = 5, cx = 10, fit = FITS[o.fit] || FITS.casual;
+  const hc = HAIRC[o.hair] || HAIRC.black, top = fit.top || o.top || '#4a90d9', bot = fit.bot || o.bot || '#3d5fa8';
+  let ay;
+  const face = (ey, eyeX) => {
+    const [l, r] = eyeX;
+    if (o.blink || o.mood === 'z') { G.px([[l - 1, ey + 1], [l, ey + 1], [r, ey + 1], [r + 1, ey + 1]], EYE); }
+    else if (o.mood === 'h') { G.px([[l - 1, ey + 1], [l, ey], [l + 1, ey + 1], [r - 1, ey + 1], [r, ey], [r + 1, ey + 1]], EYE); }
+    else { G.px([[l, ey], [l, ey + 1], [r, ey], [r, ey + 1]], EYE); if (o.mood === 's') G.px([[l, ey + 2], [r, ey + 2], [r, ey + 3]], '#6cc8ff'); }
+    G.px([[l - 1, ey + 2], [r + 1, ey + 2]], BLUSH);
+  };
+  if (o.st === 'baby') {
+    const bl = o.top || '#ffc8dc', bl2 = shade(bl, -.12);
+    G.ell(cx, oy + 18, 6.2, 4.6, bl); G.rect(5, oy + 19, 10, 1, bl2);
+    G.px([[4, oy + 16], [15, oy + 16]], SKIN);
+    G.ell(cx, oy + 11.2, 5.3, 4.8, SKIN);
+    G.px([[9, oy + 6], [10, oy + 6], [10, oy + 5], [11, oy + 7], [8, oy + 7], [9, oy + 7], [10, oy + 7]], hc[0]);
+    face(oy + 10, [7, 12]);
+    ay = oy + 24;
+  } else {
+    const [n, m] = BODY[o.st], t0 = oy + 12, wide = o.st === 'mid' || fit.wide;
+    const tx0 = wide ? 6 : 7, tx1 = wide ? 13 : 12, ax0 = tx0 - 1, ax1 = tx1 + 1;
+    const legTop = t0 + n, shoeY = legTop + m, old = o.st === 'old';
+    const style = o.style || (o.g === 'f' ? (o.st === 'tod' || o.st === 'kid' ? 'pony' : old ? 'bun' : 'long') : 'short');
+    // behind the body: cape, veil, long hair
+    if (fit.cape) { G.rect(tx0 - 2, t0, tx1 - tx0 + 5, n + m - 1, fit.cape); G.rect(tx0 - 3, t0 + 2, tx1 - tx0 + 7, n + m - 3, fit.cape); }
+    if (fit.veil) { G.rect(3, oy + 2, 2, 13, fit.veil); G.rect(15, oy + 2, 2, 13, fit.veil); }
+    if (!o.bald && style === 'long') { G.rect(3, oy + 4, 3, 11, hc[0]); G.rect(14, oy + 4, 3, 11, hc[0]); }
+    // torso and arms
+    G.rect(tx0, t0, tx1 - tx0 + 1, n, top);
+    const armC = fit.arm || top, armW = fit.wide ? 2 : 1;
+    G.rect(ax0 - armW + 1, t0, armW, n - 1, armC); G.rect(ax1, t0, armW, n - 1, armC);
+    G.px([[ax0, t0 + n - 1], [ax1, t0 + n - 1]], SKIN);
+    if (fit.shoulder) G.rect(tx0, t0, tx1 - tx0 + 1, 1, fit.shoulder);
+    if (fit.shirt) { G.px([[9, t0], [10, t0]], fit.shirt); if (fit.tie) G.px([[9, t0 + 1], [10, t0 + 1], [9, t0 + 2], [10, t0 + 2]], fit.tie); else G.px([[9, t0 + 1], [10, t0 + 1]], fit.shirt); }
+    if (fit.coat) G.px([[9, t0 + 1], [10, t0 + 1], [9, t0 + 2], [10, t0 + 2]], fit.shirt);
+    if (fit.btn) G.px([[10, t0 + 1], [10, t0 + 3]], fit.btn);
+    if (fit.band && !fit.hat && !fit.phones) G.rect(tx0, t0 + Math.min(2, n - 1), tx1 - tx0 + 1, 1, fit.band);
+    if (fit.phones) G.px([[tx0, t0 + 1], [tx0 + 1, t0 + 2], [tx0 + 2, t0 + 3]], fit.band);
+    if (fit.plaid) for (let y = t0; y < t0 + n; y++) for (let x = tx0; x <= tx1; x++) if ((x + y) % 3 === 0) G.set(x, y, fit.plaid);
+    if (fit.metal) { G.rect(tx0, t0, tx1 - tx0 + 1, 1, '#eef2f8'); G.rect(tx0, t0 + n - 1, tx1 - tx0 + 1, 1, '#8890a0'); G.px([[ax0, t0], [ax1, t0]], '#eef2f8'); }
+    if (fit.scarf) { G.rect(8, t0, 4, 1, '#e8453c'); G.px([[9, t0 + 1], [10, t0 + 1]], '#e8453c'); }
+    if (fit.num) G.px([[10, t0 + 1], [9, t0 + 2], [10, t0 + 2], [10, t0 + 3]], fit.num);
+    if (fit.sparkle) G.px([[8, t0 + 1], [11, t0 + 3], [9, t0 + 4]], '#fff2fa');
+    if (fit.flower) G.set(8, t0 + 1, fit.flower);
+    // legs, skirt/dress and shoes
+    const shoe = '#4a3434', lift = o.fr === 1 ? 'l' : o.fr === 2 ? 'r' : '';
+    const legs = (c, from) => {
+      for (let y = from; y < shoeY; y++) {
+        if (y === legTop && c !== SKIN) { G.rect(tx0, y, tx1 - tx0 + 1, 1, c); continue; }
+        if (!(lift === 'l' && y === shoeY - 1)) G.rect(7, y, 2, 1, c);
+        if (!(lift === 'r' && y === shoeY - 1)) G.rect(11, y, 2, 1, c);
+      }
+    };
+    if (fit.dress) {
+      for (let y = legTop; y < shoeY; y++) G.rect(tx0 - (y - legTop + 1 >> 1), y, tx1 - tx0 + 1 + 2 * (y - legTop + 1 >> 1), 1, fit.bot || top);
+      if (fit.band && fit.wide) G.rect(tx0, t0 + 2, tx1 - tx0 + 1, 1, fit.band);
+      G.rect(7, shoeY, 2, 1, shoe); G.rect(11, shoeY, 2, 1, shoe);
+    } else {
+      if (o.skirt || fit.shorts) { G.rect(tx0 - 1, legTop, tx1 - tx0 + 3, 1, bot); if (m > 1) G.rect(tx0 - (o.skirt ? 1 : 0), legTop + 1, tx1 - tx0 + 1 + (o.skirt ? 2 : 0), 1, o.skirt ? bot : SKIN); legs(SKIN, legTop + 2); }
+      else legs(bot, legTop);
+      if (fit.stripe) for (let y = legTop + 1; y < shoeY; y++) { G.set(7, y, fit.stripe); G.set(12, y, fit.stripe); }
+      if (fit.coat) for (let y = legTop; y < Math.min(shoeY, legTop + 2); y++) { G.set(tx0, y, top); G.set(tx1, y, top); }
+      G.rect(6, shoeY - (lift === 'l' ? 1 : 0), 3, 1, shoe); G.rect(11, shoeY - (lift === 'r' ? 1 : 0), 3, 1, shoe);
+    }
+    // head
+    G.ell(cx, oy + 6.5, 5.7, 5.4, SKIN);
+    G.px([[4, oy + 7], [15, oy + 7]], SKIN_D);
+    if (o.beard) { G.ell(cx, oy + 11.5, 3.6, 3.2, hc[0]); G.rect(8, oy + 13, 4, 2, hc[0]); G.set(9, oy + 15, hc[0]); G.set(10, oy + 15, hc[0]); }
+    // hair
+    const cap = (yMax) => { for (let y = 0; y < 34; y++) for (let x = 0; x < 20; x++) { const dx = (x + .5 - cx) / 6.3, dy = (y + .5 - (oy + 6.2)) / 6; if (dx * dx + dy * dy <= 1 && y <= yMax) G.set(x, y, hc[0]); } };
+    if (o.bald) {
+      G.px([[4, oy + 5], [4, oy + 6], [15, oy + 5], [15, oy + 6], [5, oy + 4], [14, oy + 4]], hc[0]);
+      G.px([[8, oy + 2], [7, oy + 3]], '#fff4e8');
+    } else if (style === 'spiky') {
+      cap(oy + 4);
+      for (const [sx, h] of [[5, 3], [8, 5], [11, 4], [14, 3]]) for (let k = 0; k < h; k++) { G.set(sx, oy + 1 - k, hc[0]); if (k < h - 1) G.set(sx + 1, oy + 1 - k, hc[0]); }
+      G.rect(4, oy + 5, 5, 2, hc[0]); G.rect(4, oy + 7, 3, 2, hc[0]); G.set(4, oy + 9, hc[0]);
+      G.rect(14, oy + 5, 2, 2, hc[0]);
+    } else {
+      cap(oy + 4);
+      G.rect(4, oy + 5, 12, 1, hc[0]);
+      G.px([[4, oy + 6], [5, oy + 6], [8, oy + 6], [11, oy + 6], [14, oy + 6], [15, oy + 6], [4, oy + 7], [15, oy + 7]], hc[0]);
+      if (style === 'long') G.px([[4, oy + 8], [15, oy + 8]], hc[0]);
+      if (style === 'pony') { G.rect(15, oy + 3, 2, 2, '#e8453c'); G.rect(16, oy + 5, 2, 5, hc[0]); G.set(17, oy + 10, hc[0]); }
+      if (style === 'bun') G.ell(cx, oy - .2, 2.6, 2.2, hc[0]);
+      if (style === 'topknot') { G.ell(cx, oy - .3, 1.9, 1.9, hc[0]); G.rect(7, oy - 1, 6, 1, '#c8a040'); }
+    }
+    if (!o.bald) G.px([[7, oy + 2], [8, oy + 2], [6, oy + 3]], hc[1]);
+    face(oy + 7, [7, 12]);
+    if (o.gl || fit.glasses) {
+      for (const ex of [7, 12]) { G.px([[ex - 1, oy + 6], [ex, oy + 6], [ex + 1, oy + 6], [ex - 1, oy + 9], [ex, oy + 9], [ex + 1, oy + 9], [ex - 1, oy + 7], [ex - 1, oy + 8], [ex + 1, oy + 7], [ex + 1, oy + 8]], '#3a3a5a'); }
+      G.px([[9, oy + 7], [10, oy + 7]], '#3a3a5a');
+    }
+    if (o.shades) { G.rect(5, oy + 7, 4, 2, OUT); G.rect(11, oy + 7, 4, 2, OUT); G.rect(9, oy + 7, 2, 1, OUT); G.px([[6, oy + 7], [12, oy + 7]], '#6a6a9a'); }
+    // hats
+    if (fit.hat === 'chef') { G.rect(6, oy - 1, 8, 4, '#f6f6f6'); G.ell(cx, oy - 1.5, 5, 2.8, '#f6f6f6'); G.rect(6, oy + 3, 8, 1, '#d8d8e0'); }
+    if (fit.hat === 'hard' || fit.hat === 'helmet') {
+      const hcol = fit.hat === 'hard' ? '#ffd23f' : '#ffc02a';
+      for (let y = 0; y < 34; y++) for (let x = 0; x < 20; x++) { const dx = (x + .5 - cx) / 6.4, dy = (y + .5 - (oy + 4.6)) / 4.8; if (dx * dx + dy * dy <= 1 && y <= oy + 4) G.set(x, y, hcol); }
+      G.rect(3, oy + 4, 14, 1, shade(hcol, -.15)); G.px([[8, oy + 1], [9, oy + 1]], '#fff3b0');
+      if (fit.hat === 'helmet') G.rect(5, oy + 3, 10, 1, '#26263a');
+    }
+    if (fit.hat === 'straw') { G.rect(2, oy + 4, 16, 1, '#e8c060'); G.ell(cx, oy + 2.4, 4.6, 2.6, '#e8c060'); G.rect(6, oy + 3, 8, 1, '#c8283a'); }
+    if (fit.hat === 'crown') { G.rect(6, oy, 8, 2, '#ffd23f'); G.px([[6, oy - 1], [8, oy - 1], [11, oy - 1], [13, oy - 1], [6, oy - 2], [13, oy - 2], [9, oy - 1], [10, oy - 1], [9, oy - 2]], '#ffd23f'); G.set(9, oy, '#e8453c'); G.set(10, oy, '#e8453c'); }
+    if (fit.phones) { for (let x = 5; x <= 14; x++) G.set(x, oy - 1 + (x < 7 || x > 12 ? 1 : 0), '#3a3a4a'); G.rect(3, oy + 5, 2, 3, '#3a3a4a'); G.rect(15, oy + 5, 2, 3, '#3a3a4a'); G.set(3, oy + 6, fit.band); G.set(16, oy + 6, fit.band); }
+    if (o.cane) { G.rect(16, t0 + 2, 1, shoeY - t0 - 1, '#8a5a34'); G.px([[15, t0 + 2], [16, t0 + 1], [17, t0 + 1]], '#8a5a34'); }
+    ay = shoeY + 2;
+  }
+  G.outline();
+  if (fit.visor) { // a glass bubble around the head, painted after the outline so it floats over it
+    for (let y = 0; y < 34; y++) for (let x = 0; x < 20; x++) { const dx = (x + .5 - cx) / 8, dy = (y + .5 - (oy + 6.5)) / 7.6, d = dx * dx + dy * dy; if (d <= 1 && d > .78) G.set(x, y, '#a8dcff'); }
+    G.px([[6, oy], [5, oy + 1]], '#ffffff');
+  }
+  s = { img: G.canvas(), ay }; PERS.set(key, s); return s;
+}
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, gg = n >> 8 & 255, b = n & 255;
+  const f = v => clamp(R(k < 0 ? v * (1 + k) : v + (255 - v) * k), 0, 255);
+  return '#' + ((1 << 24) | (f(r) << 16) | (f(gg) << 8) | f(b)).toString(16).slice(1);
+}
+
+// ============================================================ pets, emotes, icons
+const PETS = {
+  cat: { pal: { X: '#f2a03d', S: '#cf7420', W: '#fff4e0', e: OUT, n: '#ff8fae' }, alt: { X: '#3a3440', S: '#26222c', W: '#f4f4f4', e: '#ffe14a', n: '#ff8fae' },
+    a: ['X....X...', 'XX..XX...', 'XSXXSX...', 'XeXXeX..X', 'XWnnWX..X', '.XXXX...X', '.XSSXXXX.', '.XWWXXSX.', '.X.X.X.X.'],
+    b: ['X....X...', 'XX..XX...', 'XSXXSX...', 'XeXXeX...', 'XWnnWX...', '.XXXX..XX', '.XSSXXXX.', '.XWWXXSX.', '.X.X.X.X.'] },
+  dog: { pal: { X: '#e0a060', S: '#b87838', W: '#fff4e0', e: OUT, n: OUT }, alt: { X: '#f4f0e8', S: '#d8d0c0', W: '#ffffff', e: OUT, n: OUT },
+    a: ['X....X....', 'XX..XX....', 'XXXXXX....', 'XeXXeX..XX', 'XWnnWX..X.', '.WWWW...X.', '.XXXXXXXX.', '.XWWXXXSX.', '.X.X..X.X.'],
+    b: ['X....X....', 'XX..XX....', 'XXXXXX....', 'XeXXeX....', 'XWnnWX.XX.', '.WWWW..X..', '.XXXXXXXX.', '.XWWXXXSX.', '.X.X..X.X.'] },
+};
+const PETIMG = {};
+function petImg(k, alt, f, flip) { const id = k + alt + f + (flip ? 'l' : ''); if (!PETIMG[id]) { const P = PETS[k]; PETIMG[id] = flip ? flipC(petImg(k, alt, f)) : rows(f ? P.b : P.a, alt ? P.alt : P.pal); } return PETIMG[id]; }
+const EMO = {};
+{
+  const ic = {
+    heart: [['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'], { X: '#ff4d6d' }],
+    note: [['..XXXX', '..X..X', '..X..X', 'XXX.XX', 'XXX.XX'], { X: '#3a3a6a' }],
+    star: [['...X...', '..XXX..', 'XXXXXXX', '.XXXXX.', '.XX.XX.', 'X.....X'], { X: '#ffc62a' }],
+    sweat: [['..X..', '.XX..', 'XXXX.', 'XXXX.', '.XX..'], { X: '#4ab0ff' }],
+    anger: [['X.X.X', '.XXX.', 'XXXXX', '.XXX.', 'X.X.X'], { X: '#ff4a3a' }],
+    sad: [['.XXX.', 'XXXXX', '.X.X.', '..X.X', '.X...'], { X: '#6c9cff' }],
+    bang: [['XX', 'XX', 'XX', 'XX', '..', 'XX'], { X: '#ff3b3b' }],
+    q: [['.XXX.', 'X...X', '...X.', '..X..', '.....', '..X..'], { X: '#3a6aff' }],
+    coin: [['.XXX.', 'XYYYX', 'XYXYX', 'XYYYX', '.XXX.'], { X: '#c88a10', Y: '#ffd23f' }],
+    zzz: [['XXX..', '..X..', '.X...', 'XXX.X', '...XX'], { X: '#6a6a9a' }],
+    book: [['XXXXXXX', 'XWWXWWX', 'XWWXWWX', 'XWWXWWX', 'XXXXXXX'], { X: '#4a7fc0', W: '#ffffff' }],
+    skull: [['.XXXX.', 'XXXXXX', 'X.XX.X', 'XXXXXX', '.X.X..'], { X: '#e8e8f0' }],
+    spark: [['..X..', '..X..', 'XXXXX', '..X..', '..X..'], { X: '#ffe14a' }],
+    ill: [['.XXX.', 'X.X.X', 'XXXXX', 'X...X', '.XXX.'], { X: '#6ac86a' }],
+  };
+  for (const k in ic) EMO[k] = rows(ic[k][0], ic[k][1], false);
+}
+const I = {};
+I.sound = rows(['...X...', '..XX.X.', 'XXXX..X', 'XXXX.X.', 'XXXX..X', '..XX.X.', '...X...'], { X: '#ffffff' });
+I.mute = rows(['...X...', '..XX...', 'XXXXX.X', 'XXXX.X.', 'XXXXX.X', '..XX...', '...X...'], { X: '#ffffff' });
+I.menu = rows(['XXXXXXX', '.......', 'XXXXXXX', '.......', 'XXXXXXX'], { X: '#ffffff' });
+I.trophy = rows(['XXXXXXX', 'XYYYYYX', '.XYYYX.', '..XYX..', '...X...', '..XXX..'], { X: '#c88a10', Y: '#ffd23f' });
+I.lock = rows(['.XXX.', 'X...X', 'XXXXX', 'XX.XX', 'XXXXX'], { X: '#8a8aa0' });
+I.check = rows(['.....X', '....XX', 'X..XX.', 'XXXX..', '.XX...'], { X: '#3aa84a' });
+I.hand = rows(['...XX....', '...XWX...', '...XWX...', '...XWXXX.', 'XX.XWWWWX', 'XWXXWWWWX', '.XWWWWWWX', '..XWWWWX.', '...XXXX..'], { X: OUT, W: '#ffffff' }, false);
+I.halo = rows(['.XXXXX.', 'X.....X', '.XXXXX.'], { X: '#ffe14a' }, false);
+I.arrow = rows(['XXXXX', '.XXX.', '..X..'], { X: '#ffe14a' });
+
+// ============================================================ scenes
+// Each scene is a 180x120 backdrop (cached), an optional foreground layer drawn over the actors
+// (desk fronts, crowds), the floor band people wander on and seats for extras.
+function F(x, a, b, w, h, c) { x.fillStyle = c; x.fillRect(a, b, w, h); }
+function box(x, a, b, w, h, c, hi, lo) { F(x, a, b, w, h, OUT); F(x, a + 1, b + 1, w - 2, h - 2, c); if (hi) F(x, a + 1, b + 1, w - 2, 1, hi); if (lo) F(x, a + 1, b + h - 2, w - 2, 1, lo); }
+function dsc(x, cx, cy, r, c) { x.fillStyle = c; const Rr = Math.ceil(r); for (let dy = -Rr; dy <= Rr; dy++) { if (r * r - dy * dy < 0) continue; const hw = Math.floor(Math.sqrt(r * r - dy * dy)); x.fillRect(R(cx) - hw, R(cy) + dy, hw * 2 + 1, 1); } }
+function odsc(x, cx, cy, r, c) { dsc(x, cx, cy, r + 1, OUT); dsc(x, cx, cy, r, c); }
+function grad(x, y0, y1, cols) { const n = cols.length, h = (y1 - y0) / n; cols.forEach((c, i) => F(x, 0, R(y0 + i * h), 180, Math.ceil(h) + 1, c)); }
+const FY = 70; // wall/floor line
+function wallpaper(x, c1, c2, sw) { F(x, 0, 0, 180, FY, c1); if (c2) for (let i = 0; i < 180; i += sw * 2) F(x, i, 0, sw, FY, c2); }
+function wainscot(x, y, c, hi) { F(x, 0, y, 180, FY - y, c); F(x, 0, y, 180, 1, hi || shade(c, .2)); F(x, 0, y + 1, 180, 1, shade(c, -.15)); }
+function floorWood(x, c1, c2) { F(x, 0, FY, 180, SH - FY, c1); for (let y = FY + 6, r = 0; y < SH; y += 7, r++) { F(x, 0, y, 180, 1, c2); for (let i = (r % 2) * 20; i < 180; i += 40) F(x, i, y - 6, 1, 6, c2); } F(x, 0, FY, 180, 2, OUT); F(x, 0, FY + 2, 180, 1, shade(c1, -.2)); }
+function floorTile(x, c1, c2, s) { for (let y = FY; y < SH; y += s) for (let i = 0; i < 180; i += s) F(x, i, y, s, s, (i / s + (y - FY) / s) % 2 ? c1 : c2); F(x, 0, FY, 180, 2, OUT); }
+function winV(x, a, b, w, h, view, frame) {
+  box(x, a, b, w, h, frame || '#f4f4f4');
+  const ia = a + 2, ib = b + 2, iw = w - 4, ih = h - 4;
+  if (view === 'night') { F(x, ia, ib, iw, ih, '#27305a'); F(x, ia + 3, ib + 3, 1, 1, '#fff'); F(x, ia + iw - 5, ib + 5, 1, 1, '#fff'); dsc(x, ia + iw - 6, ib + 4, 2, '#fff3b0'); }
+  else {
+    F(x, ia, ib, iw, ih, '#8fd4ff'); F(x, ia, ib + ih - 3, iw, 3, '#b8e6ff');
+    if (view === 'city') { for (let i = 0; i < iw; i += 6) { const bh = 4 + ((i * 7) % 9); F(x, ia + i, ib + ih - bh, 5, bh, '#7a92b8'); for (let k = ib + ih - bh + 1; k < ib + ih - 1; k += 2) F(x, ia + i + 1, k, 1, 1, '#d8e8ff'); } }
+    else if (view === 'trees') { for (let i = 0; i < iw; i += 7) dsc(x, ia + i + 3, ib + ih - 2, 4, '#5fb85a'); F(x, ia, ib + ih - 1, iw, 1, '#3f9a4a'); }
+    else { dsc(x, ia + 4, ib + 4, 2, '#ffffff'); F(x, ia + 2, ib + 5, 6, 2, '#ffffff'); }
+  }
+  F(x, a + (w >> 1), b + 1, 1, h - 2, frame || '#f4f4f4'); F(x, a + 1, b + (h >> 1), w - 2, 1, frame || '#f4f4f4');
+  F(x, a - 1, b + h, w + 2, 2, shade(frame || '#f4f4f4', -.2));
+}
+function plant(x, a, b) { box(x, a + 1, b + 8, 8, 7, '#c8643a', '#e8844a'); odsc(x, a + 5, b + 5, 4, '#4fae4a'); odsc(x, a + 2, b + 7, 2.5, '#4fae4a'); odsc(x, a + 8, b + 7, 2.5, '#4fae4a'); dsc(x, a + 5, b + 5, 4, '#4fae4a'); F(x, a + 3, b + 3, 2, 1, '#8fe07a'); }
+function wclock(x, a, b) { odsc(x, a, b, 5, '#ffffff'); F(x, a, b - 3, 1, 3, OUT); F(x, a, b, 3, 1, OUT); }
+function cloud(x, a, b) { dsc(x, a, b, 4, '#ffffff'); dsc(x, a + 6, b - 2, 5, '#ffffff'); dsc(x, a + 12, b, 4, '#ffffff'); F(x, a - 2, b + 1, 18, 3, '#ffffff'); F(x, a - 2, b + 3, 18, 1, '#dcefff'); }
+function tree(x, a, b, s, c) { s = s || 1; c = c || '#4fae4a'; box(x, a - 2, b - 2, 5, 12 * s, '#8a5a34'); odsc(x, a, b - 8 * s, 9 * s, c); dsc(x, a - 3 * s, b - 11 * s, 3 * s, shade(c, .25)); F(x, a + 2, b - 4 * s, 3, 1, shade(c, -.2)); }
+function pine(x, a, b, h, c) { c = c || '#2f7a4a'; F(x, a - 1, b - 3, 3, 4, '#6a4a2a'); for (let i = 0; i < h; i++) { const w = R((i + 2) * .8); F(x, a - w - 1, b - 3 - h + i, w * 2 + 3, 1, OUT); } for (let i = 0; i < h; i++) { const w = R((i + 2) * .8); F(x, a - w, b - 3 - h + i + 1, w * 2 + 1, 1, i % 4 === 0 ? shade(c, .2) : c); } }
+function bench(x, a, b) { box(x, a, b, 30, 4, '#b8743a', '#d8944a'); box(x, a, b - 6, 30, 4, '#b8743a', '#d8944a'); F(x, a + 3, b + 4, 2, 5, OUT); F(x, a + 25, b + 4, 2, 5, OUT); }
+function slamp(x, a, b) { F(x, a, b - 38, 2, 38, '#3a3a4a'); box(x, a - 3, b - 44, 8, 7, '#ffe8a0', '#fff8d0'); F(x, a - 1, b - 2, 4, 2, '#3a3a4a'); }
+function desk(x, a, b, w, c) { box(x, a, b, w, 5, c || '#c8904a', shade(c || '#c8904a', .25)); box(x, a + 1, b + 4, w - 2, 9, shade(c || '#c8904a', -.15)); }
+function sofa(x, a, b, c) { box(x, a, b, 44, 12, shade(c, -.12)); box(x, a + 3, b + 7, 38, 10, c, shade(c, .2)); box(x, a - 2, b + 5, 7, 13, c, shade(c, .2)); box(x, a + 39, b + 5, 7, 13, c, shade(c, .2)); }
+function redBanner(x, a, b, w, c) { box(x, a, b, w, 10, c || '#d8303a', shade(c || '#d8303a', .2)); }
+
+const SCN = {};
+function scn(id, fn) {
+  const bg = mk(180, SH), fg = mk(180, SH), o = { bg, fg, walk: [26, 154], fy: [98, 112], seats: [], hasFg: false };
+  fn(bg.getContext('2d'), fg.getContext('2d'), o);
+  SCN[id] = o;
+}
+function buildScenes() {
+  // hospital room
+  scn('hosp', (x, f, o) => {
+    wallpaper(x, '#e2f2ec'); wainscot(x, 50, '#b8dccf');
+    winV(x, 18, 10, 32, 26, 'sky');
+    box(x, 76, 12, 14, 14, '#ffffff'); F(x, 81, 15, 4, 8, '#e8453c'); F(x, 79, 17, 8, 4, '#e8453c');
+    box(x, 102, 10, 26, 18, '#2a3448'); for (let i = 0; i < 22; i++) F(x, 104 + i, 18 - (i % 7 === 3 ? 5 : i % 7 === 4 ? -3 : 0), 1, 1, '#5fe07a');
+    floorTile(x, '#ecedf2', '#dcdde8', 10);
+    box(x, 128, 44, 7, 40, '#8aa0b8', '#b8c8d8'); box(x, 134, 58, 40, 26, '#f4f4f4', '#ffffff'); box(x, 134, 68, 40, 16, '#8fc4f0', '#b8dcff'); box(x, 137, 60, 13, 8, '#ffffff'); F(x, 136, 84, 2, 4, OUT); F(x, 170, 84, 2, 4, OUT);
+    F(x, 116, 28, 2, 58, '#9aa0b0'); box(x, 112, 26, 10, 12, '#d8f0ff'); F(x, 113, 86, 8, 2, '#9aa0b0');
+    o.walk = [22, 104];
+  });
+  // homes: 0 poor, 1 ordinary, 2 rich
+  scn('home0', (x) => {
+    wallpaper(x, '#caa878'); wainscot(x, 52, '#a88858');
+    F(x, 40, 10, 1, 8, '#8a6a44'); F(x, 41, 17, 1, 6, '#8a6a44'); F(x, 140, 30, 1, 7, '#8a6a44'); F(x, 139, 36, 1, 5, '#8a6a44');
+    winV(x, 110, 12, 24, 20, 'trees', '#b08050');
+    F(x, 70, 0, 1, 14, '#3a3a3a'); odsc(x, 70, 16, 2, '#fff3b0');
+    box(x, 14, 16, 16, 20, '#f4f0e0'); F(x, 16, 18, 12, 4, '#e8453c'); for (let i = 0; i < 4; i++) F(x, 17 + i * 3, 25, 2, 2, '#8a8aa0'); for (let i = 0; i < 4; i++) F(x, 17 + i * 3, 29, 2, 2, '#8a8aa0');
+    floorWood(x, '#8e6c46', '#74563a');
+    box(x, 20, 62, 28, 18, '#9a7048', '#b88a5a'); box(x, 23, 47, 22, 16, '#5a5a6a'); box(x, 25, 49, 16, 11, '#6a9ab0', '#9ac8d8'); F(x, 42, 51, 2, 2, '#e8453c');
+    box(x, 118, 74, 48, 12, '#d8c8a0', '#efe2c0'); box(x, 121, 72, 13, 6, '#f4f4f4');
+  });
+  scn('home1', (x) => {
+    wallpaper(x, '#f6e4c6', '#eed8b4', 6); wainscot(x, 54, '#c89868');
+    winV(x, 74, 10, 32, 26, 'city'); F(x, 70, 8, 40, 3, '#8a5a34');
+    box(x, 68, 10, 7, 30, '#e8534a', '#f07a6a'); box(x, 105, 10, 7, 30, '#e8534a', '#f07a6a');
+    wclock(x, 140, 18); box(x, 18, 14, 22, 16, '#f4f4f4'); F(x, 20, 16, 18, 12, '#8fc4a0'); dsc(x, 30, 22, 4, '#ffe14a');
+    floorWood(x, '#c48c54', '#a87444');
+    x.fillStyle = '#d86a5a'; for (let dy = -7; dy <= 7; dy++) { const hw = R(Math.sqrt(1 - (dy / 7.5) ** 2) * 40); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
+    x.fillStyle = '#e88a6a'; for (let dy = -5; dy <= 5; dy++) { const hw = R(Math.sqrt(1 - (dy / 5.5) ** 2) * 32); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
+    box(x, 10, 64, 38, 16, '#8a5a34', '#a87444'); box(x, 15, 46, 28, 19, '#26263a'); F(x, 17, 48, 24, 14, '#4a6a9a'); F(x, 18, 49, 8, 3, '#6a8aba');
+    sofa(x, 118, 60, '#4aa8a0'); plant(x, 164, 64);
+  });
+  scn('home2', (x) => {
+    wallpaper(x, '#f6ecd8', '#f0e2c8', 10); wainscot(x, 48, '#e0cca8', '#fff4dc');
+    for (const px of [8, 60, 116, 168]) { F(x, px, 0, 6, FY, '#e8d8b8'); F(x, px, 0, 1, FY, '#fff8e8'); F(x, px + 5, 0, 1, FY, '#c8b490'); }
+    box(x, 72, 6, 38, 40, '#f8f4ec'); F(x, 74, 8, 34, 36, '#9fd8ff'); F(x, 74, 34, 34, 10, '#b8e6ff'); cloud(x, 80, 18); F(x, 90, 7, 2, 38, '#f8f4ec'); F(x, 73, 26, 36, 2, '#f8f4ec');
+    box(x, 66, 4, 8, 44, '#b8283a', '#d8485a'); box(x, 108, 4, 8, 44, '#b8283a', '#d8485a');
+    box(x, 20, 10, 26, 20, '#c8a040'); F(x, 22, 12, 22, 16, '#6a8ab0'); F(x, 22, 22, 22, 6, '#4f8a4a'); dsc(x, 38, 17, 3, '#ffe8a0');
+    F(x, 140, 0, 1, 8, '#c8a040'); box(x, 130, 8, 21, 4, '#ffd23f'); for (let i = 0; i < 5; i++) { F(x, 132 + i * 4, 12, 1, 3, '#fff8d0'); F(x, 132 + i * 4, 15, 1, 1, '#9fe8ff'); }
+    floorTile(x, '#f2eadc', '#ddd0bc', 12);
+    F(x, 60, 76, 66, 44, '#b8283a'); F(x, 62, 76, 62, 44, '#c8384a'); F(x, 64, 76, 58, 44, '#b8283a'); F(x, 60, FY, 66, 2, OUT);
+    box(x, 134, 56, 40, 16, '#26263a', '#4a4a5c'); F(x, 136, 60, 36, 3, '#f4f4f4'); for (let i = 0; i < 9; i++) F(x, 137 + i * 4, 60, 1, 2, OUT); F(x, 138, 72, 2, 12, OUT); F(x, 168, 72, 2, 12, OUT); box(x, 146, 84, 14, 4, '#26263a');
+    box(x, 14, 64, 10, 16, '#e8e0f0'); odsc(x, 19, 60, 4, '#e86fa8'); dsc(x, 17, 58, 2, '#ff9fc8');
+  });
+  // kindergarten
+  scn('kg', (x) => {
+    wallpaper(x, '#ffeaa8'); wainscot(x, 50, '#9ad4f0');
+    for (let i = 0; i < 180; i += 12) { const c = ['#e8534a', '#4a90d9', '#5fb85a', '#f2a93b'][(i / 12) % 4]; x.fillStyle = c; for (let k = 0; k < 6; k++) x.fillRect(i + k, 6 + k, 12 - 2 * k, 1); }
+    F(x, 0, 5, 180, 1, '#8a5a34');
+    winV(x, 22, 18, 26, 22, 'trees'); winV(x, 132, 18, 26, 22, 'trees');
+    for (const [a, c] of [[70, '#e8534a'], [84, '#4a90d9'], [98, '#5fb85a']]) { box(x, a, 24, 12, 12, c, shade(c, .3)); }
+    const cols = ['#e8534a', '#4a90d9', '#5fb85a', '#f2a93b'];
+    for (let y = FY; y < SH; y += 12) for (let i = 0; i < 180; i += 12) F(x, i, y, 12, 12, shade(cols[(i / 12 + (y - FY) / 12) % 4], .35));
+    F(x, 0, FY, 180, 2, OUT);
+    box(x, 122, 48, 6, 32, '#f2a93b'); box(x, 136, 48, 6, 32, '#f2a93b'); box(x, 120, 46, 24, 5, '#e8534a'); for (let y = 54; y < 78; y += 5) F(x, 124, y, 16, 1, '#c87a1a');
+    x.fillStyle = OUT; for (let i = 0; i < 30; i++) x.fillRect(142 + i, 50 + i, 5, 2); x.fillStyle = '#e8534a'; for (let i = 0; i < 29; i++) x.fillRect(143 + i, 50 + i, 3, 1);
+    box(x, 14, 70, 10, 10, '#e8534a', '#ff8a7a'); box(x, 24, 70, 10, 10, '#4a90d9', '#8ac0ff'); box(x, 19, 61, 10, 10, '#ffd23f', '#fff08a');
+    odsc(x, 50, 78, 4, '#e86fa8'); F(x, 48, 76, 2, 1, '#ffc8e0');
+  });
+  // classrooms (banner text is added per use)
+  scn('class', (x, f, o) => {
+    wallpaper(x, '#efe9d4'); wainscot(x, 46, '#7fb28c');
+    box(x, 44, 12, 92, 34, '#8a5a34'); F(x, 46, 14, 88, 30, '#2f5a44'); F(x, 46, 14, 88, 1, '#3f6a54');
+    x.fillStyle = '#e8f0e0'; for (let i = 0; i < 5; i++) x.fillRect(52 + i * 6, 20, 4, 1); for (let i = 0; i < 8; i++) x.fillRect(52 + i * 5, 26, 3, 1); x.fillRect(96, 22, 26, 1); x.fillRect(96, 30, 18, 1); x.fillRect(108, 34, 16, 1); F(x, 118, 38, 10, 1, '#ffe0a0');
+    F(x, 46, 44, 88, 3, '#8a5a34'); F(x, 60, 43, 5, 1, '#ffffff'); F(x, 110, 43, 4, 1, '#ffe14a');
+    winV(x, 6, 12, 26, 28, 'trees'); winV(x, 148, 12, 26, 28, 'trees');
+    redBanner(x, 36, 1, 108, '#c8283a');
+    floorTile(x, '#d8c8a0', '#cebe94', 10);
+    for (const [a, b] of [[20, 90], [80, 90], [140, 90]]) { o.seats.push([a + 10, b + 2]); desk(f, a, b, 22, '#d8a060'); }
+    o.hasFg = true; o.fy = [110, 116]; o.banner = [90, 3];
+  });
+  // university campus
+  scn('campus', (x) => {
+    grad(x, 0, 60, ['#7cc8f8', '#8ed2fa', '#a2dcfc', '#b8e6ff']); cloud(x, 20, 14); cloud(x, 140, 10);
+    box(x, 44, 24, 92, 48, '#e8e2d4'); x.fillStyle = OUT; for (let i = 0; i < 16; i++) x.fillRect(90 - 50 + i * 3, 24 - i, 100 - i * 6, 1); x.fillStyle = '#d8d0c0'; for (let i = 1; i < 15; i++) x.fillRect(90 - 48 + i * 3, 24 - i, 96 - i * 6, 1);
+    odsc(x, 90, 15, 3, '#ffe14a'); for (let i = 0; i < 6; i++) { box(x, 50 + i * 14, 30, 6, 40, '#f8f4ec'); }
+    box(x, 82, 50, 16, 22, '#8a5a34'); F(x, 89, 51, 2, 20, '#6a4424');
+    F(x, 0, 66, 180, 54, '#6ac05a'); F(x, 0, 66, 180, 2, '#4fa04a');
+    x.fillStyle = '#d8c8a0'; for (let y = 72; y < SH; y++) { const hw = 10 + (y - 72) * .9; x.fillRect(R(90 - hw), y, R(hw * 2), 1); }
+    tree(x, 20, 70, 1.3); tree(x, 160, 70, 1.3, '#3f9a4a'); slamp(x, 40, 96); slamp(x, 138, 96);
+    for (let i = 0; i < 20; i++) F(x, (i * 37) % 180, 80 + (i * 13) % 40, 1, 1, '#8ee07a');
+  });
+  // office
+  scn('office', (x, f, o) => {
+    wallpaper(x, '#dde5ee'); wainscot(x, 56, '#b8c4d4');
+    box(x, 40, 6, 100, 42, '#e8eef4'); F(x, 42, 8, 96, 38, '#9fd4ff'); F(x, 42, 30, 96, 16, '#b8e2ff');
+    for (let i = 0; i < 96; i += 8) { const bh = 10 + ((i * 13) % 20); F(x, 42 + i, 46 - bh, 7, bh, '#7a92b8'); for (let k = 46 - bh + 2; k < 44; k += 3) { F(x, 43 + i, k, 2, 1, '#e8f4ff'); F(x, 46 + i, k, 2, 1, '#e8f4ff'); } }
+    for (let i = 0; i < 4; i++) F(x, 40 + i * 33, 6, 2, 42, '#e8eef4');
+    box(x, 8, 12, 24, 18, '#ffffff'); F(x, 11, 24, 3, 3, '#4a90d9'); F(x, 16, 20, 3, 7, '#5fb85a'); F(x, 21, 16, 3, 11, '#e8534a'); F(x, 26, 22, 3, 5, '#f2a93b');
+    box(x, 156, 42, 14, 38, '#dfe8f4'); box(x, 157, 30, 12, 14, '#9fd4ff', '#c8e8ff'); F(x, 160, 56, 5, 3, '#4a90d9');
+    floorTile(x, '#9aa4b8', '#8e98ac', 10);
+    for (const a of [18, 108]) { box(x, a + 12, 76, 20, 14, '#26263a'); F(x, a + 14, 78, 16, 10, '#5a9ad8'); F(x, a + 15, 79, 6, 2, '#9fd4ff'); o.seats.push([a + 22, 92]); desk(f, a, 90, 44, '#e8e8ee'); F(f, a + 20, 88, 4, 2, '#26263a'); }
+    plant(x, 4, 64); o.hasFg = true; o.fy = [108, 116];
+  });
+  // construction site
+  scn('site', (x) => {
+    grad(x, 0, 70, ['#8ccff8', '#a0d8fa', '#b8e4fc']); cloud(x, 30, 16);
+    for (let y = 18; y < 70; y += 12) F(x, 70, y, 90, 2, '#e8843a'); for (let i = 70; i <= 160; i += 15) F(x, i, 18, 2, 52, '#e8843a');
+    F(x, 72, 30, 86, 40, '#c8b8a8'); for (let y = 32; y < 70; y += 12) for (let i = 75; i < 156; i += 15) F(x, i, y, 8, 6, '#6a7a8a');
+    F(x, 40, 4, 3, 66, '#ffc62a'); for (let y = 6; y < 70; y += 6) { F(x, 39, y, 5, 1, '#c89a10'); } F(x, 20, 4, 70, 3, '#ffc62a'); F(x, 84, 7, 1, 20, '#3a3a4a'); box(x, 80, 26, 9, 6, '#6a6a7a'); box(x, 18, 7, 10, 8, '#6a6a7a');
+    F(x, 0, 70, 180, 50, '#c09a68'); F(x, 0, 70, 180, 2, '#8a6a44'); for (let i = 0; i < 30; i++) F(x, (i * 41) % 180, 76 + (i * 17) % 44, 2, 1, '#a07a4a');
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 4 - r; i++) box(x, 12 + i * 8 + r * 4, 60 - r * 5, 9, 6, '#c8543a', '#e8744a');
+    for (const a of [150, 164]) { x.fillStyle = OUT; for (let i = 0; i < 10; i++) x.fillRect(a - 1 - (i >> 1), 58 + i, 3 + i, 1); x.fillStyle = '#ff7a2a'; for (let i = 1; i < 10; i++) x.fillRect(a - (i >> 1), 58 + i, 1 + i, 1); F(x, a - 3, 63, 7, 1, '#ffffff'); }
+  });
+  // small restaurant
+  scn('shop', (x, f, o) => {
+    wallpaper(x, '#f4f0e8'); for (let y = 30; y < FY; y += 6) for (let i = (y / 6 % 2) * 6; i < 180; i += 12) F(x, i, y, 6, 6, '#f0e2cc');
+    box(x, 50, 6, 80, 20, '#3a2a1a'); F(x, 52, 8, 76, 16, '#4a3a2a'); o.menu = 1;
+    for (const a of [18, 162]) { F(x, a, 0, 1, 8, '#3a3a3a'); odsc(x, a, 14, 6, '#e8343a'); F(x, a - 6, 12, 13, 1, '#b8243a'); F(x, a - 1, 21, 3, 3, '#ffd23f'); }
+    box(x, 6, 40, 30, 40, '#c89060'); for (let y = 44; y < 76; y += 10) { F(x, 7, y + 7, 28, 2, '#8a5a34'); for (let i = 0; i < 4; i++) box(x, 9 + i * 6, y, 4, 7, ['#e8534a', '#5fb85a', '#4a90d9', '#f2a93b'][i]); }
+    floorTile(x, '#e0d0b8', '#d4c2a8', 10);
+    box(x, 44, 60, 92, 22, '#b8743a', '#d8944a'); F(x, 46, 68, 88, 1, '#8a5a34');
+    box(x, 120, 46, 14, 15, '#3a3a4a'); box(x, 60, 52, 16, 9, '#8a8aa0', '#b8b8c8'); F(x, 58, 54, 3, 2, OUT);
+    box(x, 144, 48, 26, 32, '#e8e8f0', '#ffffff'); F(x, 146, 62, 22, 1, '#b8b8c8'); F(x, 165, 52, 2, 5, '#8a8aa0');
+    o.fy = [98, 114];
+  });
+  // city street
+  scn('street', (x) => {
+    grad(x, 0, 50, ['#86ccf8', '#9ad6fa', '#b0e0fc']); cloud(x, 120, 10);
+    const bl = [[0, 34, '#e8a06a'], [34, 40, '#8ab0d8'], [74, 34, '#e8c870'], [108, 40, '#c890c8'], [148, 32, '#90c890']];
+    for (const [a, w, c] of bl) { const h = 44 + ((a * 7) % 14); box(x, a, 70 - h, w, h, c); for (let yy = 70 - h + 5; yy < 50; yy += 8) for (let i = a + 4; i < a + w - 5; i += 8) box(x, i, yy, 5, 6, '#e8f4ff', '#ffffff'); }
+    for (const [a, w, c] of [[4, 26, '#e8534a'], [78, 26, '#4a90d9'], [150, 26, '#5fb85a']]) { for (let i = 0; i < w; i += 4) F(x, a + i, 50, 4, 5, i % 8 ? '#ffffff' : c); F(x, a, 55, w, 1, OUT); box(x, a + 6, 56, 14, 14, '#6a4a2a'); }
+    F(x, 0, 70, 180, 30, '#c8c0b8'); for (let i = 0; i < 180; i += 20) F(x, i, 70, 1, 30, '#b0a8a0'); F(x, 0, 70, 180, 2, OUT);
+    F(x, 0, 100, 180, 20, '#5a5a6a'); F(x, 0, 100, 180, 2, '#8a8a9a'); for (let i = 4; i < 180; i += 24) F(x, i, 110, 12, 2, '#f4f4f4');
+    slamp(x, 60, 88); tree(x, 124, 86, .8);
+  }); SCN.street.fy = [86, 98];
+  // park with a pavilion
+  scn('park', (x) => {
+    grad(x, 0, 56, ['#80cbf8', '#94d4fa', '#aadefc', '#c0e8ff']); cloud(x, 30, 12); cloud(x, 130, 20);
+    for (let i = 0; i < 180; i += 14) odsc(x, i + 7, 56, 9, '#5aaa5a');
+    F(x, 0, 58, 180, 62, '#72c462'); F(x, 0, 58, 180, 2, '#58a850');
+    F(x, 104, 30, 3, 34, '#c8283a'); F(x, 150, 30, 3, 34, '#c8283a'); x.fillStyle = OUT; for (let i = 0; i < 12; i++) x.fillRect(98 - i * .2 + i, 18 + i, 62 - i * 2 + i * .4, 1);
+    x.fillStyle = OUT; for (let i = 0; i < 10; i++) x.fillRect(94 + i * 1.6, 20 + i, 72 - i * 3.2, 1); x.fillStyle = '#3a6a5a'; for (let i = 1; i < 10; i++) x.fillRect(96 + i * 1.6, 20 + i, 68 - i * 3.2, 1);
+    F(x, 92, 30, 76, 3, '#2a4a3a'); F(x, 128, 12, 4, 6, '#ffd23f'); F(x, 100, 60, 58, 5, '#d8d0c0');
+    x.fillStyle = '#5ab0e8'; for (let dy = -6; dy <= 6; dy++) { const hw = R(Math.sqrt(1 - (dy / 6.5) ** 2) * 26); x.fillRect(40 - hw, 76 + dy, hw * 2, 1); } F(x, 26, 74, 10, 1, '#b8e4ff');
+    for (let i = 0; i < 14; i++) { const fx_ = (i * 53) % 176, fy_ = 88 + (i * 29) % 30; F(x, fx_, fy_, 2, 2, ['#ff6a8a', '#ffe14a', '#ffffff'][i % 3]); }
+    bench(x, 130, 82); tree(x, 12, 64, 1.1);
+  });
+  // chinese wedding hall
+  scn('wedding', (x, f, o) => {
+    F(x, 0, 0, 180, FY, '#c8283a'); for (let i = 0; i < 180; i += 16) F(x, i, 0, 8, FY, '#d0303f');
+    box(x, 56, 8, 68, 50, '#e8b830'); F(x, 58, 10, 64, 46, '#d8283a'); o.xi = 1;
+    for (const a of [26, 154]) { F(x, a, 0, 1, 10, '#3a3a3a'); odsc(x, a, 18, 7, '#e8343a'); F(x, a - 7, 16, 15, 1, '#ffd23f'); F(x, a - 1, 26, 3, 5, '#ffd23f'); }
+    floorTile(x, '#e8d8c0', '#dccab0', 12); F(x, 60, FY, 60, 50, '#d8283a'); F(x, 62, FY, 56, 50, '#e8384a'); F(x, 60, FY, 60, 2, OUT);
+    for (const a of [30, 150]) { box(x, a - 1, 48, 3, 32, '#e8b830'); box(x, a - 5, 78, 11, 4, '#e8b830'); odsc(x, a, 44, 6, '#ff6a8a'); dsc(x, a - 2, 42, 2, '#ffc8d8'); odsc(x, a - 5, 48, 3, '#ffffff'); odsc(x, a + 5, 48, 3, '#ffffff'); }
+  });
+  // cultivation mountain
+  scn('xian', (x) => {
+    grad(x, 0, 80, ['#cfe8e4', '#dcefe8', '#e8f4ec', '#f2f8f0']);
+    x.fillStyle = '#b8d0c8'; for (let i = 0; i < 180; i++) { const h = 30 + Math.sin(i * .05) * 14 + Math.sin(i * .13) * 6; x.fillRect(i, 70 - h, 1, h); }
+    x.fillStyle = '#8ab0a0'; for (let i = 0; i < 180; i++) { const h = 20 + Math.sin(i * .07 + 2) * 12 + Math.sin(i * .21) * 4; x.fillRect(i, 76 - h, 1, h); }
+    F(x, 0, 52, 180, 4, '#f4faf6'); F(x, 20, 48, 60, 3, '#f4faf6'); F(x, 110, 56, 70, 3, '#f4faf6');
+    x.fillStyle = OUT; for (let i = 0; i < 6; i++) x.fillRect(128 - i * 2, 14 + i, 24 + i * 4, 1); x.fillStyle = '#3a5a5a'; for (let i = 1; i < 6; i++) x.fillRect(129 - i * 2, 14 + i, 22 + i * 4, 1);
+    box(x, 126, 20, 28, 12, '#c8283a'); x.fillStyle = OUT; for (let i = 0; i < 5; i++) x.fillRect(122 - i, 30 + i, 36 + i * 2, 1); F(x, 130, 24, 20, 1, '#ffd23f');
+    F(x, 0, 76, 180, 44, '#9ab0a8'); for (let y = 76; y < SH; y += 8) for (let i = ((y - 76) / 8 % 2) * 12; i < 180; i += 24) F(x, i, y, 23, 7, '#a8beb6'); F(x, 0, 76, 180, 2, '#6a8a80');
+    pine(x, 18, 78, 26); pine(x, 164, 78, 20, '#3a8a5a');
+    for (let i = 0; i < 3; i++) { F(x, 40 + i * 22, 20 + i * 4, 5, 1, '#ffffff'); F(x, 42 + i * 22, 19 + i * 4, 1, 1, '#ffffff'); }
+  });
+  // isekai meadow
+  scn('isekai', (x) => {
+    grad(x, 0, 64, ['#8a78e0', '#a88ae8', '#c89ce8', '#e8b0e0']); dsc(x, 30, 16, 7, '#fff4d0'); dsc(x, 44, 10, 3, '#d0f4ff');
+    for (let i = 0; i < 16; i++) F(x, (i * 47) % 180, (i * 13) % 40, 1, 1, '#ffffff');
+    x.fillStyle = '#6a5aa8'; F(x, 110, 28, 40, 36, '#6a5aa8'); for (const [a, h] of [[106, 44], [128, 52], [150, 44]]) { F(x, a, 64 - h, 10, h, '#5a4a98'); x.fillStyle = '#4a3a88'; for (let i = 0; i < 6; i++) x.fillRect(a + 5 - i, 64 - h - 6 + i, i * 2 + 1, 1); }
+    F(x, 124, 46, 12, 18, '#3a2a68'); F(x, 111, 36, 2, 3, '#ffe890'); F(x, 153, 36, 2, 3, '#ffe890');
+    F(x, 0, 62, 180, 58, '#6ad06a'); F(x, 0, 62, 180, 2, '#4ab04a'); for (let i = 0; i < 20; i++) { const fx_ = (i * 61) % 178, fy_ = 70 + (i * 23) % 48; F(x, fx_, fy_, 2, 2, ['#ff8ab0', '#ffe14a', '#8ad8ff', '#ffffff'][i % 4]); }
+    box(x, 14, 44, 8, 22, '#7ae8ff', '#d0f8ff'); F(x, 17, 40, 2, 4, '#7ae8ff');
+  });
+  // moon surface
+  scn('space', (x) => {
+    F(x, 0, 0, 180, SH, '#0c0c24'); for (let i = 0; i < 40; i++) F(x, (i * 71) % 180, (i * 29) % 80, 1, 1, i % 5 ? '#8a8ab0' : '#ffffff');
+    odsc(x, 140, 26, 14, '#3a78d8'); dsc(x, 134, 22, 5, '#4fae4a'); dsc(x, 146, 30, 4, '#4fae4a'); dsc(x, 138, 32, 2, '#4fae4a'); F(x, 130, 16, 6, 1, '#ffffff');
+    x.fillStyle = '#9a9aaa'; for (let i = 0; i < 180; i++) { const h = 52 + Math.sin(i * .09) * 3 + Math.sin(i * .31) * 1.5; x.fillRect(i, 120 - h, 1, h); }
+    for (const [a, b, r] of [[30, 90, 6], [120, 104, 8], [80, 80, 4], [160, 86, 5]]) { dsc(x, a, b, r, '#7a7a8a'); dsc(x, a + 1, b + 1, r - 1.5, '#8a8a9a'); }
+    F(x, 40, 34, 2, 36, '#c8c8d0'); box(x, 42, 34, 18, 12, '#f4f4f4'); dsc(x, 51, 40, 3, '#3a78d8'); F(x, 49, 38, 2, 2, '#4fae4a'); F(x, 52, 41, 2, 1, '#4fae4a');
+  });
+  // concert stage
+  scn('stage', (x, f, o) => {
+    F(x, 0, 0, 180, SH, '#241a3a'); for (let i = 0; i < 180; i += 10) F(x, i, 0, 5, 56, '#2e2248');
+    box(x, 0, 0, 180, 8, '#3a3a4a'); for (let i = 20; i < 180; i += 36) box(x, i - 4, 6, 9, 7, '#6a6a7a');
+    box(x, 4, 30, 22, 40, '#26263a'); box(x, 154, 30, 22, 40, '#26263a'); for (const a of [15, 165]) { odsc(x, a, 44, 5, '#3a3a4a'); odsc(x, a, 60, 4, '#3a3a4a'); }
+    F(x, 0, 70, 180, 50, '#8a5a34'); for (let y = 76; y < 120; y += 6) F(x, 0, y, 180, 1, '#74482a'); F(x, 0, 70, 180, 2, OUT); F(x, 0, 72, 180, 1, '#b8743a');
+    for (let i = 0; i < 180; i += 7) { const hh = 6 + (i * 13) % 5; odsc(f, i + 3, 118 - hh, 4, '#140c24'); F(f, i, 118 - hh + 2, 7, 10, '#140c24'); }
+    o.hasFg = true; o.fy = [88, 100]; o.lights = 1;
+  });
+  // esports arena
+  scn('arena', (x, f, o) => {
+    F(x, 0, 0, 180, SH, '#141a34'); box(x, 30, 6, 120, 52, '#26263a'); F(x, 32, 8, 116, 48, '#2a5a3a');
+    x.fillStyle = '#c8b890'; for (let i = 0; i < 44; i++) { x.fillRect(34 + i * 2.6, 52 - i, 3, 2); } F(x, 32, 30, 116, 2, '#c8b890'); F(x, 88, 8, 2, 48, '#c8b890');
+    dsc(x, 40, 48, 3, '#4a90ff'); dsc(x, 140, 14, 3, '#ff4a4a'); F(x, 80, 26, 3, 3, '#ffe14a');
+    F(x, 0, 62, 180, 2, '#4ae0e0'); F(x, 0, 64, 180, 56, '#1e2444'); for (let i = 0; i < 180; i += 12) F(x, i, 64, 1, 56, '#262c50'); F(x, 0, FY - 6, 180, 1, OUT);
+    for (const a of [20, 116]) { box(x, a + 10, 76, 22, 14, '#1a1a2a'); F(x, a + 12, 78, 18, 10, '#4a3aa8'); F(x, a + 13, 79, 5, 2, '#ff4ae0'); o.seats.push([a + 21, 92]); desk(f, a, 90, 42, '#2a2a3e'); F(f, a + 2, 91, 38, 1, '#4ae0e0'); }
+    o.hasFg = true; o.fy = [108, 116];
+  });
+  // laboratory
+  scn('lab', (x, f, o) => {
+    wallpaper(x, '#e8f0f4'); wainscot(x, 50, '#c0d4dc');
+    box(x, 20, 8, 70, 34, '#ffffff'); x.fillStyle = '#3a5ab8'; x.fillRect(26, 14, 22, 1); x.fillRect(26, 20, 34, 1); x.fillRect(52, 14, 10, 1); x.fillRect(26, 26, 16, 1); x.fillStyle = '#e8453c'; x.fillRect(46, 30, 30, 1); x.fillRect(64, 20, 18, 1); dsc(x, 76, 30, 3, '#e8453c'); dsc(x, 76, 30, 2, '#ffffff');
+    box(x, 108, 6, 58, 44, '#c8b898'); for (let y = 10; y < 46; y += 12) { F(x, 110, y + 8, 54, 2, '#8a6a4a'); for (let i = 0; i < 8; i++) box(x, 112 + i * 6, y + 2, 5, 6, ['#9fe8ff', '#ffb8d8', '#b8ffb0', '#ffe8a0'][(i + y) % 4]); }
+    floorTile(x, '#e0e6ec', '#d2dae2', 10);
+    box(x, 16, 60, 110, 22, '#e8eef2', '#ffffff'); F(x, 18, 68, 106, 1, '#b0bcc8');
+    for (const [a, c] of [[30, '#5fe07a'], [48, '#ff6ab0'], [66, '#6ac8ff']]) { box(x, a, 50, 6, 11, '#e8f4ff'); F(x, a + 1, 55, 4, 5, c); F(x, a + 2, 48, 2, 3, '#e8f4ff'); }
+    box(x, 96, 46, 10, 14, '#3a3a4a'); F(x, 98, 40, 4, 8, '#5a5a6a'); box(x, 94, 58, 14, 3, '#3a3a4a');
+    o.fy = [100, 114];
+  });
+  // farm
+  scn('farm', (x) => {
+    grad(x, 0, 50, ['#86ccf8', '#9ad6fa', '#b4e2fc']); cloud(x, 60, 12);
+    x.fillStyle = '#7ac86a'; for (let i = 0; i < 180; i++) { const h = 16 + Math.sin(i * .04) * 6; x.fillRect(i, 56 - h, 1, h + 4); }
+    box(x, 124, 22, 40, 36, '#c8383a'); x.fillStyle = OUT; for (let i = 0; i < 12; i++) x.fillRect(144 - 22 + i * 1.8, 22 - i, 44 - i * 3.6, 1); x.fillStyle = '#6a4a3a'; for (let i = 1; i < 12; i++) x.fillRect(144 - 21 + i * 1.8, 22 - i, 42 - i * 3.6, 1);
+    box(x, 136, 38, 16, 20, '#f4f4f4'); F(x, 143, 39, 2, 18, '#c8383a'); F(x, 137, 47, 14, 2, '#c8383a');
+    F(x, 0, 58, 180, 62, '#b08050'); for (let y = 62; y < 120; y += 8) { F(x, 0, y, 180, 3, '#8a6038'); for (let i = 4; i < 180; i += 9) { F(x, i, y - 3, 3, 3, '#5fb85a'); F(x, i + 1, y - 4, 1, 1, '#8fe07a'); } }
+    for (let i = 0; i < 180; i += 10) { F(x, i, 50, 2, 10, '#e8d8b0'); } F(x, 0, 52, 180, 1, '#e8d8b0'); F(x, 0, 56, 180, 1, '#e8d8b0');
+    F(x, 28, 40, 2, 26, '#8a5a34'); F(x, 20, 46, 18, 2, '#8a5a34'); odsc(x, 29, 38, 4, '#f4d8a8'); F(x, 24, 34, 11, 2, '#e8c060'); F(x, 26, 32, 7, 2, '#e8c060'); box(x, 25, 44, 9, 10, '#4a7fc0');
+  });
+  // sports field
+  scn('field', (x) => {
+    F(x, 0, 0, 180, 40, '#8ccff8'); cloud(x, 90, 8);
+    for (let r = 0; r < 4; r++) { F(x, 0, 18 + r * 7, 180, 7, ['#b8b8c8', '#a8a8b8'][r % 2]); for (let i = (r * 5) % 9; i < 180; i += 9) { const c = ['#e8534a', '#4a90d9', '#ffe14a', '#5fb85a', '#ffffff'][(i + r) % 5]; dsc(x, i, 20 + r * 7, 1.6, c); } }
+    F(x, 0, 46, 180, 74, '#c8503a'); for (let y = 54; y < 120; y += 10) F(x, 0, y, 180, 1, '#f4f4f4'); F(x, 0, 46, 180, 2, '#a83a2a');
+    box(x, 150, 70, 3, 16, '#f4f4f4'); box(x, 150, 66, 20, 4, '#e8534a'); box(x, 167, 70, 3, 16, '#f4f4f4');
+  });
+  // grave at sunset (for the ending)
+  scn('grave', (x) => {
+    grad(x, 0, 80, ['#5a3a8a', '#8a4a8a', '#c85a7a', '#f08a6a', '#ffb870']); dsc(x, 90, 78, 16, '#ffd890'); dsc(x, 90, 78, 12, '#fff0c0');
+    x.fillStyle = '#4a3a5a'; for (let i = 0; i < 180; i++) { const h = 12 + Math.sin(i * .05) * 5; x.fillRect(i, 84 - h, 1, h); }
+    F(x, 0, 80, 180, 40, '#3a5a3a'); for (let i = 0; i < 30; i++) F(x, (i * 37) % 180, 84 + (i * 11) % 34, 1, 2, '#4a7a4a');
+    F(x, 16, 40, 3, 44, '#2a2030'); for (const [a, b, r] of [[18, 36, 10], [10, 44, 7], [26, 44, 7]]) dsc(x, a, b, r, '#2a2030');
+  });
+  // setup screens: starry void
+  scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
+}
+const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+
+// ============================================================ talents
+const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
+const SNAME = { CHR: '颜值', INT: '智力', STR: '体质', MNY: '家境', SPR: '快乐' };
+const SCOL = { CHR: '#ff7eb6', INT: '#5ab0ff', STR: '#5fd35f', MNY: '#ffc62a', SPR: '#ff9a4a' };
+const RAR = [
+  { n: '普通', c: '#d8d8e4', d: '#8a8aa0', bg: '#f4f4f8' },
+  { n: '稀有', c: '#5ab0ff', d: '#2a6ab8', bg: '#e4f2ff' },
+  { n: '史诗', c: '#b77bff', d: '#6a3ab8', bg: '#f2e8ff' },
+  { n: '传说', c: '#ffc62a', d: '#b8780a', bg: '#fff4d0' },
+];
+const TAL = {};
+[
+  ['pingfan', '平平无奇', '什么也不会发生', 0], ['zaoshui', '早睡早起', '体质+1', 0, { STR: 1 }], ['aixiao', '爱笑', '快乐+1', 0, { SPR: 1 }],
+  ['xiaocong', '小聪明', '智力+1', 0, { INT: 1 }], ['xiaomei', '小有姿色', '颜值+1', 0, { CHR: 1 }], ['xiaokang', '小康之家', '家境+1', 0, { MNY: 1 }],
+  ['zuopie', '左撇子', '智力+1，但永远用不惯剪刀', 0, { INT: 1 }], ['yemao', '夜猫子', '智力+2，体质-1', 0, { INT: 2, STR: -1 }],
+  ['chihuo', '吃货', '快乐+2，颜值-1', 0, { SPR: 2, CHR: -1 }], ['jinshi', '高度近视', '从小戴眼镜，智力+1', 0, { INT: 1 }],
+  ['tutou', '秃头基因', '智力+1，头发会早早离你而去', 0, { INT: 1 }], ['danshen', '母胎单身', '这辈子不会谈恋爱，快乐+1', 0, { SPR: 1 }],
+  ['dingke', '丁克', '不会生孩子', 0], ['daomei', '倒霉蛋', '全属性+1，但总遇到倒霉事', 0, { CHR: 1, INT: 1, STR: 1, MNY: 1 }],
+  ['dusheng', '独生子女', '父母的爱全给了你，快乐+1', 0, { SPR: 1 }], ['shekong', '社恐', '智力+2，快乐-1', 0, { INT: 2, SPR: -1 }],
+  ['sheniu', '社牛', '颜值+1，快乐+1，智力-1', 0, { CHR: 1, SPR: 1, INT: -1 }], ['dawei', '大胃王', '体质+2，颜值-1', 0, { STR: 2, CHR: -1 }],
+  ['luchi', '路痴', '毫无用处，只会让你迷路', 0], ['lanai', '懒癌晚期', '体质-1，快乐+2', 0, { STR: -1, SPR: 2 }],
+  ['tiansheng', '天生丽质', '颜值+2', 1, { CHR: 2 }], ['xueba', '学霸基因', '智力+2', 1, { INT: 2 }], ['tiyu', '体育特长', '体质+2', 1, { STR: 2 }],
+  ['youkuang', '家里有矿', '家境+2', 1, { MNY: 2 }], ['letian', '乐天派', '快乐+2', 1, { SPR: 2 }], ['gou', '狗狗缘', '童年会有一只狗狗陪着你', 1],
+  ['mao', '喵星人之友', '童年会有一只猫猫陪着你', 1], ['taohua', '桃花运', '更容易遇到爱情', 1], ['kaoshen', '考神附体', '大考总能超常发挥', 1],
+  ['caipiao', '彩票圣体', '更容易中彩票', 1], ['tiewei', '铁胃', '体质+1，吃什么都不坏肚子', 1, { STR: 1 }], ['youxi', '游戏天赋', '说不定能打职业', 1],
+  ['haosang', '天籁之音', '说不定能当歌手', 1], ['shentong', '神童', '智力+1，从小就聪明过人', 1, { INT: 1 }], ['duozi', '多子多福', '更容易儿孙满堂', 1],
+  ['yimijiu', '一米九', '颜值+1，体质+1', 1, { CHR: 1, STR: 1 }],
+  ['jinli', '锦鲤体质', '好事更容易发生', 2], ['changshou', '长寿基因', '寿命更长', 2], ['yibing', '天赋异禀', '全属性+1', 2, { CHR: 1, INT: 1, STR: 1, MNY: 1, SPR: 1 }],
+  ['fuerdai', '富二代', '家境+4', 2, { MNY: 4 }], ['shiba', '永远十八', '容颜不老，颜值+1', 2, { CHR: 1 }], ['yishijie', '异世界体质', '过马路时小心卡车', 2],
+  ['waixing', '外星信号', '外星人对你很感兴趣', 2], ['xingtan', '星探关注', '有机会成为明星，颜值+1', 2, { CHR: 1 }],
+  ['tiancai', '天才头脑', '智力+4', 2, { INT: 4 }], ['jingang', '金刚之躯', '体质+4', 2, { STR: 4 }],
+  ['xianyuan', '仙缘', '你与仙道有缘', 3], ['chongsheng', '重生者', '带着前世的记忆出生，智力+3', 3, { INT: 3 }], ['xitong', '人生系统', '每十年领一次系统奖励', 3],
+  ['shoufu', '首富之子', '家境+7', 3, { MNY: 7 }], ['tianxuan', '天选之人', '全属性+3', 3, { CHR: 3, INT: 3, STR: 3, MNY: 3, SPR: 3 }], ['jiuming', '九命猫', '死亡时有一次复活的机会', 3],
+].forEach(([id, n, d, r, fx]) => { TAL[id] = { id, n, d, r, fx }; });
+const TAL_IDS = Object.keys(TAL);
+
+// ============================================================ jobs
+const JOBS = {
+  coder: { n: '程序员', sc: 'office', fit: 'casual', t: '你成为了一名程序员，每天和BUG斗智斗勇。' },
+  civil: { n: '公务员', sc: 'office', fit: 'suit', t: '你考上了公务员，端上了“铁饭碗”。' },
+  doctor: { n: '医生', sc: 'hosp', fit: 'doctor', t: '你成为了一名医生，穿上了白大褂。' },
+  teacher: { n: '老师', sc: 'class', fit: 'teacher', t: '你成为了一名老师，站上了三尺讲台。' },
+  office: { n: '打工人', sc: 'office', fit: 'suit', t: '你进了一家公司，成为了一名普通的“打工人”。' },
+  boss: { n: '老板', sc: 'office', fit: 'rich', t: '你没有去找工作，而是拉上几个朋友开始创业。' },
+  chef: { n: '厨师', sc: 'shop', fit: 'chef', t: '你去饭馆当了学徒，后来成了一名厨师。' },
+  rider: { n: '外卖骑手', sc: 'street', fit: 'rider', t: '你成为了一名外卖骑手，穿梭在城市的大街小巷。' },
+  worker: { n: '工人', sc: 'site', fit: 'worker', t: '你进了工地，成为了一名建筑工人。' },
+  farmer: { n: '果农', sc: 'farm', fit: 'farmer', t: '你回到老家，承包了一片果园。' },
+  streamer: { n: '主播', sc: 'arena', fit: 'casual', t: '你开始在网上直播，成了一名主播。' },
+  writer: { n: '作家', sc: 'home', fit: 'casual', t: '你开始在网上写小说，成了一名网络作家。' },
+  none: { n: '无业游民', sc: 'home', fit: 'casual', t: '你没有去找工作，每天在家“啃老”。' },
+  heir: { n: '富豪', sc: 'home2', fit: 'rich', t: '你进入了家族企业，从副总裁做起。' },
+  star: { n: '明星', sc: 'stage', fit: 'star', t: '你签约了经纪公司，作为偶像出道了。' },
+  singer: { n: '歌手', sc: 'stage', fit: 'star', t: '你签约了唱片公司，发行了第一张专辑。' },
+  esports: { n: '电竞选手', sc: 'arena', fit: 'esports', t: '你加入了职业战队，成为了一名电竞选手。' },
+  athlete: { n: '运动员', sc: 'field', fit: 'athlete', t: '你入选了省队，成为了一名职业运动员。' },
+  coach: { n: '教练', sc: 'field', fit: 'athlete', t: '' },
+  scientist: { n: '科学家', sc: 'lab', fit: 'lab', t: '你进入了研究所，成为了一名科学家。' },
+  astronaut: { n: '航天员', sc: 'space', fit: 'space', t: '' },
+  ambassador: { n: '星际大使', sc: 'space', fit: 'space', t: '' },
+  retired: { n: '退休老人', sc: 'park', fit: 'elder', t: '' },
+};
+
+// ============================================================ life state helpers
+let L = null, YR = null; // current life, output of the year being simulated
+const tal = id => !!(L && L.t[id]);
+const kidAge = i => L.kids[i] ? L.age - L.kids[i].born : -1;
+const parAge = k => L.age + L.par[k].a0;
+// Gains get harder the higher a stat already is (happiness saturates fastest), so lives don't all end maxed out.
+function addFx(fx, raw) {
+  for (const k in fx) {
+    let v = fx[k];
+    if (v > 0 && !raw) { let got = 0; for (let i = 0; i < v; i++) { const c = L.a[k] + got; if (Math.random() < clamp((k === 'SPR' ? 1.5 : 1.7) - c / (k === 'SPR' ? 11 : 13), .2, 1)) got++; } v = got; }
+    if (!v) continue;
+    L.a[k] += v; YR.d[k] = (YR.d[k] || 0) + v; if (L.a[k] > L.mx[k]) L.mx[k] = L.a[k];
+  }
+}
+const canLove = () => !tal('danshen') && !L.love && !L.mar;
+function newPartner(o) { return Object.assign({ g: L.g === 'm' ? 'f' : 'm', hair: pick(['black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) }, o || {}); }
+function startLove(o) { L.love = 1; L.loveAge = L.age; L.f.loved = 1; L.pt = newPartner(o); }
+function endLove() { L.love = 0; L.mar = 0; L.pt = null; }
+function marry() { L.mar = 1; L.love = 1; L.marAge = L.age; L.f.mar1 = 1; }
+function addKid() { const k = { g: chance(.5) ? 'm' : 'f', born: L.age, hair: L.pt && chance(.5) ? L.pt.hair : L.look.hair, top: pick(TOPS), bot: pick(BOTS) }; L.kids.push(k); return k; }
+const CAT_N = [['小橘', '年糕', '大黄', '橘座'], ['煤球', '黑米', '芝麻', '警长']], DOG_N = [['旺财', '豆豆', '可乐', '来福'], ['小白', '雪球', '棉花', '汤圆']];
+function getPet(k) { const alt = chance(.4) ? 1 : 0; L.pet = { k, alt, born: L.age, n: pick((k === 'cat' ? CAT_N : DOG_N)[alt]) }; L.f['had' + k] = 1; }
+function setJob(j) { L.job = j; L.jobAge = L.age; return JOBS[j].t || null; }
+const homeSc = () => L.a.MNY >= 9 ? 'home2' : (L.a.MNY >= 4 || L.f.house) ? 'home1' : 'home0';
+function fmt(s) {
+  return s.replace(/\{(\w+)\}/g, (m, k) => {
+    const pg = L.pt ? L.pt.g : (L.g === 'm' ? 'f' : 'm');
+    switch (k) {
+      case 'sex': return L.g === 'm' ? '男孩' : '女孩';
+      case 'opp': return L.g === 'm' ? '女生' : '男生';
+      case 'ta': return pg === 'm' ? '他' : '她';
+      case 'spouse': return pg === 'm' ? '老公' : '老婆';
+      case 'bf': return L.g === 'm' ? '女朋友' : '男朋友';
+      case 'kid': { const k = L.kids[L.kids.length - 1]; return k ? (k.g === 'm' ? '儿子' : '女儿') : '孩子'; }
+      case 'kid0': return L.kids[0] ? (L.kids[0].g === 'm' ? '儿子' : '女儿') : '孩子';
+      case 'grand': return L.g === 'm' ? '孙子' : '孙女';
+      case 'mama': return L.g === 'm' ? '爸爸' : '妈妈';
+      case 'pet': return L.pet ? (L.pet.k === 'cat' ? '猫' : '狗') : '宠物';
+      case 'pn': return L.pet ? L.pet.n : '';
+      case 'job': return L.job ? JOBS[L.job].n : '打工人';
+      case 'xiong': return L.g === 'm' ? '师妹' : '师兄';
+      default: return m;
+    }
+  });
+}
+
+// ============================================================ events
+// E(id, minAge, maxAge, text, opts). opts: w weight (number|fn), c condition, fx stat changes, f/u flags set/unset,
+// do extra effect (may return extra lines), sc scene, em emote, big banner, m milestone (forced when eligible),
+// rep repeatable, x exclusive group, p path ('xian'|'isekai'|'*'; default normal life only), nx [id, d0, d1] follow-up,
+// sched only via follow-up, love romance weighting, g goodness override, die death text.
+const EV = [], EVI = {}, MILES = [];
+function E(id, a0, a1, t, o) {
+  const e = Object.assign({ id, a0, a1, t, w: 1 }, o || {});
+  if (e.g === undefined && e.fx) { const s = Object.values(e.fx).reduce((a, b) => a + b, 0); e._g = s > 0 ? 1 : s < 0 ? -1 : 0; } else e._g = e.g || 0;
+  EV.push(e); EVI[id] = e; if (e.m) MILES.push(e);
+}
+const used = id => !!L.used[id];
+// ---------------- 0-2
+E('walk', 1, 2, '你学会了走路，摇摇晃晃地扑进了妈妈怀里。', { fx: { STR: 1 }, em: 'heart', w: 2 });
+E('talk1', 1, 2, '你第一次开口说话，叫的是“爸爸”。爸爸激动得哭了。', { fx: { SPR: 1 }, em: 'note', x: 'talk' });
+E('talk2', 1, 2, '你第一次开口说话，说的是“饿”。', { em: 'note', x: 'talk' });
+E('talk3', 1, 2, '你第一次开口说话，就是一句完整的“今天天气不错”。全家人都惊呆了。', { c: () => L.a.INT >= 8, w: 2, fx: { INT: 1 }, em: 'bang', x: 'talk' });
+const ZHUA = [['一本书', 'INT', '全家都说你以后是读书的料。'], ['一枚金币', 'MNY', '奶奶说你以后能发大财。'], ['一面小镜子', 'CHR', ''], ['一个鸡腿', 'STR', '然后啃了起来。'], ['爸爸的手机', 'SPR', '并熟练地解锁了屏幕。'], ['一只拖鞋', null, '全场陷入了沉默。']];
+E('zhuazhou', 1, 1, () => { const it = pick(ZHUA); if (it[1]) addFx({ [it[1]]: 1 }); return '周岁抓周，你一把抓住了' + it[0] + '。' + it[2]; }, { w: 4, em: 'star' });
+E('fever', 0, 2, '你半夜发高烧，爸妈抱着你冲进了急诊室。', { fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
+E('vaccine', 0, 2, '你去打疫苗，哭声响彻了整座医院。', { em: 'sad', sc: 'hosp' });
+E('milk', 0, 1, '你是个小胖墩，一天要喝八瓶奶。', { fx: { STR: 1 }, em: 'heart' });
+E('nightcry', 0, 1, '你每天半夜准时哭闹，全家人都熬出了黑眼圈。', { em: 'zzz' });
+E('crawl', 0, 1, '你学会了爬，把家里的抽纸一张一张全抽了出来。', { em: 'note' });
+E('poortoy', 0, 4, '家里没钱买玩具，你抱着一个空矿泉水瓶玩了一整天，玩得很开心。', { c: () => L.a.MNY <= 2, fx: { SPR: 1 }, em: 'note' });
+E('richroom', 0, 4, '你的婴儿房比别人家的客厅还大，堆满了进口玩具。', { c: () => L.a.MNY >= 8, fx: { SPR: 1 }, em: 'star' });
+E('grandma', 0, 5, '奶奶天天抱着你出门，逢人就夸“我家{grand}最俊”。', { fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('hongbao', 1, 6, '过年收了一大堆压岁钱，转手就被妈妈“帮你存着”了。', { em: 'sweat' });
+E('fill_baby', 0, 2, '你每天吃了睡，睡了吃。', { rep: 1, cd: 1, w: .15, em: 'zzz' });
+// ---------------- 3-5
+E('kg', 3, 3, () => L.a.MNY >= 8 ? '你上了一所国际双语幼儿园，一年的学费抵得上别人家一套房。' : '你背着小书包，上幼儿园了。', { m: 1, f: { kg: 1 }, sc: 'kg', em: 'note' });
+E('kgcry', 3, 4, '上幼儿园的第一周，你每天抱着妈妈的腿哭一整个上午。', { c: () => L.f.kg, w: 2, em: 'sad', sc: 'kg' });
+E('flower', 3, 5, '你在幼儿园表现很好，得到了一朵小红花。', { c: () => L.f.kg, fx: { SPR: 1 }, em: 'star', sc: 'kg' });
+E('toy', 3, 5, '有个小朋友抢了你的玩具。', { c: () => L.f.kg, sc: 'kg', em: 'anger', do: () => L.a.STR >= 6 ? (addFx({ STR: 1 }), '你一把抢了回来，从此成了幼儿园一霸。') : '你哭着去找老师告状了。' });
+E('poem', 3, 5, '你能背一百首唐诗，被亲戚们当成神童到处炫耀。', { c: () => L.a.INT >= 6, fx: { INT: 1 }, em: 'book' });
+E('prodigy', 3, 4, '三岁的你已经能看报纸了，还指出了报纸上的一个错别字。', { c: () => tal('shentong'), w: 5, fx: { INT: 2 }, em: 'bang' });
+E('dogchase', 3, 9, '你在路上被一只大黄狗追了三条街。', { fx: { STR: 1 }, em: 'sweat', sc: 'street' });
+E('stitch', 3, 7, '你从楼梯上摔了下来，额头缝了三针。', { fx: { CHR: -1 }, em: 'sad', sc: 'hosp' });
+E('amuse', 3, 7, '爸妈带你去了游乐园，你坐了人生中第一次旋转木马。', { c: () => L.a.MNY >= 3, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
+E('cartoon', 3, 6, () => '你每天准时守在电视机前看动画片，立志长大要成为' + pick(['奥特曼', '美少女战士', '喜羊羊', '葫芦娃', '光头强']) + '。', { fx: { SPR: 1 }, em: 'note' });
+E('picky', 3, 6, '你挑食不吃青菜，奶奶端着碗追着你喂了半个小时。', { em: 'sweat' });
+E('lost', 3, 6, '你在商场里走丢了，最后在玩具区被找到，怀里还抱着一个奥特曼。', { em: 'q', sc: 'street' });
+E('kglove', 4, 5, '你在幼儿园有了一个“{bf}”，你们约定长大以后要结婚。', { c: () => !tal('danshen') && L.f.kg, fx: { SPR: 1 }, em: 'heart', sc: 'kg' });
+E('bedwet', 3, 5, () => L.pet && L.pet.k === 'cat' ? '你尿床了，并一口咬定是猫干的。猫表示这个锅它不背。' : '你尿床了，并一口咬定是别人干的。', { em: 'sweat' });
+E('cape', 4, 8, '你披着床单当披风，从沙发上跳下来想飞，结果摔了个狗啃泥。', { em: 'sweat' });
+E('catget', 3, 10, () => { getPet('cat'); return '你在楼下捡到一只小' + (L.pet.alt ? '黑' : '橘') + '猫，给它取名叫“{pn}”，从此它成了你的家人。'; }, { c: () => !L.pet, w: () => tal('mao') ? 6 : .1, em: 'heart', x: 'pet1' });
+E('dogget', 3, 10, () => { getPet('dog'); return '家里养了一只小狗，叫“{pn}”，它每天摇着尾巴等你放学回家。'; }, { c: () => !L.pet, w: () => tal('gou') ? 6 : .1, em: 'heart', x: 'pet1' });
+E('fill_kid', 3, 11, '你度过了无忧无虑的一年。', { rep: 1, cd: 1, w: .15, em: 'note' });
+// ---------------- 6-11 primary school
+E('pri', 6, 6, () => L.a.MNY >= 8 ? '你进入了一所贵族私立小学，同学们都是坐豪车来上学的。' : L.a.MNY <= 1 ? (addFx({ STR: 1 }), '你上小学了，每天要走五公里山路去村小上课。') : '你戴上红领巾，成为了一名小学生。', { m: 1, f: { pri: 1 }, sc: 'class', em: 'star' });
+E('monitor', 6, 11, '你被选为班长，从此开始了在黑板上记名字的生涯。', { c: () => L.a.INT >= 5 || L.a.CHR >= 6, fx: { SPR: 1 }, em: 'star', sc: 'class' });
+E('hundred', 6, 11, '你期末考了双百分，爸妈奖励了你一顿肯德基。', { c: () => L.a.INT >= 6, fx: { INT: 1, SPR: 1 }, em: 'star', sc: 'class' });
+E('called', 6, 14, '你上课讲话被老师抓住，被请了家长。', { c: () => L.a.INT <= 6, fx: { SPR: -1 }, em: 'anger', sc: 'class' });
+E('coin', 6, 10, '你在马路边捡到一分钱，把它交到了警察叔叔手里边。', { fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('myopia', 7, 14, '你躲在被窝里打着手电筒看书，眼睛近视了，戴上了眼镜。', { c: () => !L.f.glasses && !tal('jinshi'), fx: { INT: 1, CHR: -1 }, f: { glasses: 1 }, em: 'sweat' });
+E('piano', 6, 10, '爸妈给你报了钢琴班，你每天被逼着练两个小时的琴。', { c: () => L.a.MNY >= 6, fx: { INT: 1, SPR: -1 }, em: 'note', sc: 'home2' });
+E('olympiad', 8, 12, '你参加奥数竞赛，拿下了全国一等奖。', { c: () => L.a.INT >= 8, fx: { INT: 2 }, em: 'star', sc: 'class', big: '奥数金奖!' });
+E('homework', 7, 12, '暑假的最后一天，你通宵赶完了所有的暑假作业。', { fx: { SPR: -1 }, em: 'sweat' });
+E('gamebox', 8, 14, '你偷偷玩游戏机被发现，游戏机被没收了。', { fx: { SPR: -1 }, em: 'sad' });
+E('line38', 7, 11, '你的同桌在课桌中间画了一条“三八线”，你一过线就被戳。', { em: 'anger', sc: 'class' });
+E('sanhao', 7, 12, '你被评为“三好学生”，奖状贴满了家里的一面墙。', { c: () => L.a.INT >= 6, fx: { SPR: 1 }, em: 'star' });
+E('bike', 7, 11, '在摔了十几跤之后，你终于学会了骑自行车。', { fx: { STR: 1 }, em: 'sweat', sc: 'street' });
+E('divorcep', 6, 15, () => '你的父母离婚了，你跟着' + (chance(.5) ? '爸爸' : '妈妈') + '生活。', { w: .25, fx: { SPR: -2 }, em: 'sad', f: { pdiv: 1 } });
+E('transfer', 7, 12, '你转学了，和好朋友们哭着说了再见。', { fx: { SPR: -1 }, em: 'sad' });
+E('cards', 6, 11, '你迷上了集卡片，零花钱全都花在了干脆面上。', { fx: { SPR: 1 }, em: 'note' });
+E('latiao', 6, 11, '你用零花钱买了一包辣条，这是你童年最幸福的时刻之一。', { fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('herokid', 8, 13, '有人欺负你的同学，你冲上去和他打了一架，打赢了。', { c: () => L.a.STR >= 6, fx: { STR: 1 }, em: 'anger', sc: 'class' });
+E('bullied', 8, 13, '你被高年级的学生堵在厕所门口，勒索零花钱。', { c: () => L.a.STR <= 3, fx: { SPR: -1 }, em: 'sad' });
+E('essay', 8, 12, '你的作文《我的妈妈》被老师当作范文在全班朗读。', { c: () => L.a.INT >= 5, fx: { INT: 1 }, em: 'book', sc: 'class' });
+E('trip', 6, 15, () => '暑假爸妈带你去' + pick(['日本', '法国', '澳大利亚', '冰岛', '迪拜']) + '旅游，你的朋友圈收获了一百个赞。', { c: () => L.a.MNY >= 7, fx: { SPR: 1 }, em: 'heart' });
+E('farmwork', 6, 13, '放学后你要帮家里干农活：喂猪、割草、捡柴火。', { c: () => L.a.MNY <= 2, fx: { STR: 1, SPR: -1 }, em: 'sweat', sc: 'farm' });
+E('tutor', 7, 15, '爸妈给你报了五个补习班，你的周末从此消失了。', { c: () => L.a.MNY >= 4, fx: { INT: 1, SPR: -1 }, em: 'sweat', sc: 'class' });
+E('snowfight', 6, 12, '下了一场大雪，你和小伙伴们打了一下午的雪仗。', { fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('copy', 6, 12, '你被罚抄课文二十遍，发明了一只手夹三支笔的写法。', { c: () => L.a.INT <= 6, fx: { INT: 1 }, em: 'sweat' });
+E('pox', 6, 12, '你得了水痘，在家躺了半个月，心里偷偷高兴不用上学。', { fx: { STR: -1, SPR: 1 }, em: 'ill' });
+E('show61', 6, 12, '你在六一儿童节的文艺汇演上表演了节目，台下掌声雷动。', { c: () => L.a.CHR >= 5, fx: { CHR: 1 }, em: 'star', sc: 'stage' });
+// ---------------- 12-17 secondary school
+E('mid', 12, 12, () => L.a.INT >= 8 ? (addFx({ INT: 1 }), '你以全区第一的成绩进入了重点初中。') : '你升入了初中。', { m: 1, c: () => L.f.pri, f: { mid: 1 }, sc: 'class', em: 'book' });
+E('acne', 12, 16, '青春期到了，你的脸上冒出了一片青春痘。', { c: () => !tal('shiba'), fx: { CHR: -1 }, em: 'sweat' });
+E('glowup', 13, 17, '你突然“长开”了，走在路上开始有人回头看你。', { c: () => L.a.CHR >= 6, fx: { CHR: 1 }, em: 'spark' });
+E('crush', 12, 17, '你暗恋上了隔壁班的一个{opp}，每天绕路经过人家的教室门口。', { c: () => !tal('danshen'), fx: { SPR: 1 }, f: { crush: 1 }, em: 'heart', love: 1 });
+E('letters', 13, 17, '你的课桌里塞满了情书。', { c: () => L.a.CHR >= 8, fx: { SPR: 1 }, em: 'heart', sc: 'class' });
+E('puppy', 14, 17, '你和暗恋的人在一起了，但很快被班主任发现，双方家长都被叫到了学校。', { c: () => L.f.crush && !tal('danshen'), fx: { SPR: -1 }, f: { loved: 1 }, em: 'anger', sc: 'class', love: 1 });
+E('shamate', 13, 17, '你染了一头黄毛，自称“杀马特家族”的一员。', { w: .5, fx: { CHR: -1, SPR: 1 }, f: { dye: 1 }, em: 'spark', sc: 'street' });
+E('netbar', 13, 17, '你逃课去网吧通宵，被爸妈从网吧里揪了出来。', { fx: { INT: -1 }, em: 'anger', sc: 'arena' });
+E('idol', 13, 17, '你迷上了一个明星，把房间贴满了海报。', { fx: { SPR: 1 }, em: 'heart' });
+E('buzzer', 13, 17, '你在校篮球赛上投进了绝杀球，全场沸腾。', { c: () => L.a.STR >= 6, fx: { STR: 1, SPR: 1 }, em: 'star', sc: 'field' });
+E('runaway', 13, 16, '叛逆期的你和爸妈大吵一架，离家出走了半天，饿了又回来了。', { em: 'anger', sc: 'street' });
+E('flag', 12, 17, '你被选为升旗手，每周一站在全校面前升国旗。', { c: () => L.a.CHR >= 6, fx: { SPR: 1 }, em: 'star', sc: 'field' });
+E('run1500', 12, 17, '你在校运会上拿下了一千五百米的冠军。', { c: () => L.a.STR >= 7, fx: { STR: 1 }, em: 'star', sc: 'field' });
+E('mathbad', 12, 17, '你数学考了个位数，试卷被你偷偷塞进了床底下。', { c: () => L.a.INT <= 4, fx: { SPR: -1 }, em: 'sweat', sc: 'class' });
+E('topstu', 12, 17, '你每次考试都是年级第一，成了家长们口中“别人家的孩子”。', { c: () => L.a.INT >= 8, fx: { INT: 1 }, em: 'book', sc: 'class' });
+E('grow', 12, 16, '你一年窜高了十厘米，裤子全都短了一截。', { fx: { STR: 1 }, em: 'bang' });
+E('novel', 12, 17, '你上课偷看网络小说，看到“废柴逆袭”的情节时差点笑出了声。', { fx: { INT: -1, SPR: 1 }, em: 'book', sc: 'class' });
+E('diary', 12, 16, '你的日记被妈妈偷看了，你气得三天没和她说话。', { em: 'anger' });
+E('nightgame', 13, 17, '你熬夜打游戏，第二天在课堂上睡得口水直流。', { fx: { INT: -1, SPR: 1 }, em: 'zzz', sc: 'class' });
+E('library', 12, 17, '你喜欢泡在图书馆，一个学期读完了五十本书。', { c: () => L.a.INT >= 6, fx: { INT: 1 }, em: 'book' });
+E('zhongkao', 15, 15, () => {
+  const s = L.a.INT + (tal('kaoshen') ? 2 : 0) + rand(-1.5, 1.5);
+  if (s >= 9) { L.f.high = L.f.keyh = 1; addFx({ INT: 1 }); return '中考你考了全市第一，进入了最好的重点高中。'; }
+  if (s >= 4.5) { L.f.high = 1; return '中考你发挥正常，考上了一所普通高中。'; }
+  if (L.a.MNY >= 7) { L.f.high = 1; addFx({ MNY: -1 }); return '你中考没考好，家里交了一大笔择校费，把你送进了私立高中。'; }
+  if (L.a.MNY <= 2 && chance(.5)) { L.f.drop = 1; return '你中考落榜了。家里供不起你继续读书，你辍学去城里打工了。'; }
+  L.f.voc = 1; return '你中考落榜了，去读了一所职业高中。';
+}, { m: 1, c: () => L.f.mid && !L.job, sc: 'class', em: 'book' });
+E('dorm', 15, 17, '你开始住校，食堂的饭菜让你格外想念妈妈的手艺。', { c: () => L.f.high, fx: { STR: -1 }, em: 'sad' });
+E('grind', 15, 17, '你每天刷题到凌晨两点，头发开始一把一把地掉。', { c: () => L.f.high, fx: { INT: 1, STR: -1 }, em: 'book', sc: 'class' });
+E('rank', 15, 17, '月考你冲进了年级前十，名字上了光荣榜。', { c: () => L.f.high && L.a.INT >= 7, fx: { INT: 1, SPR: 1 }, em: 'star', sc: 'class' });
+E('mockbad', 16, 17, '模拟考你考砸了，班主任把你叫到办公室谈了一个小时的心。', { c: () => L.f.high && L.a.INT <= 5, fx: { SPR: -1 }, em: 'sad', sc: 'class' });
+E('vocfix', 15, 18, '你在职高学会了修电脑，亲戚家的电脑坏了都来找你。', { c: () => L.f.voc, fx: { INT: 1 }, em: 'note' });
+E('vocfree', 15, 18, '职高的生活很自由，你每天和兄弟们在操场上踢球。', { c: () => L.f.voc, fx: { STR: 1, SPR: 1 }, em: 'note', sc: 'field' });
+E('dropjob', 16, 16, () => ['你在城里漂了一年。', assignJob('drop')], { m: 1, c: () => L.f.drop && !L.job, sc: 'street', em: 'sweat' });
+E('factory', 16, 19, '你在流水线上一站就是十二个小时，下了班只想倒头就睡。', { c: () => L.f.drop, fx: { STR: 1, SPR: -1 }, em: 'zzz', sc: 'site' });
+E('espkid', 13, 17, '你在游戏天梯上打到了全服第一，一支职业战队私信联系了你。', { c: () => tal('youxi') && !L.job, w: 4, f: { espoffer: 1 }, em: 'bang', sc: 'arena' });
+E('espjoin', 16, 19, () => { setJob('esports'); return '你说服了爸妈，退学加入了职业电竞战队。'; }, { c: () => L.f.espoffer && !L.job, w: 3, em: 'star', sc: 'arena', big: '职业出道!' });
+E('singkid', 12, 17, '你在学校晚会上唱了一首歌，台下的尖叫声差点掀翻了屋顶。', { c: () => tal('haosang'), w: 4, fx: { CHR: 1, SPR: 1 }, f: { singoffer: 1 }, em: 'note', sc: 'stage' });
+E('scout', 14, 24, '你在街上被星探拦住，问你有没有兴趣出道。', { c: () => (L.a.CHR >= 9 || tal('xingtan')) && !L.f.scout && (!L.job || L.job === 'office' || L.job === 'none'), w: () => tal('xingtan') ? 4 : 1, f: { scout: 1 }, em: 'bang', sc: 'street' });
+E('fill_teen', 12, 17, '你每天两点一线：上学、放学、写作业。', { rep: 1, cd: 1, w: .15, em: 'book', sc: 'class' });
+// ---------------- 18-22 gaokao & university
+function gaokao(second) {
+  const bonus = (tal('kaoshen') ? 60 : 0) + (L.f.keyh ? 20 : 0) + (tal('chongsheng') ? 40 : 0) + (second ? 25 : 0);
+  const s = clamp(R(110 + L.a.INT * 42 + rand(-45, 45) + bonus), 120, 750), t = '高考放榜，你考了' + s + '分，';
+  L.f.score = s;
+  if (s >= 735) { L.f.zy = L.f.top = L.f.uni = 1; addFx({ INT: 1, SPR: 2 }); YR.big = '高考状元!'; return [t + '成为了全省高考状元！', '清北的招生老师为了抢你，差点在你家门口打起来。']; }
+  if (s >= 680) { L.f.top = L.f.uni = 1; addFx({ INT: 1, SPR: 1 }); YR.big = '金榜题名!'; return t + '被清北录取了！'; }
+  if (s >= 610) { L.f.t985 = L.f.uni = 1; addFx({ SPR: 1 }); return t + '考上了一所985名校。'; }
+  if (s >= 480) { L.f.ben = L.f.uni = 1; return t + '考上了一所普通本科。'; }
+  if (s >= 380) { L.f.zhuan = L.f.uni = 1; return t + '上了一所大专。'; }
+  if (L.a.MNY >= 8) { L.f.abroad = L.f.uni = 1; return [t + '落榜了。', '家里托关系，把你送出国留学了。']; }
+  if (!second && chance(.5)) { L.f.fudu = 1; return [t + '落榜了。', '你决定复读一年，再拼一次。']; }
+  L.f.nouni = 1; return [t + '落榜了。', '你决定不再读书，直接去社会上闯荡。'];
+}
+E('gaokao', 18, 18, () => gaokao(false), { m: 1, c: () => L.f.high && !L.job, sc: 'class', em: 'book' });
+E('gaokao2', 19, 19, () => gaokao(true), { m: 1, c: () => L.f.fudu && !L.f.uni && !L.job, sc: 'class', em: 'book' });
+E('vocgrad', 18, 18, () => ['你从职业高中毕业了。', assignJob('voc')], { m: 1, c: () => L.f.voc && !L.job, em: 'star' });
+E('nounijob', 19, 21, () => assignJob('none'), { m: 1, c: () => L.f.nouni && !L.job, em: 'sweat' });
+E('junxun', 19, 19, '大学军训，你被晒成了一块黑炭。', { c: () => L.f.uni && !L.f.abroad, w: 3, fx: { CHR: -1, STR: 1 }, em: 'sweat', sc: 'field' });
+E('club', 18, 21, () => '你加入了' + pick(['街舞', '动漫', '吉他', '辩论', '摄影', '桌游']) + '社，认识了一群有趣的朋友。', { c: () => L.f.uni && !L.f.grad, fx: { SPR: 1 }, em: 'note', sc: 'campus' });
+E('failcourse', 18, 22, '你高数挂科了，补考时在草稿纸上画满了圆圈。', { c: () => L.f.uni && !L.f.grad && L.a.INT <= 6, fx: { SPR: -1 }, em: 'sweat', sc: 'class' });
+E('scholar', 18, 22, '你拿到了国家奖学金，请全宿舍吃了一顿火锅。', { c: () => L.f.uni && !L.f.grad && L.a.INT >= 8, fx: { INT: 1, SPR: 1 }, em: 'star', sc: 'campus' });
+E('unilove', 18, 22, () => { startLove(); return '你在图书馆认识了一个{opp}，你们恋爱了。'; }, { c: () => L.f.uni && !L.f.grad && canLove(), w: 1.5, fx: { SPR: 2 }, em: 'heart', sc: 'campus', love: 1 });
+E('parttime', 18, 22, '你在奶茶店打工，学会了做三十种奶茶。', { c: () => L.f.uni && !L.f.grad, fx: { STR: 1 }, em: 'note', sc: 'shop' });
+E('allnight', 18, 22, '你和室友通宵打游戏，第二天的早八课全宿舍集体缺席。', { c: () => L.f.uni && !L.f.grad, fx: { SPR: 1, INT: -1 }, em: 'zzz' });
+E('abroadlife', 18, 21, '你在国外留学，每天吃冷沙拉，瘦了十斤。', { c: () => L.f.abroad && !L.f.grad, w: 2, fx: { CHR: 1 }, em: 'sweat', sc: 'street' });
+E('kaoyan', 21, 21, '你决定考研，每天第一个冲进图书馆。', { c: () => L.f.uni && !L.f.zhuan && L.a.INT >= 6, w: 1.2, f: { kaoyan: 1 }, em: 'book', sc: 'campus' });
+function tierOf() { const f = L.f; return f.phd ? 'phd' : f.master ? 'master' : f.top ? 'top' : f.t985 ? 't985' : f.abroad ? 'abroad' : f.ben ? 'ben' : f.zhuan ? 'zhuan' : f.voc ? 'voc' : f.drop ? 'drop' : 'none'; }
+E('grad', 22, 22, () => {
+  L.f.grad = 1;
+  if (L.f.kaoyan && L.a.INT + rand(-2, 2) >= 7) { L.f.master = 1; return '你大学毕业了，还考上了研究生，继续读书。'; }
+  return [L.f.abroad ? '你留学归来，成了一名“海归”。' : '你大学毕业了。', assignJob(tierOf())];
+}, { m: 1, c: () => L.f.uni && !L.f.grad && !L.job, sc: 'campus', em: 'star' });
+E('mgrad', 25, 25, () => {
+  if (L.a.INT >= 10 && chance(.5)) { L.f.phd = 1; return '你研究生毕业了，导师劝你继续读博。你答应了。'; }
+  return ['你研究生毕业了。', assignJob('master')];
+}, { m: 1, c: () => L.f.master && !L.f.phd && !L.job, sc: 'campus', em: 'star' });
+E('dgrad', 29, 29, () => { if (!L.f.bald && chance(.5)) L.f.bald = 1; return ['你博士毕业了，发际线也跟着一起毕业了。', assignJob('phd')]; }, { m: 1, c: () => L.f.phd && !L.job, sc: 'campus', em: 'star' });
+E('fill_uni', 18, 24, '你在校园里度过了平平淡淡的一年。', { c: () => L.f.uni && !L.job, rep: 1, cd: 1, w: .15, em: 'note', sc: 'campus' });
+function assignJob(tier) {
+  const a = L.a, o = [], add = (j, w) => { if (w > 0) o.push([j, w]); };
+  const hi = { phd: 3, master: 2.5, top: 2.5, t985: 2, abroad: 1.6, ben: 1.2, zhuan: .6, voc: .3 }[tier] || 0;
+  add('scientist', (tier === 'phd' ? 4 : tier === 'master' || tier === 'top' ? 1 : 0) * (a.INT >= 9 ? 1.5 : .5));
+  add('doctor', hi >= 2 ? 1.5 : hi >= 1.2 && a.INT >= 7 ? .6 : 0);
+  add('coder', hi >= 1.2 ? 2.2 : hi > .5 ? .8 : 0);
+  add('civil', hi >= 1 ? 1.5 : 0); add('teacher', hi >= 1 ? 1 : 0);
+  add('office', hi >= .6 ? 2 : .3); add('boss', hi >= 1.2 ? .3 : .15);
+  add('chef', hi <= .6 ? 1.2 : 0); add('rider', hi <= .6 ? 1.2 : .1); add('worker', hi <= .6 ? 1.5 : 0);
+  add('farmer', hi <= .3 && a.MNY <= 3 ? 1 : 0); add('streamer', a.CHR >= 7 ? .8 : .25); add('writer', a.INT >= 7 ? .4 : 0);
+  add('none', a.MNY >= 7 && a.SPR >= 6 ? .6 : a.MNY >= 5 ? .15 : 0);
+  if (a.MNY >= 9) add('heir', 3);
+  if (L.f.scout || a.CHR >= 10) add('star', L.f.scout ? 3 : 1.5);
+  if (L.f.singoffer) add('singer', 4);
+  if (L.f.espoffer) add('esports', 3);
+  if (a.STR >= 9) add('athlete', a.STR >= 11 ? 3 : 1.5);
+  return setJob(wpick(o, x => x[1])[0]);
+}
+// ---------------- careers
+const J = j => () => L.job === j;
+E('c_crash', 22, 45, '你写的代码上线后把服务器搞崩了，被全公司通报批评。', { c: J('coder'), fx: { SPR: -1 }, em: 'sweat', sc: 'office' });
+E('c_bald', 22, 45, '你连续加了一个月的班，头发少了一半。', { c: () => L.job === 'coder' && !L.f.bald, w: 1.5, fx: { STR: -1 }, f: { bald: 1 }, em: 'sweat', sc: 'office' });
+E('c_jump', 24, 40, '你跳槽去了一家大厂，工资翻了一倍。', { c: J('coder'), fx: { MNY: 2 }, em: 'coin', sc: 'office' });
+E('c_996', 22, 40, '公司开始实行996，你已经很久没见过太阳了。', { c: J('coder'), fx: { STR: -1, SPR: -1 }, em: 'zzz', sc: 'office' });
+E('c_duck', 22, 50, '你对着桌上的小黄鸭讲解代码，终于找到了那个BUG。', { c: J('coder'), fx: { INT: 1 }, em: 'note', sc: 'office' });
+E('c_promo', 28, 50, '你升职成了技术总监。', { c: () => L.job === 'coder' && L.a.INT >= 7, fx: { MNY: 1 }, em: 'star', sc: 'office' });
+E('c_app', 24, 50, '你业余时间开发的一款App突然爆火，被大公司高价收购了。', { c: () => L.job === 'coder' && L.a.INT >= 8, w: .4, fx: { MNY: 4, SPR: 2 }, em: 'coin', big: '财富自由!' });
+E('c_layoff', 35, 45, () => {
+  const r = Math.random();
+  if (r < .45) { setJob('rider'); return ['你35岁那年，被公司“优化”了。', '你骑上电动车，成了一名外卖骑手。']; }
+  if (r < .75) { setJob('boss'); return ['你35岁那年，被公司“优化”了。', '你一咬牙，拿着赔偿金自己开了一家公司。']; }
+  setJob('none'); return ['你35岁那年，被公司“优化”了。', '你每天假装去上班，其实是在公园里坐一整天。'];
+}, { c: J('coder'), w: 1.2, fx: { SPR: -2 }, em: 'sad', sc: 'street' });
+E('v_tea', 23, 59, '你每天泡一杯茶，看一上午报纸，日子过得安安稳稳。', { c: J('civil'), fx: { SPR: 1 }, em: 'note', sc: 'office' });
+E('v_promo', 28, 50, '你升职成了科长。', { c: J('civil'), fx: { MNY: 1 }, em: 'star', sc: 'office' });
+E('v_promo2', 35, 58, '你升职成了处长，办公室换成了带沙发的单间。', { c: () => L.job === 'civil' && used('v_promo'), fx: { MNY: 1, SPR: 1 }, em: 'star', sc: 'office' });
+E('v_village', 25, 50, '你被派到乡村扶贫，和村民们打成了一片。', { c: J('civil'), fx: { STR: 1, SPR: 1 }, em: 'heart', sc: 'farm' });
+E('v_meeting', 23, 59, '你一天开了八个会，会议纪要写了三十页。', { c: J('civil'), fx: { SPR: -1 }, em: 'zzz', sc: 'office' });
+E('d_surgery', 24, 60, '你连续做了十个小时的手术，从死神手里抢回了一条命。', { c: J('doctor'), fx: { SPR: 1 }, em: 'star', sc: 'hosp' });
+E('d_night', 24, 55, '你连值了三个夜班，在休息室里倒头就睡。', { c: J('doctor'), fx: { STR: -1 }, em: 'zzz', sc: 'hosp' });
+E('d_flag', 24, 60, '病人家属给你送来一面锦旗：“妙手回春”。', { c: J('doctor'), fx: { SPR: 1 }, em: 'heart', sc: 'hosp' });
+E('d_chief', 35, 58, '你成为了科室主任。', { c: J('doctor'), fx: { MNY: 1 }, em: 'star', sc: 'hosp' });
+E('d_write', 24, 60, '你开的处方，连药房的同事都看不懂。', { c: J('doctor'), em: 'q', sc: 'hosp' });
+E('t_stu', 28, 60, '你教过的学生考上了清北，专程回来看望你。', { c: J('teacher'), fx: { SPR: 2 }, em: 'heart', sc: 'class' });
+E('t_angry', 23, 60, '你被班上的调皮学生气得血压飙升。', { c: J('teacher'), fx: { STR: -1 }, em: 'anger', sc: 'class' });
+E('t_best', 26, 60, '你被评为了“优秀教师”。', { c: J('teacher'), fx: { SPR: 1 }, em: 'star', sc: 'class' });
+E('t_night', 23, 60, '你批改作业到深夜，红笔用掉了一整盒。', { c: J('teacher'), em: 'zzz' });
+E('o_subway', 22, 55, '你每天挤早高峰的地铁，被挤成了一张照片。', { c: J('office'), fx: { SPR: -1 }, em: 'sweat', sc: 'street' });
+E('o_voice', 22, 55, '老板在周末给你发了一条60秒的语音。', { c: J('office'), fx: { SPR: -1 }, em: 'anger' });
+E('o_promo', 25, 55, '你升职加薪了，终于可以在奶茶店随便点了。', { c: J('office'), fx: { MNY: 1 }, em: 'coin', sc: 'office' });
+E('o_team', 22, 50, '公司组织团建，你被迫在老板面前表演了一段才艺。', { c: J('office'), fx: { SPR: -1 }, em: 'sweat', sc: 'stage' });
+E('o_quit', 24, 40, '你受够了上班，裸辞去大理住了半年。', { c: J('office'), fx: { SPR: 2, MNY: -1 }, em: 'note', sc: 'park' });
+E('b_fund', 24, 55, '你的公司拿到了一千万融资。', { c: J('boss'), fx: { MNY: 2 }, em: 'coin', sc: 'office' });
+E('b_broke', 24, 60, () => { setJob('office'); return ['你的公司破产了，你欠了一屁股债。', '你只好重新找了一份工作。']; }, { c: () => L.job === 'boss' && !L.f.ipo, w: .8, fx: { MNY: -3, SPR: -2 }, em: 'sad', sc: 'street' });
+E('b_ipo', 28, 60, '你的公司成功上市了！敲钟的时候，你的手都在抖。', { c: () => L.job === 'boss' && used('b_fund'), w: .8, fx: { MNY: 4 }, f: { ipo: 1 }, em: 'coin', big: '成功上市!' });
+E('b_work', 24, 60, '你每天工作十六个小时，比员工还卷。', { c: J('boss'), fx: { STR: -1 }, em: 'sweat', sc: 'office' });
+E('richest', 30, 90, '你登上了福布斯富豪榜，成为了全国首富。', { c: () => (L.job === 'boss' || L.job === 'heir') && L.a.MNY >= 14, w: 2, f: { richest: 1 }, fx: { SPR: 2 }, em: 'coin', big: '全国首富!' });
+E('ch_shop', 25, 50, '你攒够了钱，开了一家自己的小饭馆。', { c: J('chef'), fx: { MNY: 1 }, em: 'star', sc: 'shop' });
+E('ch_tv', 25, 60, '你做的红烧肉上了美食节目，店门口排起了长队。', { c: J('chef'), fx: { MNY: 1, SPR: 1 }, em: 'star', sc: 'shop' });
+E('ch_burn', 20, 60, '你颠勺时一不小心，把眉毛燎没了。', { c: J('chef'), fx: { CHR: -1 }, em: 'sweat', sc: 'shop' });
+E('ch_top', 30, 60, '你的饭馆登上了“必吃榜”第一名。', { c: () => L.job === 'chef' && used('ch_tv'), fx: { MNY: 2 }, em: 'coin', sc: 'shop', big: '必吃榜第一!' });
+E('r_rain', 18, 55, '你冒着暴雨送外卖，顾客递给你一瓶热水，说了声“辛苦了”。', { c: J('rider'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('r_king', 18, 55, '你一天跑了八十单，成了站点的“单王”。', { c: J('rider'), fx: { MNY: 1, STR: 1 }, em: 'star', sc: 'street' });
+E('r_late', 18, 55, '你为了不超时闯了红灯，被交警拦了下来。', { c: J('rider'), fx: { SPR: -1 }, em: 'sweat', sc: 'street' });
+E('r_review', 18, 55, '你收到一个差评，理由是“骑手长得不够好看”。', { c: J('rider'), fx: { SPR: -1 }, em: 'anger', sc: 'street' });
+E('w_bro', 16, 55, '你在工地认识了一群好兄弟，收工后一起撸串。', { c: J('worker'), fx: { SPR: 1 }, em: 'note', sc: 'site' });
+E('w_hurt', 16, 55, '你干活时扭伤了腰，休养了三个月。', { c: J('worker'), fx: { STR: -2 }, em: 'ill', sc: 'hosp' });
+E('w_promo', 25, 55, '你被提拔为工长，手下管着三十号人。', { c: J('worker'), fx: { MNY: 1 }, em: 'star', sc: 'site' });
+E('w_skill', 20, 50, '你考下了高级技工证，成了队里的技术骨干。', { c: J('worker'), fx: { INT: 1 }, em: 'book', sc: 'site' });
+E('f_harvest', 20, 60, '今年果园大丰收，你数钱数到手软。', { c: J('farmer'), fx: { MNY: 1 }, em: 'coin', sc: 'farm' });
+E('f_live', 22, 55, '你开始直播卖水果，成了小有名气的“网红果农”。', { c: J('farmer'), fx: { MNY: 2, CHR: 1 }, em: 'star', sc: 'farm' });
+E('f_flood', 20, 60, '一场暴雨冲毁了你的果园，一年的心血都白费了。', { c: J('farmer'), fx: { MNY: -1, SPR: -2 }, em: 'sad', sc: 'farm' });
+E('s_viral', 18, 45, '你直播吃播，一晚上涨粉十万。', { c: J('streamer'), fx: { MNY: 1, SPR: 1 }, em: 'star', sc: 'arena' });
+E('s_filter', 18, 45, '你直播时美颜突然失效，弹幕刷满了“退钱”。', { c: J('streamer'), fx: { CHR: -1, SPR: -1 }, em: 'sweat', sc: 'arena' });
+E('s_sell', 20, 50, '你直播带货，一晚上卖出了一个亿。', { c: () => L.job === 'streamer' && used('s_viral'), fx: { MNY: 3 }, em: 'coin', sc: 'arena', big: '带货王!' });
+E('s_troll', 18, 50, '你被黑粉骂上了热搜。', { c: J('streamer'), fx: { SPR: -2 }, em: 'anger' });
+E('wr_daily', 20, 60, '你每天日更一万字，键盘都快敲出了火星。', { c: J('writer'), fx: { INT: 1, STR: -1 }, em: 'book' });
+E('wr_tv', 25, 60, '你的小说被改编成了电视剧，爆火全网。', { c: J('writer'), w: .7, fx: { MNY: 3, SPR: 1 }, em: 'star', big: '作品影视化!' });
+E('wr_block', 20, 60, '你卡文了三个月，读者在评论区寄来了刀片。', { c: J('writer'), fx: { SPR: -1 }, em: 'sweat' });
+E('n_game', 18, 50, '你每天在家打游戏到天亮，爸妈唉声叹气。', { c: J('none'), fx: { SPR: 1 }, em: 'zzz' });
+E('n_nag', 18, 50, '过年时，亲戚们轮番“关心”你的工作问题。', { c: J('none'), fx: { SPR: -2 }, em: 'anger' });
+E('n_work', 20, 50, () => ['你终于出门找了份工作。', assignJob('zhuan')], { c: J('none'), w: .6, em: 'star' });
+E('h_yacht', 22, 60, '你一时兴起买了一艘游艇，结果晕船吐了一整天。', { c: J('heir'), fx: { MNY: -1, SPR: 1 }, em: 'sweat', sc: 'park' });
+E('h_waste', 22, 60, '你挥金如土，家产缩水了一半。', { c: () => L.job === 'heir' && L.a.INT <= 6, fx: { MNY: -3 }, em: 'sad' });
+E('h_grow', 25, 60, '你把家族企业做得更大了，生意遍布全球。', { c: () => L.job === 'heir' && L.a.INT >= 6, fx: { MNY: 3 }, em: 'coin', sc: 'office' });
+E('h_party', 20, 50, '你在家里开了一场派对，请来了半个娱乐圈。', { c: J('heir'), fx: { SPR: 1 }, em: 'note' });
+const STARJ = () => L.job === 'star' || L.job === 'singer';
+E('st_hit', 18, 45, () => L.job === 'singer' ? '你的新歌火遍了大街小巷，你成了当红顶流。' : '你主演的电视剧爆火，你成了当红顶流。', { c: STARJ, w: 1.5, fx: { MNY: 3, CHR: 1 }, f: { topstar: 1 }, em: 'star', sc: 'stage', big: '当红顶流!' });
+E('st_papa', 18, 55, '你深夜吃烧烤被狗仔拍到，上了热搜第一。', { c: STARJ, fx: { SPR: -1 }, em: 'sweat', sc: 'street' });
+E('st_fall', 20, 55, '你塌房了，被全网骂上热搜，所有的代言都丢了。', { c: () => STARJ() && L.f.topstar, w: .4, fx: { MNY: -3, SPR: -3 }, em: 'sad' });
+E('st_award', 22, 60, () => '你拿下了最佳' + (L.g === 'm' ? '男' : '女') + '主角奖，在领奖台上哭成了泪人。', { c: () => L.job === 'star' && L.f.topstar && L.a.CHR >= 8, fx: { SPR: 2 }, em: 'star', sc: 'stage', big: () => L.g === 'm' ? '影帝!' : '影后!' });
+E('st_concert', 20, 55, '你在体育场开了一场万人演唱会，全场大合唱。', { c: J('singer'), fx: { SPR: 2 }, em: 'note', sc: 'stage', big: '万人演唱会!' });
+E('st_fans', 18, 60, '粉丝们为你包下了整栋大楼的广告屏来庆生。', { c: () => STARJ() && L.f.topstar, fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('st_dir', 45, 60, '你退居幕后，当起了导演。', { c: STARJ, fx: { INT: 1 }, em: 'note', sc: 'stage' });
+E('a_gold', 20, 32, '你在奥运会上夺得了金牌！国歌响起的那一刻，你热泪盈眶。', { c: () => L.job === 'athlete' && L.a.STR >= 10, w: .8, fx: { MNY: 2, SPR: 3 }, f: { olygold: 1 }, em: 'star', sc: 'field', big: '奥运金牌!' });
+E('a_hurt', 18, 35, '你在比赛中受了伤，不得不休养一年。', { c: J('athlete'), fx: { STR: -2 }, em: 'ill', sc: 'hosp' });
+E('a_record', 18, 32, '你打破了全国纪录。', { c: J('athlete'), fx: { STR: 1 }, em: 'star', sc: 'field' });
+E('a_retire', 32, 38, () => { setJob('coach'); return '你退役了，成为了一名教练。'; }, { c: J('athlete'), w: 2, em: 'note', sc: 'field' });
+E('co_team', 35, 60, '你带出的队员拿下了全国冠军。', { c: J('coach'), fx: { SPR: 2 }, em: 'star', sc: 'field' });
+E('e_champ', 17, 26, '你带领战队捧起了世界冠军的奖杯！', { c: J('esports'), w: .7, fx: { MNY: 3, SPR: 3 }, f: { champ: 1 }, em: 'star', sc: 'arena', big: '世界冠军!' });
+E('e_lose', 17, 26, '你们在决赛中惜败，你在后台哭了很久。', { c: J('esports'), fx: { SPR: -2 }, em: 'sad', sc: 'arena' });
+E('e_retire', 24, 30, () => { setJob('streamer'); return '你的手速跟不上了，宣布退役，转行当了主播。'; }, { c: J('esports'), w: 2, em: 'note', sc: 'arena' });
+E('sc_paper', 25, 70, '你在顶级期刊上发表了一篇论文。', { c: J('scientist'), fx: { INT: 1 }, em: 'book', sc: 'lab' });
+E('sc_fail', 25, 70, '你的实验连续失败了三百次，你开始怀疑人生。', { c: J('scientist'), fx: { SPR: -2 }, em: 'sad', sc: 'lab' });
+E('sc_break', 28, 70, '你的研究取得了重大突破，上了新闻联播。', { c: () => L.job === 'scientist' && L.a.INT >= 10, fx: { INT: 1, MNY: 1 }, em: 'star', sc: 'lab' });
+E('sc_nobel', 38, 80, '你获得了诺贝尔奖！', { c: () => L.job === 'scientist' && L.a.INT >= 13 && used('sc_break'), w: 1.5, fx: { SPR: 3 }, f: { nobel: 1 }, em: 'star', sc: 'stage', big: '诺贝尔奖!' });
+E('sc_bald', 25, 60, '你熬夜做实验，发际线一退再退。', { c: () => L.job === 'scientist' && !L.f.bald, f: { bald: 1 }, em: 'sweat', sc: 'lab' });
+E('ast_pick', 27, 42, () => { setJob('astronaut'); return '你通过了层层选拔，成为了一名航天员！'; }, { c: () => (L.job === 'scientist' || L.job === 'athlete' || L.job === 'coach') && L.a.STR >= 8 && L.a.INT >= 8, w: .6, em: 'star', sc: 'field', big: '入选航天员!' });
+E('ast_fly', 28, 50, '你乘坐飞船进入了太空，从舷窗里看到了蓝色的地球。', { c: J('astronaut'), w: 3, fx: { SPR: 2 }, f: { space: 1 }, em: 'spark', sc: 'space' });
+E('ast_moon', 29, 55, '你登上了月球，在月面上留下了自己的脚印。', { c: () => L.job === 'astronaut' && L.f.space, w: 2, fx: { SPR: 3 }, f: { moon: 1 }, em: 'star', sc: 'space', big: '登月成功!' });
+E('ast_food', 28, 55, '你在太空吃了一顿饭，饭粒飘得满舱都是。', { c: J('astronaut'), em: 'note', sc: 'space' });
+E('amb_work', 20, 90, '你代表地球出席银河联邦大会，发言时紧张得忘了词。', { c: J('ambassador'), em: 'sweat', sc: 'space' });
+E('retire', 60, 60, () => {
+  const civil = L.job === 'civil';
+  L.oldJob = L.job; setJob('retired');
+  return civil ? '你光荣退休了，单位给你戴上了一朵大红花。' : '你退休了，终于可以每天睡到自然醒了。';
+}, { m: 1, c: () => L.job && !['none', 'retired', 'heir', 'boss', 'star', 'singer', 'writer', 'farmer', 'ambassador'].includes(L.job), fx: { SPR: 2 }, em: 'note', sc: 'park' });
+E('fill_work', 22, 64, () => '你在' + JOBS[L.job].n + '的岗位上忙忙碌碌地过了一年。', { c: () => L.job && L.job !== 'retired' && L.job !== 'none', rep: 1, cd: 1, w: .12, em: 'sweat' });
+// ---------------- adult life
+E('lotto', 18, 85, '你随手买了一张彩票，中了五百万！', { w: () => tal('caipiao') ? .6 : .004, fx: { MNY: 4, SPR: 2 }, f: { lotto: 1 }, em: 'coin', big: '中大奖!' });
+E('lotto5', 18, 80, '你买彩票中了五块钱，开心了一整天。', { fx: { SPR: 1 }, em: 'coin' });
+E('stocklose', 25, 60, '你听信了“内部消息”去炒股，亏光了积蓄。', { fx: { MNY: -2, SPR: -2 }, em: 'sad' });
+E('stockwin', 25, 60, '你炒股赚了一笔，请全家吃了顿大餐。', { c: () => L.a.INT >= 8, fx: { MNY: 1 }, em: 'coin' });
+E('bitcoin', 16, 25, '你凭着前世的记忆，早早买了一堆比特币。如今它们值一个亿。', { c: () => tal('chongsheng'), w: 3, fx: { MNY: 5 }, em: 'coin', big: '先知!' });
+E('deja', 3, 10, '你总觉得这一切似曾相识，好像上辈子也是这样过的。', { c: () => tal('chongsheng'), w: 2, em: 'q' });
+E('travel', 22, 65, () => '你去' + pick(['云南', '西藏', '海南', '新疆', '冰岛', '日本', '埃及']) + '旅游，拍了几千张照片，每张都比着剪刀手。', { c: () => L.a.MNY >= 4, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
+E('lostway', 12, 70, '你出门旅游，拿着地图在同一个路口转了三个小时。', { c: () => tal('luchi'), w: 3, em: 'q', sc: 'street' });
+E('gym1', 20, 50, '你办了一张健身卡，一共去了三次。', { em: 'sweat' });
+E('gym2', 20, 50, '你坚持健身，练出了八块腹肌。', { c: () => L.a.STR >= 6, fx: { STR: 1, CHR: 1 }, em: 'spark' });
+E('baldgen', 26, 45, '你照镜子时突然发现，你的发际线已经退到了后脑勺。', { c: () => !L.f.bald, w: () => tal('tutou') ? 5 : .35, fx: { CHR: -1 }, f: { bald: 1 }, em: 'sweat' });
+E('viral', 15, 60, '你随手拍的一条搞笑视频在网上爆火了，播放量破亿。', { w: .5, fx: { CHR: 1, SPR: 2 }, em: 'star' });
+E('rescue', 16, 60, '你跳进河里救起了一个落水的小孩，被评为“见义勇为好市民”。', { c: () => L.a.STR >= 6, w: .5, fx: { SPR: 2 }, em: 'star', sc: 'park' });
+E('wallet', 16, 70, '你的钱包在地铁上被偷了。', { fx: { SPR: -1 }, em: 'anger', sc: 'street' });
+E('insomnia', 18, 70, '你开始失眠，每天夜里盯着天花板数羊。', { c: () => L.a.SPR <= 3, fx: { STR: -1 }, em: 'zzz' });
+E('guitar', 18, 40, '你学会了弹吉他，在楼下弹唱时被邻居投诉了。', { fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('fishing', 28, 85, '你迷上了钓鱼，一坐就是一整天，一条鱼都没钓上来。', { w: .35, fx: { SPR: 1 }, f: { fish: 1 }, em: 'note', sc: 'park' });
+E('fishdream', 30, 90, '你梦见自己变成了一只戴渔夫帽的猫，在大海上和一只海怪拔河。', { c: () => L.f.fish, w: .6, fx: { SPR: 1 }, em: 'zzz' });
+E('moving', 20, 60, '你搬了一次家，扔掉了一屋子“以后肯定用得上”的东西。', { em: 'sweat' });
+E('midlife', 38, 50, '你突然意识到人生已经过半，陷入了中年危机。', { fx: { SPR: -2 }, em: 'sad' });
+E('moto', 39, 55, '为了对抗中年危机，你买了一辆摩托车，在山路上狂飙。', { c: () => used('midlife'), fx: { SPR: 2 }, em: 'spark', sc: 'street' });
+E('belly', 35, 55, '你长出了啤酒肚，低头已经看不见自己的脚尖了。', { c: () => !tal('shiba'), fx: { CHR: -1, STR: -1 }, em: 'sweat' });
+E('checkup', 40, 60, '体检报告上，血压、血脂、血糖齐刷刷地亮起了红灯。', { fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
+E('health', 30, 65, '你开始养生，保温杯里泡上了枸杞。', { fx: { STR: 1 }, em: 'note' });
+E('wrinkle', 42, 60, '你的眼角爬上了鱼尾纹。', { c: () => !tal('shiba'), fx: { CHR: -1 }, em: 'sweat' });
+E('whitehair', 40, 55, '你在镜子前拔下了自己的第一根白头发，愣了很久。', { c: () => !tal('shiba'), em: 'q' });
+E('forever', 40, 70, '同学聚会上，大家都老了，只有你看起来还像二十岁。', { c: () => tal('shiba'), w: 2, fx: { CHR: 1, SPR: 1 }, em: 'spark' });
+E('house', 25, 45, '你咬咬牙买了一套房，背上了三十年的房贷。', { c: () => !L.f.house && L.a.MNY >= 3 && L.a.MNY <= 8, w: 1.5, f: { house: 1 }, fx: { SPR: -1 }, em: 'coin', sc: 'home1' });
+E('house2', 25, 50, '你全款买下了一套江景大平层。', { c: () => !L.f.house && L.a.MNY >= 9, f: { house: 1 }, fx: { SPR: 2 }, em: 'star', sc: 'home2' });
+E('car', 24, 50, '你买了一辆车，周末终于可以带家人出去兜风了。', { c: () => !L.f.car && L.a.MNY >= 4, f: { car: 1 }, fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('debt', 28, 55, '房价跌了，你的房子成了负资产，房贷却一分没少。', { c: () => L.f.house && L.a.MNY <= 7, fx: { SPR: -2 }, em: 'sad' });
+E('reunion', 30, 55, '你参加同学聚会，发现当年的班花和班草都已经发福了。', { em: 'sweat' });
+E('scamcall', 25, 60, '你接到一个自称“公检法”的电话，差点被骗走二十万。', { c: () => L.a.INT <= 5, fx: { MNY: -1 }, em: 'bang' });
+E('charity', 25, 80, '你匿名捐了一大笔钱，给山区盖了一所小学。', { c: () => L.a.MNY >= 8, fx: { SPR: 2 }, em: 'heart', sc: 'class' });
+E('adopt', 22, 65, () => { getPet(chance(.5) ? 'cat' : 'dog'); return '你领养了一只流浪{pet}，给它取名叫“{pn}”。'; }, { c: () => !L.pet, w: .25, em: 'heart', sc: 'street' });
+E('ufo', 10, 80, '你在夜空中看到一个不明飞行物，拍下的照片糊成了一团。', { w: .25, em: 'q', sc: 'park' });
+E('timemachine', 15, 70, '你在旧货市场淘到一台“时光机”，一开机就冒烟了。', { w: .15, em: 'sweat', sc: 'street' });
+E('cook', 18, 40, '你学着做饭，第一道菜就差点把厨房点着了。', { em: 'sweat' });
+E('marathon', 25, 55, '你跑完了人生中第一个全程马拉松。', { c: () => L.a.STR >= 7, fx: { STR: 1 }, em: 'star', sc: 'street' });
+E('fill_adult', 18, 59, '平淡的一年过去了。', { rep: 1, cd: 1, w: .1, em: 'note' });
+// ---------------- love & family
+E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地铁上', '朋友的婚礼上', '健身房', '图书馆', '公司楼下']) + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => L.a.CHR / 6 + .3, fx: { SPR: 2 }, em: 'heart', sc: 'park', love: 1 });
+E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被爸妈安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被爸妈安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
+E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
+E('marry', 22, 55, () => { marry(); return ['你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: 2, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'wedding', big: '喜结连理!' });
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 1.5 : tal('duozi') ? 1.2 : .35, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3, w: .5, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
+E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
+E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
+E('divorce', 28, 65, () => { const t = '你和{spouse}因为性格不合，离婚了。'; return t; }, { c: () => L.mar, w: () => L.a.SPR <= 3 ? .6 : .07, fx: { SPR: -2 }, do: () => { endLove(); L.f.divorced = 1; }, em: 'sad', sc: 'street' });
+E('kidtalk', 24, 50, '你的{kid0}会叫“{mama}”了，你高兴得一晚上没睡着。', { c: () => kidAge(0) >= 1 && kidAge(0) <= 2, w: 3, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
+E('kidhw', 28, 60, '你开始辅导{kid0}写作业，血压一路飙升。', { c: () => kidAge(0) >= 7 && kidAge(0) <= 12, w: 2, fx: { STR: -1 }, em: 'anger', sc: 'home' });
+E('kidrebel', 30, 65, '你的{kid0}进入了叛逆期，每天把房门摔得震天响。', { c: () => kidAge(0) >= 13 && kidAge(0) <= 16, w: 2, fx: { SPR: -1 }, em: 'anger', sc: 'home' });
+E('kiduni', 36, 70, '你的{kid0}考上了大学，你在朋友圈连发了十条。', { c: () => kidAge(0) >= 18 && kidAge(0) <= 19, w: 4, fx: { SPR: 2 }, em: 'star', sc: 'home' });
+E('kidgift', 40, 75, '你的{kid0}用第一个月的工资，给你买了一件礼物。', { c: () => kidAge(0) >= 23, w: 1.5, fx: { SPR: 2 }, em: 'heart', sc: 'home' });
+E('kidwed', 45, 85, '你的{kid0}结婚了，你在婚礼上哭成了泪人。', { c: () => kidAge(0) >= 25, w: 1.5, fx: { SPR: 1 }, em: 'heart', sc: 'wedding' });
+E('grandkid', 48, 95, '你抱上了{grand}辈，每天乐得合不拢嘴。', { c: () => used('kidwed') && kidAge(0) >= 26, w: 2, fx: { SPR: 2 }, f: { grandkid: 1 }, em: 'heart', sc: 'home' });
+E('dad_die', 25, 80, () => '你的父亲因病去世了，享年' + parAge('dad') + '岁。', { c: () => L.par.dad.alive && parAge('dad') >= 62, w: () => Math.pow((parAge('dad') - 58) / 11, 2), fx: { SPR: -2 }, do: () => { L.par.dad.alive = 0; }, em: 'sad', sc: 'hosp' });
+E('mom_die', 25, 80, () => '你的母亲因病去世了，享年' + parAge('mom') + '岁。', { c: () => L.par.mom.alive && parAge('mom') >= 64, w: () => Math.pow((parAge('mom') - 60) / 11, 2), fx: { SPR: -2 }, do: () => { L.par.mom.alive = 0; }, em: 'sad', sc: 'hosp' });
+E('parill', 30, 65, () => '你的' + (L.par.dad.alive ? '父亲' : '母亲') + '生病住院了，你在医院陪护了一个月。', { c: () => (L.par.dad.alive || L.par.mom.alive) && parAge('dad') >= 55, fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
+E('partrip', 25, 55, '你带爸妈出去旅游，他们像孩子一样开心。', { c: () => L.par.dad.alive && L.par.mom.alive && L.a.MNY >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
+E('pet_old', 12, 120, () => '你的{pet}“{pn}”老了，在一个安静的午后永远地睡着了。', { c: () => L.pet && L.age - L.pet.born >= 12, w: () => (L.age - L.pet.born - 11) * .5, rep: 1, fx: { SPR: -2 }, do: () => { L.pet = null; L.f.petgone = 1; }, em: 'sad', p: '*' });
+E('pet_new', 16, 90, () => { getPet(chance(.5) ? 'cat' : 'dog'); return '你又养了一只小{pet}，叫“{pn}”，家里重新热闹了起来。'; }, { c: () => !L.pet && L.f.petgone, w: .5, rep: 1, em: 'heart' });
+E('cat_fun', 5, 100, '你的猫在键盘上睡了一觉，替你发出了一封全是“gggggg”的邮件。', { c: () => L.pet && L.pet.k === 'cat', fx: { SPR: 1 }, em: 'note', p: '*' });
+E('cat_fun2', 5, 100, '你的猫把桌上的杯子一个一个推到地上，然后看着你。', { c: () => L.pet && L.pet.k === 'cat', em: 'anger', p: '*' });
+E('dog_fun', 5, 100, '你的狗把你的新拖鞋咬成了碎片，然后用无辜的眼神看着你。', { c: () => L.pet && L.pet.k === 'dog', em: 'anger', p: '*' });
+E('dog_fun2', 5, 100, '你的狗每天准时在门口等你回家，尾巴摇得像螺旋桨。', { c: () => L.pet && L.pet.k === 'dog', fx: { SPR: 1 }, em: 'heart', p: '*' });
+// ---------------- old age
+E('dance', 55, 80, '你加入了广场舞队伍，没过多久就成了领舞。', { fx: { STR: 1, SPR: 1 }, em: 'note', sc: 'park' });
+E('chess', 58, 90, '你每天去公园下象棋，旁边围观的大爷比你还着急。', { fx: { INT: 1, SPR: 1 }, em: 'note', sc: 'park' });
+E('oldscam', 60, 90, '你被推销员忽悠，花三万块买了一堆“包治百病”的保健品。', { c: () => L.a.INT <= 7, fx: { MNY: -1 }, em: 'sweat' });
+E('olduni', 60, 80, '你报名了老年大学，学会了书法和摄影。', { fx: { INT: 1, SPR: 1 }, em: 'book', sc: 'class' });
+E('memoir', 65, 95, '你写了一本回忆录，儿孙们都抢着看。', { c: () => L.a.INT >= 6, fx: { SPR: 1 }, em: 'book' });
+E('oldill', 60, 130, '你生了一场大病，在医院住了很久，身体大不如前了。', { rep: 1, cd: 5, w: .3, fx: { STR: -2 }, em: 'ill', sc: 'hosp' });
+E('cane', 68, 110, '你走路越来越慢，出门开始拄拐杖了。', { c: () => !L.f.cane, f: { cane: 1 }, fx: { STR: -1 }, em: 'sweat' });
+E('glassesonhead', 70, 110, '你到处找眼镜，最后发现它就戴在自己脸上。', { fx: { INT: -1 }, em: 'q' });
+E('sun', 60, 130, '你坐在摇椅上晒太阳，觉得这辈子过得还不错。', { rep: 1, cd: 6, w: .3, fx: { SPR: 1 }, em: 'note' });
+E('taiji', 60, 90, '你每天早上去公园打太极拳。', { fx: { STR: 1 }, em: 'note', sc: 'park' });
+E('smartphone', 60, 85, '你学会了用智能手机，每天在家族群里转发养生文章。', { fx: { SPR: 1 }, em: 'note' });
+E('oldfriend', 70, 110, '你的一位老朋友走了，你在葬礼上沉默了很久。', { fx: { SPR: -1 }, em: 'sad' });
+E('mahjong', 55, 95, '你打麻将连胡了三把，高兴得血压都上来了。', { fx: { SPR: 1 }, em: 'note' });
+E('story', 60, 100, '你给{grand}辈讲你年轻时的故事，讲着讲着自己先笑了。', { c: () => L.f.grandkid, fx: { SPR: 1 }, em: 'note', sc: 'home' });
+E('goldwed', 70, 110, '你和{spouse}迎来了金婚纪念日，儿孙们为你们摆了一桌宴席。', { c: () => L.mar && L.age - L.marAge >= 50, w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'home', big: '金婚!' });
+E('century', 100, 100, '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!', p: '*' });
+E('oldest', 104, 140, '你成了全市最长寿的老人。记者问你长寿的秘诀，你说：“别想太多。”', { fx: { SPR: 1 }, em: 'star', p: '*' });
+E('fill_old', 60, 200, '你在平静中度过了一年。', { rep: 1, cd: 1, w: .12, em: 'zzz', p: '*' });
+// ---------------- the immortal path
+const XREALM = ['凡人', '练气', '筑基', '金丹', '元婴', '化神'], XCAP = [100, 150, 250, 500, 1000, 2500];
+E('xmeet', 6, 16, '你在山里迷了路，遇到一位白胡子老爷爷。他说你骨骼清奇，是万中无一的修仙奇才。', { c: () => tal('xianyuan') || L.a.INT >= 9, w: () => tal('xianyuan') ? 6 : .01, f: { xmeet: 1 }, em: 'bang', sc: 'xian', nx: ['xjoin', 1, 1] });
+E('xjoin', 0, 30, () => { L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; return '你告别了父母，跟着老爷爷拜入了青云宗，踏上了修仙之路。'; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star', sc: 'xian', big: '踏入仙途!' });
+const XUP = [null, null,
+  ['你修为大进，突破到了筑基期！', { STR: 2, SPR: 1 }, null],
+  ['你在丹田中凝结出一颗金丹，寿元大增！', { STR: 2, INT: 1 }, '结成金丹!'],
+  ['你碎丹成婴，修成了元婴，从此可以御剑飞行。', { STR: 3, INT: 1 }, '元婴大成!'],
+  ['你踏入化神境界，成为了名震天下的一代宗师。', { STR: 2, INT: 2 }, '化神!']];
+E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XUP[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= 3, w: () => .2 + L.a.INT * .035 + L.a.STR * .02, em: 'spark' });
+E('xclose', 0, 9999, () => { const n = ri(8, 20) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
+E('xbook', 0, 9999, '你在藏经阁的角落里翻到一本落满灰的秘籍，修为大涨。', { p: 'xian', fx: { INT: 2 }, em: 'book' });
+E('xherb', 0, 9999, '你在秘境里找到一株千年灵芝，吃下去后浑身发烫。', { p: 'xian', fx: { STR: 2 }, em: 'spark' });
+E('xdisciple', 0, 9999, '你收了一个天资聪颖的徒弟，把毕生所学倾囊相授。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
+E('xdemon', 0, 9999, '魔教大举进攻青云宗，你一剑斩杀了魔教长老，名动天下。', { p: 'xian', c: () => L.xl >= 2, fx: { STR: 2 }, em: 'star' });
+E('xlove', 0, 9999, () => { startLove({ fit: 'robe' }); marry(); return '你和同门的{xiong}结为了道侣。'; }, { p: 'xian', c: () => canLove() && L.age >= 18, fx: { SPR: 2 }, em: 'heart' });
+E('xdown', 120, 9999, '你下山游历，发现山下已经过了一百年，你认识的人都不在了。', { p: 'xian', fx: { SPR: -2 }, em: 'sad', sc: 'street' });
+E('xboom', 0, 9999, '你炼丹时炸了炉，眉毛被烧得一根不剩。', { p: 'xian', fx: { CHR: -1 }, em: 'sweat' });
+E('xsword', 0, 9999, '你御剑飞行时没看路，一头撞进了一群大雁里。', { p: 'xian', c: () => L.xl >= 4, em: 'sweat' });
+E('xhead', 0, 9999, '你被推举为青云宗掌门。', { p: 'xian', c: () => L.xl >= 4, fx: { SPR: 2, MNY: 2 }, em: 'star', big: '一派掌门!' });
+E('xtrib', 0, 9999, () => {
+  const p = clamp((L.a.STR + L.a.INT) / 32, .25, .92);
+  if (chance(p)) { L.end = true; L.asc = true; YR.big = '羽化飞升!'; return ['九天之上雷云密布，你的天劫来了……', '你硬扛下九九八十一道天雷，羽化飞升，位列仙班！']; }
+  die('你没能扛过最后一道天雷，灰飞烟灭了。'); return '九天之上雷云密布，你的天劫来了……';
+}, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 5, w: 1.2, em: 'bang' });
+E('xfill', 0, 9999, () => pick(['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。']), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
+// ---------------- isekai
+E('truck', 16, 45, () => { L.path = 'isekai'; L.isAge = L.age; L.job = null; endLove(); L.kids = []; L.pet = null; return ['你过马路时，一辆卡车朝你冲了过来……', '再睁开眼时，你发现自己转生到了剑与魔法的异世界！']; }, { w: () => tal('yishijie') ? 2.5 : .004, em: 'bang', sc: 'isekai', big: '异世界转生!' });
+E('is_skill', 0, 999, () => '你发现自己觉醒了外挂技能“' + pick(['无限鉴定', '时间暂停', '万物收纳', '究极治愈', '和史莱姆对话']) + '”。', { p: 'isekai', w: 3, fx: { INT: 2 }, em: 'spark' });
+E('is_guild', 0, 999, '你去冒险者公会登记，测魔力的水晶球被你直接撑爆了。', { p: 'isekai', w: 2, fx: { STR: 1 }, f: { guild: 1 }, em: 'bang' });
+E('is_slime', 0, 999, '你打倒了一只史莱姆，升到了2级。', { p: 'isekai', fx: { STR: 1 }, em: 'star' });
+E('is_party', 0, 999, '你组建了一支冒险小队：精灵弓手、兽耳剑士，还有一个只会喊加油的女神。', { p: 'isekai', c: () => L.f.guild, fx: { SPR: 2 }, em: 'note' });
+E('is_mayo', 0, 999, '你用前世的知识做出了蛋黄酱，在异世界卖到脱销。', { p: 'isekai', fx: { MNY: 3 }, em: 'coin' });
+E('is_dragon', 0, 999, '你单挑了一头巨龙，然后把它收成了坐骑。', { p: 'isekai', c: () => L.f.guild, fx: { STR: 2 }, em: 'star' });
+E('is_elf', 0, 999, () => { startLove({ hair: 'silver', fit: 'robe' }); return '你和精灵族的' + (L.g === 'm' ? '公主' : '王子') + '坠入了爱河。'; }, { p: 'isekai', c: canLove, fx: { SPR: 2 }, em: 'heart' });
+E('is_wed', 0, 999, () => { marry(); return '你和{ta}在世界树下举行了婚礼。'; }, { p: 'isekai', c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' });
+E('is_kid', 0, 999, () => { addKid(); return '你们有了一个{kid}，长着一对尖尖的耳朵。'; }, { p: 'isekai', c: () => L.mar && L.kids.length < 2 && !tal('dingke'), rep: 1, fx: { SPR: 2 }, em: 'heart' });
+E('is_demon', 0, 999, '你带领小队攻入魔王城，激战了三天三夜，终于击败了魔王！', { p: 'isekai', c: () => L.f.guild && L.age - L.isAge >= 4, w: .8, fx: { SPR: 3, STR: 1 }, f: { hero: 1 }, em: 'star', big: '讨伐魔王!' });
+E('is_king', 0, 999, '国王把王位传给了你，你成为了异世界的新国王。', { p: 'isekai', c: () => L.f.hero, fx: { MNY: 5 }, f: { king: 1 }, em: 'star', big: '登基!' });
+E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红烧肉。', { p: 'isekai', fx: { SPR: -1 }, em: 'sad' });
+E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .015, em: 'q', sc: 'hosp' });
+E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。']), { p: 'isekai', rep: 1, cd: 1, w: .4, em: 'note' });
+E('is_peace', 0, 999, '在你的治理下，异世界迎来了和平。', { p: 'isekai', c: () => L.f.king, rep: 1, cd: 4, w: .4, fx: { SPR: 1 }, em: 'note' });
+// ---------------- aliens
+E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
+E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
+E('alien3', 20, 80, () => { setJob('ambassador'); return ['外星人再次来访，邀请你加入银河联邦。', '你成为了银河联邦驻地球大使。']; }, { c: () => L.f.alien && used('alien2') && L.job !== 'ambassador' && L.a.INT >= 7, w: .2, fx: { MNY: 3 }, em: 'spark', sc: 'space', big: '星际大使!' });
+
+// ============================================================ life engine
+function newLife(tids, pts) {
+  const look = () => ({ hair: pick(['black', 'black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS) });
+  L = {
+    v: 1, age: -1, g: chance(.5) ? 'm' : 'f',
+    a: { CHR: pts.CHR, INT: pts.INT, STR: pts.STR, MNY: pts.MNY, SPR: 5 }, mx: {},
+    t: {}, tl: tids.slice(), f: {}, used: {}, at: {}, q: [], log: [], newAch: 0,
+    job: null, oldJob: null, path: null, xl: 0,
+    love: 0, mar: 0, pt: null, kids: [], pet: null,
+    par: { dad: Object.assign({ a0: ri(24, 34), alive: 1, g: 'm' }, look()), mom: Object.assign({ a0: ri(22, 32), alive: 1, g: 'f', skirt: chance(.5) }, look()) },
+    look: Object.assign(look(), { skirt: chance(.5), elder: pick(ELDER_TOPS), beard: chance(.35) }),
+    end: false, asc: false, grade: null,
+  };
+  for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
+  if (tal('jinshi')) L.f.glasses = 1;
+  for (const k of STATS) L.mx[k] = L.a[k];
+}
+function birth() {
+  const m = L.a.MNY, ln = YR.lines;
+  if (tal('shoufu')) ln.push('你出生了，是个{sex}。你的父亲是全国首富，产房外站满了保镖。');
+  else if (m >= 10) ln.push('你出生在一个显赫的豪门，是个{sex}，还没睁眼就有了自己的保姆和管家。');
+  else if (m >= 7) ln.push('你出生在一个富裕的家庭，是个{sex}。');
+  else if (m >= 4) ln.push('你出生在一个普通的城市家庭，是个{sex}。');
+  else if (m >= 2) ln.push('你出生在一个小县城，是个{sex}，家里的日子紧巴巴的。');
+  else ln.push('你出生在一个贫困的小山村，是个{sex}，家里只有一头老黄牛。');
+  if (L.a.CHR >= 9) ln.push('护士们都说，从没见过这么好看的宝宝。');
+  else if (L.a.CHR <= 1) ln.push('护士看了你一眼，沉默了。');
+  if (L.a.INT >= 10) ln.push('你出生时没有哭，而是若有所思地盯着天花板。');
+  if (tal('chongsheng')) ln.push('你带着前世的记忆出生了：“怎么又是我？”');
+  if (tal('dusheng')) L.f.only = 1;
+  for (let i = 0; i < ln.length; i++) ln[i] = fmt(ln[i]);
+  YR.em = L.a.STR <= 0 ? 'ill' : 'heart'; YR.sc = 'hosp';
+}
+function eligible(e, sched) {
+  if (L.end) return false;
+  if (!sched && e.sched) return false;
+  if (L.age < e.a0 || L.age > e.a1) return false;
+  if (e.p === '*') { /* any path */ } else if (e.p) { if (L.path !== e.p) return false; } else if (L.path) return false;
+  if (!e.rep && L.used[e.id]) return false;
+  if (e.rep && L.at[e.id] !== undefined && L.age - L.at[e.id] < (e.cd || 3)) return false;
+  if (e.x && L.used['#' + e.x]) return false;
+  return e.c ? !!e.c() : true;
+}
+function weight(e) {
+  let w = typeof e.w === 'function' ? e.w() : e.w; const g = e._g;
+  if (tal('jinli')) w *= g > 0 ? 1.6 : g < 0 ? .6 : 1;
+  if (tal('daomei')) w *= g < 0 ? 1.8 : g > 0 ? .8 : 1;
+  if (e.love && tal('taohua')) w *= 2.5;
+  return w;
+}
+function pickEvent() {
+  for (let i = 0; i < L.q.length; i++) {
+    const q = L.q[i]; if (q.a > L.age) continue;
+    L.q.splice(i--, 1); const e = EVI[q.id]; if (e && eligible(e, true)) return e;
+  }
+  for (const e of MILES) if (eligible(e)) return e;
+  return wpick(EV.filter(e => !e.m && eligible(e)), weight);
+}
+function doEvent(e) {
+  L.used[e.id] = (L.used[e.id] || 0) + 1; L.at[e.id] = L.age; if (e.x) L.used['#' + e.x] = 1;
+  const push = t => [].concat(t).forEach(s => { if (s) YR.lines.push(fmt(s)); });
+  push(typeof e.t === 'function' ? e.t() : e.t);
+  if (e.fx) addFx(e.fx);
+  if (e.f) Object.assign(L.f, e.f);
+  if (e.u) e.u.forEach(k => delete L.f[k]);
+  if (e.do) push(e.do());
+  if (e.nx) L.q.push({ a: L.age + ri(e.nx[1], e.nx[2]), id: e.nx[0] });
+  if (e.sc && !YR.sc) YR.sc = e.sc;
+  if (e.em && !YR.em) YR.em = e.em;
+  if (e.big && !YR.big) YR.big = typeof e.big === 'function' ? e.big() : e.big;
+  if (e.g) YR.g = e.g;
+  if (e.die) die(e.die);
+}
+function die(text) {
+  if (L.end) return;
+  if (tal('jiuming') && !L.f.revived) {
+    L.f.revived = 1; YR.lines.push(fmt(text)); YR.lines.push('……然而下一秒，你奇迹般地睁开了眼睛。（九命猫发动）');
+    L.a.STR = Math.max(L.a.STR, 3); YR.big = '九死一生!'; YR.em = 'bang'; return;
+  }
+  L.end = true; L.cause = text; YR.lines.push(fmt(text)); YR.dead = true;
+}
+function naturalDeath() {
+  if (L.path === 'isekai') return L.f.king ? '你在王座上安详地闭上了眼睛，举国为你哀悼。' : '你在异世界安详地走完了这一生。';
+  if (L.mar && L.kids.length) return '你在儿孙们的陪伴下，安详地闭上了眼睛。';
+  if (L.mar) return '你握着{spouse}的手，安详地离开了人世。';
+  if (L.pet) return '你的{pet}“{pn}”趴在你身边，陪你走完了最后一程。';
+  if (L.kids.length) return '你在{kid0}的陪伴下，安详地离开了人世。';
+  return '你在睡梦中安详地离开了人世。';
+}
+function deathCheck() {
+  if (L.end) return;
+  const a = L.age;
+  if (L.path === 'xian' && L.xl >= 1) { if (a > XCAP[L.xl]) die('你寿元耗尽，在洞府中安详地坐化了。'); return; }
+  if (L.a.STR <= 0) { die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你的身体终于撑不住了，在病床上离开了人世。'); return; }
+  if (a < 50) return;
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (L.a.SPR <= 1 ? 1.25 : 1);
+  if (chance(.0045 * Math.pow(1.09, a - 50) * m)) die(naturalDeath());
+}
+function runYear() {
+  YR = { lines: [], sc: null, em: null, big: null, d: {}, g: 0, dead: false };
+  L.age++;
+  if (L.age === 0) birth();
+  else { const e = pickEvent(); if (e) doEvent(e); else YR.lines.push('平淡的一年过去了。'); }
+  if (tal('xitong') && L.age > 0 && L.age % 10 === 0 && !L.end) { const k = pick(STATS); addFx({ [k]: 2 }, true); YR.lines.push('【叮！人生系统到账：' + SNAME[k] + '+2】'); }
+  deathCheck();
+  if (!YR.g) { let s = 0; for (const k in YR.d) s += YR.d[k]; YR.g = s > 0 ? 1 : s < 0 ? -1 : 0; }
+  if (L.end) YR.g = L.asc ? 2 : -2;
+  L.log.push({ a: L.age, l: YR.lines, g: YR.g });
+  if (YR.skip && !L.end) L.age += YR.skip;
+  return YR;
+}
+
+// ============================================================ grading & achievements
+const GRADES = {
+  CHR: ['惨不忍睹', '其貌不扬', '五官端正', '颜值出众', '倾国倾城', '神仙颜值'],
+  INT: ['智商欠费', '略显迟钝', '智力正常', '聪明伶俐', '天纵奇才', '智慧之神'],
+  STR: ['弱不禁风', '体弱多病', '身体健康', '身强体壮', '钢筋铁骨', '金刚不坏'],
+  MNY: ['家徒四壁', '勉强温饱', '小康之家', '家境殷实', '富甲一方', '富可敌国'],
+  SPR: ['郁郁寡欢', '闷闷不乐', '平平淡淡', '开开心心', '快乐无边', '快乐星球'],
+};
+const GCOL = ['#9a9aac', '#8ab0c8', '#5fb85a', '#4a90e0', '#b060f0', '#ff9a2a'];
+const gIdx = v => v <= 1 ? 0 : v <= 3 ? 1 : v <= 6 ? 2 : v <= 8 ? 3 : v <= 11 ? 4 : 5;
+function ageGrade(a) { return a < 10 ? [0, '匆匆过客'] : a < 40 ? [1, '英年早逝'] : a < 60 ? [2, '人生过半'] : a < 80 ? [3, '寿终正寝'] : a < 100 ? [4, '长命百岁'] : a < 200 ? [5, '人瑞'] : [5, '与天同寿']; }
+function lifeScore() {
+  let s = 0; for (const k of STATS) s += clamp(L.mx[k], -5, 20);
+  s += Math.min(L.age, 110) / 5;
+  const f = L.f;
+  if (L.asc) s += 30; if (f.hero) s += 10; if (f.nobel || f.moon || f.richest || f.olygold || f.champ || f.topstar) s += 8;
+  if (f.zy) s += 4; if (f.lotto) s += 3; if (L.kids.length) s += 2; if (L.mar) s += 2;
+  return R(s);
+}
+const LETTERS = [[108, 'SSS'], [95, 'SS'], [84, 'S'], [74, 'A'], [64, 'B'], [55, 'C'], [-999, 'D']];
+const LCOL = { SSS: '#ff5ab0', SS: '#ff9a2a', S: '#ffc62a', A: '#b060f0', B: '#4a90e0', C: '#5fb85a', D: '#9a9aac' };
+function letterOf(s) { return LETTERS.find(x => s >= x[0])[1]; }
+function lifeTitle() {
+  const f = L.f;
+  if (L.asc) return '羽化登仙'; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
+  if (f.moon) return '星辰大海'; if (f.richest) return '首富人生'; if (f.topstar) return '顶流人生'; if (f.champ || f.olygold) return '冠军人生';
+  return { SSS: '传奇人生', SS: '精彩人生', S: '美满人生', A: '不错的一生', B: '平凡的一生', C: '坎坷的一生', D: '潦草的一生' }[L.grade];
+}
+function epitaph() {
+  const f = L.f, j = L.oldJob || L.job;
+  if (L.asc) return '此人已飞升，墓中空无一人';
+  if (L.path === 'isekai') return f.king ? '异世界之王，长眠于此' : '来自异世界的冒险者，长眠于此';
+  if (f.nobel) return '诺贝尔奖得主，人类的骄傲';
+  if (f.moon) return '曾在月亮上留下过脚印';
+  if (f.richest) return '首富长眠于此，钱一分没带走';
+  if (f.topstar) return '一代顶流，化作了天上的星星';
+  if (f.champ) return '电竞世界冠军，永远的神';
+  if (f.olygold) return '奥运冠军，为国争光';
+  if (L.age < 10) return '来这世界，匆匆走了一遭';
+  if (f.bald && j === 'coder') return '秃了，也变强了';
+  if (f.hadcat && !f.mar1) return '一生有猫相伴，足矣';
+  if (L.kids.length >= 3) return '儿孙满堂，福寿双全';
+  if (f.fish) return '钓了一辈子鱼，一条也没钓上来';
+  if (!f.loved && L.age >= 40) return '单身一生，自由自在';
+  if (j && JOBS[j] && j !== 'retired') return '一名普通的' + JOBS[j].n + '，认真地活过';
+  return '平凡地来，平凡地走';
+}
+// [id, name, desc, test, hint shown while locked (secret ones)]
+const ACH = [
+  ['first', '初入轮回', '完成第一次人生', () => L.end],
+  ['ten', '轮回常客', '累计重开10次', () => META.lives >= 10],
+  ['fifty', '轮回老油条', '累计重开50次', () => META.lives >= 50],
+  ['early', '匆匆过客', '10岁前离开人世', () => L.end && !L.asc && L.age < 10],
+  ['c80', '寿终正寝', '活到80岁', () => L.age >= 80],
+  ['c100', '人瑞', '活到100岁', () => L.age >= 100],
+  ['c500', '与天同寿', '活到500岁', () => L.age >= 500, '凡人是做不到的'],
+  ['chr', '倾国倾城', '颜值达到12', () => L.a.CHR >= 12], ['int', '智慧之神', '智力达到12', () => L.a.INT >= 12],
+  ['str', '金刚不坏', '体质达到12', () => L.a.STR >= 12], ['mny', '富可敌国', '家境达到12', () => L.a.MNY >= 12],
+  ['spr', '快乐星球', '快乐达到12', () => L.a.SPR >= 12],
+  ['all8', '五边形战士', '五项属性同时达到8', () => STATS.every(k => L.a[k] >= 8)],
+  ['top', '金榜题名', '考上清北', () => L.f.top], ['zy', '高考状元', '成为高考状元', () => L.f.zy],
+  ['drop', '社会大学', '中途辍学', () => L.f.drop],
+  ['marry', '喜结连理', '结婚', () => L.f.mar1], ['single', '单身贵族', '一辈子没谈过恋爱，并活到60岁', () => L.age >= 60 && !L.f.loved],
+  ['kids3', '儿孙满堂', '拥有3个孩子', () => L.kids.length >= 3],
+  ['cat', '猫奴', '养过一只猫', () => L.f.hadcat], ['dog', '汪汪队', '养过一只狗', () => L.f.haddog],
+  ['bald', '聪明绝顶', '秃了', () => L.f.bald], ['dye', '杀马特', '染过一头黄毛', () => L.f.dye],
+  ['fish', '钓鱼佬', '迷上钓鱼', () => L.f.fish], ['lotto', '天选之子', '中了彩票大奖', () => L.f.lotto],
+  ['rich', '首富', '登上首富宝座', () => L.f.richest], ['star', '顶流', '成为当红顶流', () => L.f.topstar],
+  ['champ', '世界冠军', '拿下电竞世界冠军', () => L.f.champ], ['gold', '为国争光', '夺得奥运金牌', () => L.f.olygold],
+  ['nobel', '诺贝尔奖', '获得诺贝尔奖', () => L.f.nobel], ['moon', '一小步', '登上月球', () => L.f.moon],
+  ['alien', '第三类接触', '被外星人绑架', () => L.f.alien, '据说和一道从天而降的光有关'],
+  ['isekai', '异世界转生', '被卡车送进了异世界', () => L.path === 'isekai' || L.f.isback, '过马路时要看车'],
+  ['hero', '勇者', '在异世界击败魔王', () => L.f.hero, '先得去一趟异世界'],
+  ['xian', '踏入仙途', '踏上修仙之路', () => L.path === 'xian', '山里好像住着一位白胡子老爷爷'],
+  ['asc', '羽化飞升', '渡劫成功，飞升成仙', () => L.asc, '修炼到化神之后……'],
+  ['nine', '九死一生', '触发九命猫复活', () => L.f.revived, '需要一只猫的九条命'],
+  ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
+];
+// ============================================================ persistence
+function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+const META = Object.assign({ lives: 0, best: 0, ach: {}, inh: null, muted: false }, load('rl-meta', {}));
+const saveMeta = () => save('rl-meta', META);
+let SAVED = load('rl-run', null);
+if (SAVED && (SAVED.v !== 1 || SAVED.end)) SAVED = null;
+function saveRun() { if (L && !L.end) { SAVED = L; save('rl-run', L); } }
+function clearRun() { SAVED = null; try { localStorage.removeItem('rl-run'); } catch (e) {} }
+let TOASTS = [];
+function checkAch() {
+  for (const a of ACH) if (!META.ach[a[0]] && a[3]()) { META.ach[a[0]] = 1; L.newAch = (L.newAch || 0) + 1; TOASTS.push({ n: a[1], t: 0 }); saveMeta(); }
+}
+function finishLife() {
+  META.lives++; META.best = Math.max(META.best, L.age);
+  L.score = lifeScore(); L.grade = letterOf(L.score);
+  checkAch(); saveMeta(); clearRun();
+}
+function rarityOdds() {
+  const n = Object.keys(META.ach).length, o = [.6, .26, .1 + n * .004, .04 + n * .003];
+  const s = o.reduce((a, b) => a + b, 0); return o.map(v => v / s);
+}
+function drawTalents() {
+  const odds = rarityOdds(), out = [], seen = new Set();
+  if (META.inh && TAL[META.inh]) { out.push(META.inh); seen.add(META.inh); }
+  let guard = 0;
+  while (out.length < 10 && guard++ < 500) {
+    let r = Math.random(), tier = 0; for (; tier < 3; tier++) { if (r < odds[tier]) break; r -= odds[tier]; }
+    const pool = TAL_IDS.filter(id => TAL[id].r === tier && !seen.has(id)); if (!pool.length) continue;
+    const id = pick(pool); seen.add(id); out.push(id);
+  }
+  return out.sort((a, b) => (a === META.inh ? -1 : b === META.inh ? 1 : TAL[b].r - TAL[a].r));
+}
+
+// ============================================================ audio
+let AC = null, NB = null;
+function initAudio() {
+  try {
+    if (AC && AC.state === 'closed') { AC = null; NB = null; MUS.bus = null; MUS.cur = null; }
+    if (!AC) { const A = window.AudioContext || window.webkitAudioContext; if (A) AC = new A(); }
+    if (AC && AC.state === 'suspended') AC.resume();
+  } catch (e) {}
+}
+function tone(f, d, type, v, f2, delay) {
+  if (!AC || META.muted) return;
+  try {
+    const t = AC.currentTime + (delay || 0), o = AC.createOscillator(), gn = AC.createGain();
+    o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    gn.gain.setValueAtTime(v || .06, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + d + .03);
+  } catch (e) {}
+}
+function noise(d, v, freq, delay, ft) {
+  if (!AC || META.muted) return;
+  try {
+    if (!NB) { NB = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const a = NB.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
+    const t = AC.currentTime + (delay || 0), s = AC.createBufferSource(), fl = AC.createBiquadFilter(), gn = AC.createGain();
+    s.buffer = NB; fl.type = ft || 'lowpass'; fl.frequency.value = freq || 1000;
+    gn.gain.setValueAtTime(v || .1, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d);
+    s.connect(fl); fl.connect(gn); gn.connect(AC.destination); s.start(t); s.stop(t + d + .03);
+  } catch (e) {}
+}
+const SFX = {
+  click() { tone(900, .04, 'square', .03); },
+  plus() { tone(1100, .05, 'square', .03, 1400); },
+  minus() { tone(700, .05, 'square', .03, 500); },
+  no() { tone(220, .12, 'square', .035); },
+  crank() { for (let i = 0; i < 6; i++) { noise(.04, .06, 3000, i * .12, 'bandpass'); tone(500 + i * 40, .03, 'square', .02, 0, i * .12); } },
+  pop() { tone(300, .12, 'sine', .08, 900); noise(.08, .06, 2000); },
+  reveal(r) { const s = [[523, 659, 784], [523, 659, 784, 1047], [587, 740, 880, 1175, 1480], [659, 831, 988, 1319, 1661, 1976]][r]; s.forEach((f, i) => tone(f, .16, 'triangle', .06, 0, i * .07)); if (r >= 2) noise(.5, .04, 6000, .1, 'highpass'); },
+  select() { tone(1320, .06, 'triangle', .05); tone(1760, .08, 'triangle', .04, 0, .05); },
+  tick() { tone(1500, .03, 'triangle', .025); },
+  good() { tone(988, .08, 'triangle', .05); tone(1319, .12, 'triangle', .05, 0, .07); },
+  bad() { tone(330, .14, 'triangle', .05, 260); },
+  big() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .15, 'square', .045, 0, i * .08)); noise(.4, .05, 5000, .3, 'highpass'); },
+  death() { [523, 440, 392, 330, 262].forEach((f, i) => tone(f, .35, 'triangle', .06, 0, i * .22)); },
+  ascend() { [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone(f, .3, 'sine', .05, 0, i * .1)); },
+  ach() { [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, .12, 'triangle', .05, 0, i * .06)); },
+  start() { tone(400, .3, 'sine', .06, 1200); noise(.3, .05, 3000, 0, 'bandpass'); },
+};
+function vib(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+// music: 8 bars of chords [rootOffset, quality], a melody in semitones from the root (null = hold), plus
+// generated bass / comping / drums (k kick, K soft kick, s snare, h hat, x shaker, w woodblock, r rim).
+const _ = null;
+const INST = {
+  marimba: { vol: .09, dec: .32, parts: [[1, 1], [4, .22], [10, .05]] },
+  steel: { vol: .08, dec: .45, parts: [[1, 1], [2, .35], [3, .12]] },
+  box: { vol: .06, dec: .9, parts: [[1, 1], [3, .18], [5.4, .06]], echo: true },
+  flute: { vol: .07, att: .04, parts: [[1, 1], [2, .08]], vib: 5 },
+  ep: { vol: .07, dec: 1.1, parts: [[1, 1], [2, .18], [3, .05]], echo: true },
+  lead: { vol: .03, dec: .28, type: 'square' },
+  pluck: { vol: .03, dec: .16, parts: [[1, 1], [2, .3]] },
+  zheng: { vol: .05, dec: .6, parts: [[1, 1], [2, .5], [3, .2], [4, .08]], echo: true },
+  stab: { vol: .018, dec: .12, type: 'square' },
+  bass: { vol: .13, dec: .34, type: 'triangle' },
+  bassLong: { vol: .12, att: .03, type: 'triangle' },
+};
+const Q = { M: [0, 4, 7], m: [0, 3, 7], 7: [0, 4, 7, 10], M7: [0, 4, 7, 11], m7: [0, 3, 7, 10] };
+const SONGS = {
+  // title: a gentle music-box waltz of a life going round
+  title: { bpm: 96, root: 60, lead: INST.box, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .3, drums: 'K.......',
+    chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [7, 'M'], [0, 'M'], [-3, 'm'], [2, 'm7'], [7, '7']],
+    mel: [12, _, 16, _, 19, _, 16, _, 16, _, 12, _, 9, _, 12, _, 17, _, 16, _, 14, _, 12, _, 14, _, _, _, 11, _, 7, _,
+      12, _, 16, _, 19, _, 21, _, 19, _, 16, _, 12, _, 16, _, 17, _, 14, _, 12, _, 9, _, 11, _, 14, _, 12, _, _, _] },
+  // talent gacha / point allocation: bouncy steel drums
+  setup: { bpm: 116, swing: .12, root: 65, lead: INST.steel, bass: 'walk', comp: 'off', drums: 'kx.xrx.x',
+    chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [7, '7'], [0, 'M'], [-3, 'm'], [5, 'M'], [7, '7']],
+    mel: [0, _, 4, _, 7, _, 12, _, 9, _, 5, _, 2, _, 5, _, 5, _, 9, _, 12, _, 14, _, 11, _, 10, _, 7, _, _, _,
+      12, _, 11, 12, 14, _, 12, _, 9, _, _, _, 5, _, 9, _, 10, _, 14, _, 17, _, 14, _, 16, _, 14, _, 11, _, 7, _] },
+  // childhood: sunny marimba
+  kid: { bpm: 126, swing: .1, root: 60, lead: INST.marimba, bass: 'walk', comp: 'off', drums: 'Kwhwkwhw',
+    chords: [[0, 'M'], [5, 'M'], [7, 'M'], [0, 'M'], [-3, 'm'], [5, 'M'], [2, '7'], [7, '7']],
+    mel: [7, _, 12, _, 12, 14, 16, _, 17, _, 16, _, 14, _, 12, _, 14, _, 11, _, 7, _, 11, 14, 12, _, _, _, _, _, 7, _,
+      9, _, 12, _, 16, _, 12, _, 17, _, 21, _, 19, 17, 16, _, 14, _, 18, _, 21, _, 18, _, 19, _, 17, _, 14, _, 11, _] },
+  // adulthood: jazzy electric piano
+  adult: { bpm: 100, swing: .18, root: 62, lead: INST.ep, bass: 'walk', comp: 'off', drums: 'K.h.K.hw',
+    chords: [[0, 'M7'], [-3, 'm7'], [2, 'm7'], [7, '7'], [0, 'M7'], [-3, 'm7'], [2, 'm7'], [7, '7']],
+    mel: [16, _, 14, _, 11, _, 9, _, 9, _, 11, _, 14, _, 12, _, 14, _, 17, _, 19, _, 17, _, 16, _, _, _, 11, _, _, _,
+      16, _, 19, _, 21, _, 19, _, 21, _, 19, _, 16, _, 14, _, 14, _, 12, _, 11, _, 9, _, 7, _, 11, _, 14, _, _, _] },
+  // old age: slow flute over a music box
+  old: { bpm: 84, root: 60, lead: INST.flute, bass: 'long', comp: 'arp', compInst: INST.box, echo: .3, drums: '........',
+    chords: [[5, 'M'], [0, 'M'], [2, 'm'], [-3, 'm'], [5, 'M'], [0, 'M'], [7, 'M'], [0, 'M']],
+    mel: [17, _, _, _, 16, _, 14, _, 12, _, _, _, 7, _, _, _, 14, _, 17, _, 21, _, 19, _, 16, _, _, _, _, _, _, _,
+      17, _, _, _, 19, _, 21, _, 19, _, 16, _, 12, _, _, _, 14, _, _, _, 11, _, 14, _, 12, _, _, _, _, _, _, _] },
+  // the immortal path: pentatonic zither
+  xian: { bpm: 76, root: 62, lead: INST.zheng, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .45, drums: 'w.......',
+    chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [0, 'M'], [-3, 'm'], [-5, 'M'], [-3, 'm'], [0, 'M']],
+    mel: [12, _, 14, _, 16, _, 19, _, 21, _, 19, _, 16, _, _, _, 14, _, 16, _, 14, _, 12, _, 9, _, _, _, 7, _, _, _,
+      12, _, 16, _, 19, _, 21, _, 24, _, 21, _, 19, _, 16, _, 19, _, 16, _, 14, _, 9, _, 12, _, _, _, _, _, _, _] },
+  // isekai: heroic square lead
+  isekai: { bpm: 138, root: 60, lead: INST.lead, bass: 'root8', comp: 'stab', drums: 'khskkhsh',
+    chords: [[0, 'M'], [7, 'M'], [-3, 'm'], [5, 'M'], [0, 'M'], [7, 'M'], [5, 'M'], [7, 'M']],
+    mel: [12, _, 12, 14, 16, _, 12, _, 19, _, _, _, 14, _, _, _, 16, _, 16, 17, 19, _, 16, _, 17, _, _, _, 12, _, _, _,
+      12, _, 16, _, 19, _, 24, _, 23, _, 21, _, 19, _, _, _, 21, _, 19, _, 17, _, 16, _, 14, _, _, _, 19, _, _, _] },
+  // the ending: bittersweet music box in A minor
+  end: { bpm: 72, root: 57, lead: INST.box, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .4, drums: '........',
+    chords: [[0, 'm'], [-4, 'M'], [3, 'M'], [-2, 'M'], [0, 'm'], [-4, 'M'], [-2, 'M'], [0, 'm']],
+    mel: [12, _, _, _, 15, _, 14, _, 12, _, _, _, 8, _, _, _, 10, _, 12, _, 15, _, 19, _, 17, _, _, _, 14, _, _, _,
+      12, _, 15, _, 19, _, 20, _, 19, _, 15, _, 12, _, _, _, 14, _, _, _, 10, _, 14, _, 12, _, _, _, _, _, _, _] },
+};
+const MUS = { cur: null, next: 0, step: 0, root: 60, bus: null, send: null };
+function newTrackBus(echo) {
+  const bus = AC.createGain(), tn = AC.createBiquadFilter(), delay = AC.createDelay(1), fb = AC.createGain(), send = AC.createGain();
+  tn.type = 'lowpass'; tn.frequency.value = 3800; tn.Q.value = .3;
+  bus.gain.value = .55; bus.connect(tn); tn.connect(AC.destination);
+  send.gain.value = echo || 0; delay.delayTime.value = .36; fb.gain.value = .35;
+  send.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(bus);
+  return { bus, send };
+}
+function dropTrackBus() {
+  const old = MUS.bus; MUS.bus = null; MUS.send = null;
+  if (!old) return;
+  old.gain.setTargetAtTime(0, AC.currentTime, .08);
+  setTimeout(() => { try { old.disconnect(); } catch (e) {} }, 1500);
+}
+document.addEventListener('visibilitychange', () => { try { if (!AC) return; if (document.hidden) AC.suspend(); else AC.resume(); } catch (e) {} });
+window.addEventListener('pagehide', () => { try { if (AC) AC.close(); } catch (e) {} });
+function mnote(midi, t, dur, inst, velo) {
+  const f = 440 * Math.pow(2, (midi - 69) / 12), len = inst.dec || dur, env = AC.createGain(), v = inst.vol * (velo || 1);
+  env.gain.setValueAtTime(.0001, t); env.gain.linearRampToValueAtTime(v, t + (inst.att || .005));
+  if (!inst.dec) env.gain.setValueAtTime(v, t + Math.max(inst.att || .005, len * .7));
+  env.gain.exponentialRampToValueAtTime(.0001, t + len);
+  env.connect(MUS.bus); if (inst.echo) env.connect(MUS.send);
+  const voices = inst.parts || [[1, 1]];
+  for (const [mult, amp] of voices) {
+    const o = AC.createOscillator(), pg = AC.createGain();
+    o.type = inst.parts ? 'sine' : (inst.type || 'sine'); o.frequency.value = f * mult; pg.gain.value = amp;
+    if (inst.vib && mult === 1) { const l = AC.createOscillator(), lg = AC.createGain(); l.frequency.value = inst.vib; lg.gain.value = f * .01; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + len + .05); }
+    o.connect(pg); pg.connect(env); o.start(t); o.stop(t + len + .05);
+  }
+}
+function mdrum(d, t) {
+  const out = MUS.bus;
+  if (d === 'k' || d === 'K') {
+    const o = AC.createOscillator(), e = AC.createGain();
+    o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(45, t + .1);
+    e.gain.setValueAtTime(d === 'k' ? .2 : .1, t); e.gain.exponentialRampToValueAtTime(.0001, t + .14);
+    o.connect(e); e.connect(out); o.start(t); o.stop(t + .16); return;
+  }
+  if (d === 'w' || d === 'r') {
+    const o = AC.createOscillator(), e = AC.createGain(); o.type = d === 'w' ? 'sine' : 'triangle'; o.frequency.value = d === 'w' ? 1250 : 900;
+    e.gain.setValueAtTime(d === 'w' ? .04 : .03, t); e.gain.exponentialRampToValueAtTime(.0001, t + .045);
+    o.connect(e); e.connect(out); o.start(t); o.stop(t + .06); return;
+  }
+  if (!NB) { NB = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate); const a = NB.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1; }
+  const [ft, fq, v, len] = { s: ['bandpass', 2200, .05, .12], h: ['highpass', 8000, .012, .03], x: ['bandpass', 6500, .02, .05] }[d];
+  const s = AC.createBufferSource(), fl = AC.createBiquadFilter(), e = AC.createGain();
+  s.buffer = NB; fl.type = ft; fl.frequency.value = fq; e.gain.setValueAtTime(v, t); e.gain.exponentialRampToValueAtTime(.0001, t + len);
+  s.connect(fl); fl.connect(e); e.connect(out); s.start(t, Math.random()); s.stop(t + len + .02);
+}
+const holdLen = (arr, i) => { let c = 1; while (c < arr.length && arr[(i + c) % arr.length] === null) c++; return c; };
+function playStep(song, i, t, spb) {
+  const n = 8, bars = song.chords.length, k = i % (n * bars), bar = Math.floor(k / n), s = k % n, root = MUS.root;
+  const [off, q] = song.chords[bar], tones = Q[q], cr = root + off, next = song.chords[(bar + 1) % bars][0], B0 = cr - 24;
+  if (song.bass === 'walk' && s % 2 === 0) { const walk = [0, tones[1], 7, (next - off) + (next > off ? -1 : 1)]; mnote(B0 + walk[s / 2], t, spb * 2, INST.bass); }
+  else if (song.bass === 'root8') mnote(B0 + (s === 2 || s === 6 ? 12 : 0), t, spb, INST.bass, s % 2 ? .75 : 1);
+  else if (song.bass === 'long' && s === 0) mnote(B0 + 12, t, spb * n * .95, INST.bassLong);
+  if (song.comp === 'off' && s % 2 === 1) tones.slice(0, 3).forEach(iv => mnote(cr + iv, t, spb, INST.pluck, .8));
+  else if (song.comp === 'stab' && s % 2 === 1) tones.slice(0, 3).forEach(iv => mnote(cr + iv, t, spb, INST.stab));
+  else if (song.comp === 'arp') { const seq = [0, 1, 2, 3, 2, 1, 0, 2], j = seq[s], iv = tones[j % tones.length] + (j >= tones.length ? 12 : 0); mnote(cr + 12 + iv, t, spb * 2, song.compInst || INST.box, .7); }
+  const m = song.mel[k]; if (m !== null) mnote(root + m, t, spb * holdLen(song.mel, k) * .92, song.lead);
+  const d = song.drums[s]; if (d && d !== '.') mdrum(d, t);
+}
+function musicUpdate(want) {
+  if (!AC || AC.state === 'closed') return;
+  if (META.muted) want = null;
+  const now = AC.currentTime;
+  if (want !== MUS.cur) {
+    dropTrackBus(); MUS.cur = want; MUS.step = 0; MUS.next = now + .15;
+    if (want) { MUS.root = SONGS[want].root; Object.assign(MUS, newTrackBus(SONGS[want].echo)); }
+  }
+  if (!MUS.cur) return;
+  const song = SONGS[MUS.cur], spb = 60 / song.bpm / 2;
+  if (MUS.next < now - .1) MUS.next = now + .05;
+  while (MUS.next < now + .25) {
+    const sw = MUS.step % 2 ? (song.swing || 0) * spb : 0;
+    try { playStep(song, MUS.step, MUS.next + sw, spb); } catch (e) {}
+    MUS.next += spb; MUS.step++;
+  }
+}
+
+// ============================================================ canvas & text
+const cv = document.getElementById('c'), ctx = cv.getContext('2d'), wrapEl = document.getElementById('wrap');
+const low = mk(W, H), g = low.getContext('2d');
+let K = 1, TQ = [], shake = 0, fontV = 0;
+function fit() {
+  const r = wrapEl.getBoundingClientRect(), cs = getComputedStyle(wrapEl);
+  const aw = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const ah = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const sc = Math.max(.5, Math.min(aw / W, ah / H));
+  const cw = Math.floor(W * sc), ch = Math.floor(H * sc);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.width = R(cw * dpr); cv.height = R(ch * dpr); K = cv.width / W;
+}
+function toLogical(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+const inR = (p, r) => p.x >= r[0] && p.x <= r[0] + r[2] && p.y >= r[1] && p.y <= r[1] + r[3];
+function txt(s, x, y, size, col, align, stroke, alpha, clip) { TQ.push({ s: String(s), x, y, size: size || 8, col: col || '#ffffff', align: align || 'center', stroke: stroke === undefined ? OUT : stroke, alpha: alpha === undefined ? 1 : alpha, clip }); }
+// Composites the pixel layer, then the crisp text on top, and clears both for the next layer.
+function flush() {
+  const amp = Math.min(shake, 3), sx = amp > .3 ? R(Math.sin(T * 40) * amp) : 0, sy = amp > .3 ? R(Math.cos(T * 33) * amp) : 0;
+  ctx.drawImage(low, 0, 0, W, H, sx * K, sy * K, W * K, H * K);
+  for (const t of TQ) {
+    const c = textSprite(t), tw = c.w - 2 * c.pad;
+    const dx = t.x * K - c.pad - (t.align === 'center' ? tw / 2 : t.align === 'right' ? tw : 0);
+    ctx.globalAlpha = t.alpha;
+    if (t.clip) { ctx.save(); ctx.beginPath(); ctx.rect((t.clip[0] + sx) * K, (t.clip[1] + sy) * K, t.clip[2] * K, t.clip[3] * K); ctx.clip(); }
+    ctx.drawImage(c.cv, R(dx + sx * K), R(t.y * K - c.h / 2 + sy * K));
+    if (t.clip) ctx.restore();
+  }
+  ctx.globalAlpha = 1; TQ.length = 0; g.clearRect(0, 0, W, H);
+}
+const TXC = new Map();
+function textSprite(t) {
+  const key = t.s + '|' + t.size + '|' + t.col + '|' + t.stroke + '|' + K;
+  let c = TXC.get(key); if (c) return c;
+  if (TXC.size > 900) TXC.clear();
+  const m = document.createElement('canvas'), x = m.getContext('2d'), font = t.size * K + 'px ' + FONT;
+  const r = t.stroke ? Math.max(.75, t.size * .14) * K : 0, pad = Math.ceil(r) + 2;
+  x.font = font;
+  m.width = Math.max(1, Math.ceil(x.measureText(t.s).width) + pad * 2); m.height = Math.ceil(t.size * K * 1.5) + pad * 2;
+  x.font = font; x.textBaseline = 'middle'; x.textAlign = 'left';
+  const oy = m.height / 2;
+  if (t.stroke) { x.fillStyle = t.stroke; for (const f of [1, .55]) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; x.fillText(t.s, pad + Math.cos(a) * r * f, oy + Math.sin(a) * r * f); } }
+  x.fillStyle = t.col; x.fillText(t.s, pad, oy);
+  c = { cv: m, w: m.width, h: m.height, pad }; TXC.set(key, c); return c;
+}
+const MC = mk(4, 4).getContext('2d'), WRAPC = new Map();
+function tw(s, size) { MC.font = (size * 10) + 'px ' + FONT; return MC.measureText(s).width / 10; }
+function wrap(s, size, maxW) {
+  const key = s + '|' + size + '|' + maxW; let out = WRAPC.get(key); if (out) return out;
+  out = []; let line = '';
+  for (const ch of s) {
+    const t = line + ch;
+    if (line && tw(t, size) > maxW && !'，。！？、；：”）》…～'.includes(ch)) { out.push(line); line = ch; } else line = t;
+  }
+  if (line) out.push(line);
+  WRAPC.set(key, out); return out;
+}
+function fontsChanged() { TXC.clear(); WRAPC.clear(); fontV++; }
+try { if (document.fonts) { document.fonts.addEventListener('loadingdone', fontsChanged); document.fonts.ready.then(fontsChanged); } } catch (e) {}
+
+// ============================================================ ui pieces
+function panel(x, y, w, h) {
+  g.fillStyle = OUT; g.fillRect(x, y, w, h);
+  g.fillStyle = '#8a5a34'; g.fillRect(x + 1, y + 1, w - 2, h - 2);
+  g.fillStyle = '#b77b46'; g.fillRect(x + 2, y + 2, w - 4, 1);
+  g.fillStyle = OUT; g.fillRect(x + 3, y + 3, w - 6, h - 6);
+  g.fillStyle = '#f6e3b4'; g.fillRect(x + 4, y + 4, w - 8, h - 8);
+  g.fillStyle = '#fff3d0'; g.fillRect(x + 4, y + 4, w - 8, 1);
+  g.fillStyle = '#e8cf98'; g.fillRect(x + 4, y + h - 5, w - 8, 1);
+}
+function button(r, label, o) {
+  o = o || {};
+  const [x, y, w, h] = r, dis = o.dis;
+  const cs = dis ? ['#5a5a6a', '#8a8a9a', '#a8a8b8'] : o.blue ? ['#2a5ab0', '#4a88e0', '#8ab8ff'] : o.green ? ['#2a8a3a', '#48b858', '#8ae08a'] : o.red ? ['#a8302a', '#e0504a', '#ff8a7a'] : ['#b8642a', '#f0a048', '#ffc878'];
+  const pr = ptr && !ptr.moved && !dis && inR({ x: ptr.x0, y: ptr.y0 }, r) ? 1 : 0;
+  g.fillStyle = OUT; g.fillRect(x, y + pr, w, h - pr);
+  g.fillStyle = cs[0]; g.fillRect(x + 1, y + 1 + pr, w - 2, h - 2 - pr);
+  g.fillStyle = cs[1]; g.fillRect(x + 1, y + 1 + pr, w - 2, h - 4 - pr + pr * 2);
+  g.fillStyle = cs[2]; g.fillRect(x + 2, y + 2 + pr, w - 4, 1);
+  txt(label, x + w / 2, y + h / 2 - 1 + pr, o.size || 8, dis ? '#e4e4ec' : '#ffffff', 'center', OUT);
+}
+function dim(a) { g.globalAlpha = a || .6; g.fillStyle = '#0a0618'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+const STARS = Array.from({ length: 60 }, () => ({ x: ri(0, W - 1), y: ri(0, H - 1), ph: rand(0, 6.28), s: chance(.15) ? 2 : 1 }));
+let VOID_BG = null;
+function drawVoid() {
+  if (!VOID_BG) {
+    VOID_BG = mk(W, H); const x = VOID_BG.getContext('2d');
+    ['#120a26', '#160c2e', '#1a0e36', '#1e103e', '#231246', '#28144e', '#2d1656', '#32185e'].forEach((c, i) => F(x, 0, i * 40, W, 41, c));
+    x.globalAlpha = .08; for (const [a, b, r, c] of [[40, 90, 40, '#b77bff'], [150, 200, 50, '#5ab0ff'], [60, 270, 44, '#ff7eb6']]) { for (let k = r; k > 0; k -= 6) dsc(x, a, b, k, c); } x.globalAlpha = 1;
+  }
+  g.drawImage(VOID_BG, 0, 0);
+  for (const s of STARS) { g.globalAlpha = .3 + .7 * Math.abs(Math.sin(T * 1.3 + s.ph)); g.fillStyle = '#ffffff'; g.fillRect(s.x, s.y, s.s, s.s); }
+  g.globalAlpha = 1;
+}
+function part(o) { P.push(Object.assign({ vx: 0, vy: 0, g: 0, t: 0, life: 1, col: '#fff', s: 1 }, o)); }
+function confetti(n, y0, cols) { for (let i = 0; i < n; i++) part({ x: rand(10, 170), y: y0 + rand(-6, 6), vx: rand(-30, 30), vy: rand(-70, -20), g: 90, life: rand(1, 1.8), col: pick(cols || ['#ff4d6d', '#ffd23f', '#5ab0ff', '#5fd35f', '#b77bff', '#ffffff']), s: chance(.4) ? 2 : 1 }); }
+function drawParts() { for (const p of P) { g.globalAlpha = Math.min(1, (p.life - p.t) * 2); g.fillStyle = p.col; g.fillRect(R(p.x), R(p.y), p.s, p.s); } g.globalAlpha = 1; }
+function talentRow(id, x, y, w, h, sel, tag) {
+  const t = TAL[id], rr = RAR[t.r];
+  g.fillStyle = OUT; g.fillRect(x, y, w, h);
+  g.fillStyle = sel ? '#ffe890' : rr.bg; g.fillRect(x + 1, y + 1, w - 2, h - 2);
+  g.fillStyle = rr.c; g.fillRect(x + 1, y + 1, 4, h - 2);
+  if (sel) { g.fillStyle = '#ffb82a'; g.fillRect(x + 1, y + 1, w - 2, 1); g.fillRect(x + 1, y + h - 2, w - 2, 1); g.fillRect(x + w - 2, y + 1, 1, h - 2); }
+  if (t.r === 3) { const k = Math.floor(T * 6 + y) % 24; g.fillStyle = '#ffffff'; g.fillRect(x + 8 + k * 6, y + 3, 1, 1); g.fillRect(x + 7 + ((k + 11) % 24) * 6, y + h - 4, 1, 1); }
+  txt(t.n, x + 10, y + 7.5, 8.5, rr.d, 'left', null);
+  txt(t.d, x + 10, y + h - 6.5, 6.5, '#6a5a4a', 'left', null);
+  txt(rr.n, x + w - 5, y + 7, 6, rr.d, 'right', null);
+  if (tag) txt(tag, x + w - 5, y + h - 6.5, 6, '#c8483a', 'right', null);
+  if (sel) g.drawImage(I.check, x + w - 26, y + 4);
+}
+
+// ============================================================ game state
+let state = 'title', st = 0, T = 0, menuOpen = false, ptr = null;
+let gacha = null, alloc = null, pickTal = [], inhSel = null, achScroll = 0, achMax = 0, achFrom = 'title', logScroll = 0, logMax = 0;
+let curScene = 'hosp', cast = [], yearT = 99, lastG = 0, emote = null, POPS = [], banner = null, P = [], auto = 0, hudFlash = {}, endT = 0;
+let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = -1, sparkT = 0;
+function go(s) { state = s; st = 0; ptr = null; }
+const stNow = () => st;
+function toggleMute() { META.muted = !META.muted; saveMeta(); if (!META.muted) SFX.click(); }
+function startGacha() { gacha = { ph: 'ready', t: 0, tal: drawTalents(), sel: [] }; go('gacha'); }
+function openAch(from) { achFrom = from || state; achScroll = 0; go('ach'); SFX.click(); }
+function startLife() {
+  newLife(pickTal, alloc); clearRun();
+  logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
+  go('life'); SFX.start(); nextYear();
+}
+function resumeLife() {
+  L = SAVED; L.at = L.at || {}; logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
+  curScene = resolveScene(defaultScene()); setupCast(); go('life'); yearT = 9; SFX.click();
+}
+const resolveScene = s => s === 'home' ? homeSc() : s;
+function defaultScene() {
+  const a = L.age;
+  if (L.path === 'xian') return L.xl >= 1 ? 'xian' : homeSc();
+  if (L.path === 'isekai') return 'isekai';
+  if (a === 0) return 'hosp';
+  if (a < 3) return homeSc();
+  if (a < 6) return L.f.kg && chance(.6) ? 'kg' : homeSc();
+  if (!L.job && a < 19 && (L.f.pri || L.f.mid || L.f.high || L.f.voc) && !L.f.drop) return chance(.65) ? 'class' : homeSc();
+  if (L.f.drop && !L.job) return 'site';
+  if (L.f.uni && !L.f.grad && !L.job) return chance(.7) ? 'campus' : 'street';
+  if ((L.f.master || L.f.phd) && !L.job) return 'lab';
+  if (L.job === 'retired') return pick(['park', 'park', homeSc()]);
+  if (L.job && JOBS[L.job]) return chance(.6) ? resolveScene(JOBS[L.job].sc) : pick([homeSc(), homeSc(), 'street', 'park']);
+  return pick([homeSc(), 'street', 'park']);
+}
+function nextYear() {
+  if (!L || L.end) return;
+  const yr = runYear();
+  yearT = 0; lastG = yr.g;
+  let sc = yr.sc;
+  if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? 'isekai' : homeSc(); // the family gathers at the end
+  curScene = resolveScene(sc || defaultScene()); setupCast();
+  emote = yr.em || (yr.g > 0 ? 'note' : yr.g < 0 ? 'sweat' : null);
+  if (L.end && !L.asc) emote = null;
+  let i = 0;
+  for (const k of STATS) { const v = yr.d[k]; if (!v) continue; POPS.push({ s: SNAME[k] + (v > 0 ? '+' : '') + v, col: v > 0 ? '#8aff96' : '#ff8a8a', t: -i * .22 }); hudFlash[k] = { t: 0, up: v > 0 }; i++; }
+  if (yr.big) { banner = { s: yr.big, t: 0 }; confetti(40, SY + 50); if (L.asc) SFX.ascend(); else SFX.big(); vib(30); }
+  else if (L.end) SFX.death();
+  else if (yr.g > 0) SFX.good(); else if (yr.g < 0) SFX.bad(); else SFX.tick();
+  if (logScroll < 14) logScroll = 0;
+  if (L.end) { finishLife(); auto = 0; } else { checkAch(); saveRun(); }
+}
+
+// ============================================================ the cast on stage
+const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian)$/;
+function setupCast() {
+  const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
+  const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
+  const add = (id, k, o) => {
+    const p = old[id], same = p && p.sc === curScene;
+    const a = Object.assign({ id, k, x: same ? p.x : R(rand(sc.walk[0], sc.walk[1])), y: same ? p.y : R(rand(y0, y1)), wait: rand(0, 2), sc: curScene, mv: false }, o);
+    a.tx = a.x; out.push(a); return a;
+  };
+  const me = add('me', 'me', { y: y1 });
+  if (L.age <= 1 && !L.path) { me.fixed = 1; if (curScene === 'hosp') { me.x = 152; me.y = 78; } else { me.x = 90; me.y = y1 - 6; } }
+  if (curScene === 'wedding') { me.fixed = 1; me.x = 80; me.y = 100; }
+  const fam = FAMILY_SC.test(curScene) || (curScene === 'hosp' && (L.end || L.age === 0 || (L.kids.length && kidAge(L.kids.length - 1) === 0)));
+  if ((fam || curScene === 'wedding') && L.pt && (L.mar || L.love)) { const p = add('pt', 'pt'); if (curScene === 'wedding') { p.fixed = 1; p.x = 100; p.y = 100; } }
+  if (fam) {
+    L.kids.slice(0, 3).forEach((k, i) => { const ka = L.age - k.born; if (ka >= 0 && ka < 30) add('kid' + i, 'kid', { i, fixed: ka <= 1 ? 1 : 0 }); });
+    if (L.age < 18 && !L.path) { if (L.par.dad.alive) add('dad', 'dad'); if (L.par.mom.alive) add('mom', 'mom'); }
+    if (L.pet && curScene !== 'hosp') add('pet', 'pet', { y: y1 - 1 });
+  }
+  const npc = (id, st_, o) => {
+    const a = add(id, 'npc', o), p = old[id];
+    a.look = p && p.look && p.look.st === st_ ? p.look : { st: st_, g: chance(.5) ? 'm' : 'f', hair: pick(['black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.4) ? 1 : 0 };
+    return a;
+  };
+  if (curScene === 'class' || curScene === 'office' || curScene === 'arena') {
+    const stN = curScene !== 'class' ? 'adult' : L.job === 'teacher' ? 'kid' : L.age >= 60 ? 'old' : stageOf(clamp(L.age, 6, 18));
+    const fitN = curScene === 'class' ? (stN === 'kid' ? 'school_p' : stN === 'teen' ? 'school_t' : stN === 'old' ? 'elder' : 'casual') : curScene === 'arena' && L.job === 'esports' ? 'esports' : 'suit';
+    sc.seats.forEach((s, i) => { const a = npc('seat' + i, stN, { fixed: 1, seat: 1, x: s[0], y: s[1] + 10 }); a.look.fit = fitN; });
+    if (curScene === 'class' && L.job !== 'teacher' && L.age < 19) { const t = npc('teacher', 'adult', { fixed: 1, x: 121, y: 84 }); t.look.fit = 'teacher'; }
+  }
+  if (curScene === 'kg' && L.age < 7) { npc('kg1', 'tod'); npc('kg2', 'tod'); }
+  if (curScene === 'campus' && !L.job) npc('stu1', 'adult');
+  cast = out;
+}
+function greyed(age, hair) { return age >= 72 ? 'white' : age >= 56 ? 'grey' : hair; }
+function myFit() {
+  const a = L.age, s = stageOf(a);
+  if (L.path === 'xian' && L.f.sect) return 'robe';
+  if (L.path === 'isekai') return L.f.king ? 'king' : 'armor';
+  if (curScene === 'wedding' && L.mar && L.marAge === a) return L.g === 'm' ? 'groom' : 'bride';
+  if (curScene === 'space' && (L.job === 'astronaut' || L.job === 'ambassador')) return 'space';
+  if (s === 'baby') return 'casual';
+  if (!L.job && a >= 6 && a <= 12 && L.f.pri && !L.f.mid) return 'school_p';
+  if (!L.job && a >= 12 && a <= 18 && (L.f.mid || L.f.high) && !L.f.drop && !L.f.voc) return 'school_t';
+  if (L.job && JOBS[L.job] && curScene === resolveScene(JOBS[L.job].sc) && L.job !== 'retired') return JOBS[L.job].fit;
+  if (L.job === 'retired' || s === 'old') return 'elder';
+  return 'casual';
+}
+function meLook(fr, blink) {
+  const a = Math.max(0, L.age), xian = L.path === 'xian' && L.xl >= 1, dead = L.end && !L.asc;
+  let s = stageOf(a);
+  if (xian && a >= 19) s = a > 300 ? 'old' : 'adult';
+  if (tal('shiba') && a >= 19) s = 'adult';
+  let hair = L.look.hair, style;
+  if (L.f.dye && a >= 13 && a < 24) { hair = 'dye'; style = 'spiky'; }
+  else if (!tal('shiba') && !xian) hair = greyed(a, hair);
+  if (xian && a > 300) hair = 'white';
+  if (xian && L.g === 'm') style = 'topknot';
+  const fitId = dead ? 'ghost' : myFit();
+  return { st: s, g: L.g, hair, style, fit: fitId, top: fitId === 'elder' ? L.look.elder : L.look.top, bot: L.look.bot, skirt: L.g === 'f' && L.look.skirt ? 1 : 0,
+    gl: L.f.glasses && a >= 6 && !xian ? 1 : 0, bald: L.f.bald && a >= 22 && !xian ? 1 : 0, mood: dead ? 'z' : lastG > 0 ? 'h' : lastG < 0 ? 's' : 'n', blink: blink ? 1 : 0, fr: dead ? 0 : fr,
+    cane: L.f.cane && s === 'old' && !dead ? 1 : 0, beard: L.g === 'm' && ((xian && a > 300) || (L.look.beard && a >= 70 && !xian)) ? 1 : 0, shades: L.f.richest && !dead ? 1 : 0 };
+}
+function lookOf(a, fr, blink) {
+  if (a.k === 'me') return meLook(fr, blink);
+  const base = { fr, blink: blink ? 1 : 0, mood: 'n' };
+  if (a.k === 'npc') return Object.assign({}, a.look, base);
+  if (a.k === 'pt') {
+    const p = L.pt, age = L.age, xian = L.path === 'xian';
+    const s = xian || tal('shiba') ? 'adult' : stageOf(age);
+    const fitId = curScene === 'wedding' && L.marAge === age ? (p.g === 'm' ? 'groom' : 'bride') : p.fit || (s === 'old' ? 'elder' : 'casual');
+    return Object.assign(base, { st: s, g: p.g, hair: xian ? p.hair : greyed(age, p.hair), fit: fitId, top: fitId === 'elder' ? '#7a8a9a' : p.top, bot: p.bot, skirt: p.g === 'f' && p.skirt ? 1 : 0, cane: s === 'old' && age >= 80 ? 1 : 0 });
+  }
+  if (a.k === 'kid') {
+    const k = L.kids[a.i], ka = L.age - k.born, s = stageOf(ka);
+    return Object.assign(base, { st: s, g: k.g, hair: k.hair, fit: ka >= 6 && ka <= 12 ? 'school_p' : ka >= 13 && ka <= 18 ? 'school_t' : 'casual', top: s === 'baby' ? (k.g === 'm' ? '#a8d8ff' : '#ffc8dc') : k.top, bot: k.bot, skirt: k.g === 'f' ? 1 : 0 });
+  }
+  const p = L.par[a.k], age = parAge(a.k), s = stageOf(age);
+  return Object.assign(base, { st: s, g: p.g, hair: greyed(age, p.hair), fit: s === 'old' ? 'elder' : 'casual', top: s === 'old' ? '#8a7a6a' : p.top, bot: p.bot, skirt: p.skirt ? 1 : 0, cane: age >= 80 ? 1 : 0 });
+}
+function drawActor(a, oy) {
+  if (a.k === 'pet') {
+    if (!L.pet) return;
+    const img = petImg(L.pet.k, L.pet.alt, Math.floor(T * 3 + a.x) % 2, a.tx < a.x), hop = a.mv ? Math.floor(T * 8) % 2 : 0;
+    g.drawImage(img, R(a.x - img.width / 2), R(oy + a.y - img.height + 1 - hop)); return;
+  }
+  const fr = a.mv ? (Math.floor(T * 5) % 2 ? 1 : 2) : 0, blink = ((T + a.x * .37) % 3.4) < .13;
+  const s = person(lookOf(a, fr, blink));
+  let y = oy + a.y - s.ay;
+  if (a.k === 'me' && L.end) {
+    const rise = L.asc ? endT * 14 : Math.min(18, endT * 10);
+    y -= rise + Math.sin(T * 2.2) * 1.5;
+    if (L.asc) { g.globalAlpha = .35 + .15 * Math.sin(T * 4); dsc(g, a.x, y + 16, 14, '#fff3a0'); g.globalAlpha = 1; }
+    else g.globalAlpha = .82;
+  }
+  g.drawImage(s.img, R(a.x - 10), R(y));
+  g.globalAlpha = 1;
+  if (a.k === 'me') {
+    const baby = s.img && L.age <= 1 && !L.path;
+    meHead = { x: a.x, y: y + (baby ? 12 : 4) };
+    if (L.end && !L.asc) g.drawImage(I.halo, R(a.x - 4), R(y + (baby ? 9 : 1)));
+  }
+}
+function classBanner() {
+  if (L.job === 'teacher') return '教书育人 · 为人师表';
+  if (L.age >= 55) return '活到老 · 学到老';
+  if (L.age === 18 || (L.age === 19 && L.f.fudu)) return '高考加油 · 金榜题名';
+  if (L.age >= 15 && L.f.high) return '距离高考还有 ' + (100 + (18 - L.age) * 365 - ri(0, 60)) + ' 天';
+  if (L.age >= 15 && L.f.voc) return '学好技术 · 服务社会';
+  if (L.age >= 12) return '团结 · 紧张 · 严肃 · 活泼';
+  return '好好学习 · 天天向上';
+}
+let bannerCache = { age: -1, s: '' };
+function drawScene(oy) {
+  const sc = SCN[curScene];
+  g.drawImage(sc.bg, 0, oy);
+  if (curScene === 'class') { if (bannerCache.age !== L.age) bannerCache = { age: L.age, s: classBanner() }; txt(bannerCache.s, 90, oy + 6, 6, '#ffe890', 'center', null); }
+  if (curScene === 'shop') txt('今日推荐 · 红烧肉', 90, oy + 16, 6.5, '#ffe890', 'center', null);
+  if (curScene === 'wedding') txt('囍', 90, oy + 33, 28, '#ffd23f', 'center', '#7a1020');
+  if (curScene === 'office') { const c = Math.floor(T * 2) % 2; g.fillStyle = c ? '#9fd4ff' : '#7ab8f0'; g.fillRect(33, oy + 79, 5, 1); g.fillRect(123, oy + 81, 5, 1); }
+  if (sc.lights) {
+    g.save(); g.globalAlpha = .1 + .05 * Math.sin(T * 3);
+    for (let i = 0; i < 4; i++) { const x0 = 20 + i * 36 + 4, sw = Math.sin(T * .8 + i * 1.7) * 30; g.fillStyle = ['#fff3a0', '#ff9ad8', '#9ad8ff', '#fff3a0'][i]; g.beginPath(); g.moveTo(x0, oy + 12); g.lineTo(x0 + 6, oy + 12); g.lineTo(x0 + 24 + sw, oy + 100); g.lineTo(x0 - 18 + sw, oy + 100); g.fill(); }
+    g.restore();
+  }
+  if (curScene === 'stage' || curScene === 'arena') for (let i = 0; i < 12; i++) { const x = (i * 16 + 7) % 180, on = Math.floor(T * 4 + i * 1.7) % 3; if (curScene === 'stage' && on) { g.fillStyle = ['#ff4ae0', '#4ae0ff', '#ffe14a'][i % 3]; g.fillRect(x, oy + 104 - (i % 3) * 2, 1, 3); } }
+  if (curScene === 'isekai') { const b = Math.abs(Math.sin(T * 3)) * 4; odsc(g, 150, oy + 98 - b, 5, '#5ac8ff'); g.fillStyle = '#b8ecff'; g.fillRect(147, oy + 95 - b, 2, 1); g.fillStyle = OUT; g.fillRect(148, oy + 97 - b, 1, 1); g.fillRect(152, oy + 97 - b, 1, 1); }
+  if (curScene === 'xian') { g.fillStyle = '#ffffff'; for (let i = 0; i < 2; i++) { const x = (T * (8 + i * 3) + i * 90) % 220 - 20, y = oy + 30 + i * 12 + Math.sin(T + i) * 2; g.fillRect(R(x), R(y), 4, 1); g.fillRect(R(x) + 1 + (Math.floor(T * 4) % 2), R(y) - 1, 1, 1); } }
+  const seated = cast.filter(a => a.seat), standing = cast.filter(a => !a.seat).sort((a, b) => a.y - b.y);
+  for (const a of seated) drawActor(a, oy);
+  if (sc.hasFg) g.drawImage(sc.fg, 0, oy);
+  for (const a of standing) drawActor(a, oy);
+  if (!L.end && L.a.CHR >= 10) { sparkT -= 1 / 60; if (sparkT <= 0) { sparkT = .35; part({ x: meHead.x + rand(-9, 9), y: meHead.y + rand(-2, 18), vy: -6, life: .6, col: '#fff6a0' }); } }
+  // scene name tag
+  const nm = SCENE_NAME[curScene];
+  if (nm) { const w = R(tw(nm, 6)) + 8; g.globalAlpha = .6; g.fillStyle = '#0a0618'; g.fillRect(2, oy + 2, w, 10); g.globalAlpha = 1; txt(nm, 6, oy + 7, 6, '#ffffff', 'left', null); }
+}
+function drawEmote() {
+  if (!emote || yearT > 2.2 || !EMO[emote]) return;
+  const ic = EMO[emote], bw = Math.max(12, ic.width + 5), bh = ic.height + 5, pop = yearT < .12 ? 2 : 0;
+  const left = meHead.x > 60, x = R(clamp(left ? meHead.x + 4 : meHead.x - bw - 4, 2, W - bw - 2)), y = R(meHead.y - bh - 3 - pop + Math.sin(T * 5) * .8);
+  g.fillStyle = OUT; g.fillRect(x, y, bw, bh); g.fillRect(x + 2, y + bh, 3, 2); g.fillStyle = '#ffffff'; g.fillRect(x + 1, y + 1, bw - 2, bh - 2); g.fillRect(x + 3, y + bh - 1, 1, 2);
+  g.drawImage(ic, x + R((bw - ic.width) / 2), y + R((bh - ic.height) / 2));
+}
+function drawPops() {
+  for (const p of POPS) { if (p.t < 0) continue; const k = p.t / 1.3, left = meHead.x > 60; txt(p.s, clamp(meHead.x + (left ? -17 : 17), 22, 158), meHead.y + 8 - k * 16, 7, p.col, 'center', OUT, Math.min(1, (1 - k) * 2.5)); }
+}
+function drawBanner() {
+  if (!banner) return;
+  const t = banner.t, s = t < .16 ? t / .16 : 1, a = t > 1.5 ? Math.max(0, 1 - (t - 1.5) / .3) : 1, cy = SY + 52, w = R(144 * s), h = 24;
+  g.globalAlpha = a;
+  g.fillStyle = OUT; g.fillRect(90 - w / 2 - 8, cy - 6, 10, 18); g.fillRect(90 + w / 2 - 2, cy - 6, 10, 18);
+  g.fillStyle = '#b8243a'; g.fillRect(90 - w / 2 - 7, cy - 5, 8, 16); g.fillRect(90 + w / 2 - 1, cy - 5, 8, 16);
+  g.fillStyle = OUT; g.fillRect(90 - w / 2 - 1, cy - h / 2 - 1, w + 2, h + 2);
+  g.fillStyle = '#e8343a'; g.fillRect(90 - w / 2, cy - h / 2, w, h);
+  g.fillStyle = '#ffd23f'; g.fillRect(90 - w / 2, cy - h / 2 + 2, w, 1); g.fillRect(90 - w / 2, cy + h / 2 - 3, w, 1);
+  g.globalAlpha = 1;
+  if (s >= 1) txt(banner.s, 90, cy - 1, 14, '#fff6c0', 'center', OUT, a);
+}
+function stageLabel() {
+  if (L.path === 'xian') return L.xl >= 1 ? '修仙者 · ' + XREALM[L.xl] + '期' : '凡人';
+  if (L.path === 'isekai') return L.f.king ? '异世界 · 国王' : L.f.hero ? '异世界 · 勇者' : '异世界 · 冒险者';
+  const a = L.age, s = a < 1 ? '婴儿' : a < 3 ? '幼儿' : a < 6 ? '幼童' : a < 12 ? '儿童' : a < 18 ? '少年' : a < 35 ? '青年' : a < 60 ? '中年' : '老年';
+  let role = '';
+  if (L.job) role = JOBS[L.job].n;
+  else if (L.f.phd) role = '博士生'; else if (L.f.master) role = '研究生';
+  else if (L.f.uni && !L.f.grad) role = L.f.abroad ? '留学生' : '大学生';
+  else if (a >= 15 && L.f.high) role = a === 19 ? '复读生' : '高中生'; else if (a >= 15 && L.f.voc) role = '职高生';
+  else if (a >= 12 && L.f.mid) role = '初中生'; else if (a >= 6 && L.f.pri) role = '小学生'; else if (a >= 3 && L.f.kg) role = '幼儿园';
+  return role ? s + ' · ' + role : s;
+}
+function drawHUD() {
+  g.fillStyle = '#1e1438'; g.fillRect(0, 0, W, SY); g.fillStyle = OUT; g.fillRect(0, SY - 1, W, 1);
+  const bump = yearT < .2 ? 1 : 0;
+  box(g, 3, 2 - bump, 38, 14, '#ffd23f', '#fff08a', '#c89a10');
+  txt(L.age + '岁', 22, 8.5 - bump, L.age >= 1000 ? 7 : 9, '#4a2c17', 'center', null);
+  txt(stageLabel(), 46, 9, 7, '#dfe6ff', 'left');
+  g.drawImage(I.menu, 151, 4); g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
+  STATS.forEach((k, i) => {
+    const x = 3 + i * 35, y = 17;
+    g.fillStyle = OUT; g.fillRect(x, y, 9, 9); g.fillStyle = SCOL[k]; g.fillRect(x + 1, y + 1, 7, 7);
+    txt(SNAME[k][0], x + 4.5, y + 4.6, 5.5, '#ffffff', 'center', OUT);
+    const fl = hudFlash[k], col = fl && Math.floor(fl.t * 8) % 2 === 0 ? (fl.up ? '#8aff96' : '#ff8a8a') : '#ffffff';
+    txt(String(L.a[k]), x + 12, y + 4.6, 8, col, 'left');
+  });
+}
+const LOG = { x: 4, y: 150, w: 172, h: 146, ix: 8, iy: 154, iw: 164, ih: 138 }, LH = 10, LSZ = 7.5, BW = 26;
+const LAY = new WeakMap();
+function entryLayout(e) {
+  let l = LAY.get(e); if (l && l.v === fontV) return l;
+  const lines = []; for (const s of e.l) lines.push(...wrap(s, LSZ, LOG.iw - BW - 5));
+  l = { v: fontV, lines, h: Math.max(1, lines.length) * LH + 4 }; LAY.set(e, l); return l;
+}
+function ageCol(a) { return a < 6 ? '#ff8ab0' : a < 18 ? '#5ab0ff' : a < 35 ? '#48b858' : a < 60 ? '#e8943a' : a < 200 ? '#9a7ad8' : '#c8a020'; }
+function drawLog() {
+  panel(LOG.x, LOG.y, LOG.w, LOG.h);
+  const ents = L.log; let total = 0; const lays = ents.map(e => { const l = entryLayout(e); total += l.h; return l; });
+  logMax = Math.max(0, total - LOG.ih + 4); logScroll = clamp(logScroll, 0, logMax);
+  let y = total < LOG.ih - 4 ? LOG.iy + 2 : LOG.iy + LOG.ih - 2 - total + logScroll;
+  const clip = [LOG.ix, LOG.iy, LOG.iw, LOG.ih];
+  g.save(); g.beginPath(); g.rect(clip[0], clip[1], clip[2], clip[3]); g.clip();
+  for (let i = 0; i < ents.length; i++) {
+    const e = ents[i], l = lays[i];
+    if (y + l.h >= LOG.iy && y <= LOG.iy + LOG.ih) {
+      const last = i === ents.length - 1, al = last && state === 'life' ? clamp(yearT * 6, 0, 1) : 1;
+      if (last) { g.fillStyle = e.g === -2 ? '#f6cfc4' : e.g === 2 ? '#fff0a8' : '#fff8d8'; g.fillRect(LOG.ix, y - 1, LOG.iw, l.h - 1); }
+      g.fillStyle = OUT; g.fillRect(LOG.ix + 1, y, BW - 2, 9); g.fillStyle = ageCol(e.a); g.fillRect(LOG.ix + 2, y + 1, BW - 4, 7);
+      txt(e.a + '岁', LOG.ix + BW / 2, y + 4.6, e.a >= 1000 ? 5 : 6, '#ffffff', 'center', null, 1, clip);
+      const col = e.g === -2 ? '#a0201a' : e.g === 2 ? '#a86a00' : e.g > 0 ? '#2a7a3a' : e.g < 0 ? '#b0402a' : '#4a2c17';
+      l.lines.forEach((s, j) => txt(s, LOG.ix + BW + 1, y + 4.6 + j * LH, LSZ, col, 'left', null, al, clip));
+    }
+    y += l.h;
+  }
+  g.restore();
+  if (logScroll > 30) { const bx = 156, by = 280; g.fillStyle = OUT; g.fillRect(bx, by, 16, 12); g.fillStyle = '#f0a048'; g.fillRect(bx + 1, by + 1, 14, 10); g.drawImage(I.arrow, bx + 4, by + 3); }
+}
+const BTN = {
+  menu: [146, 0, 17, 17], mute: [163, 0, 17, 17],
+  tNew: [30, 252, 120, 22], tAch: [50, 280, 80, 16], tCont: [30, 248, 120, 22], tNew2: [30, 274, 58, 17], tAch2: [92, 274, 58, 17],
+  back: [4, 4, 34, 15], pull: [45, 250, 90, 22], tOK: [40, 293, 100, 20],
+  aRand: [10, 270, 60, 20], aGo: [76, 270, 94, 20],
+  auto: [4, 299, 56, 18], next: [118, 299, 58, 18], seeEnd: [40, 299, 100, 18], toEnd: [40, 299, 100, 18],
+  review: [8, 297, 78, 18], nextLife: [94, 297, 78, 18], inhGo: [40, 224, 100, 20],
+  achBack: [50, 296, 80, 18], mResume: [45, 124, 90, 20], mMusic: [45, 150, 90, 20], mHome: [45, 176, 90, 20], jump: [154, 278, 20, 16],
+};
+const ALLOC_K = ['CHR', 'INT', 'STR', 'MNY'];
+const allocY = i => 148 + i * 28;
+const allocLeft = () => 20 - ALLOC_K.reduce((s, k) => s + alloc[k], 0);
+function talBonus(k) { let b = 0; for (const id of pickTal) { const fx = TAL[id].fx; if (fx && fx[k]) b += fx[k]; } return b; }
+
+// ============================================================ screens
+let TITLE_BG = null;
+function titleBg() {
+  if (TITLE_BG) return TITLE_BG;
+  const c = mk(W, H), x = c.getContext('2d');
+  ['#58b4f0', '#68bcf2', '#78c4f4', '#88ccf6', '#98d4f8', '#a8dcfa', '#b8e4fc', '#c8ecfe'].forEach((col, i) => F(x, 0, i * 28, W, 29, col));
+  dsc(x, 148, 138, 13, '#fff6c0'); dsc(x, 148, 138, 10, '#ffe890');
+  cloud(x, 14, 124); cloud(x, 108, 160); cloud(x, 52, 186);
+  x.fillStyle = '#8ad08a'; for (let i = 0; i < W; i++) { const h = 20 + Math.sin(i * .05) * 7 + Math.sin(i * .13) * 3; x.fillRect(i, 216 - h, 1, h); }
+  const hs = [[2, 30, '#e8a06a', '#c8483a'], [36, 26, '#f4e2c4', '#4a70c8'], [66, 34, '#c890c8', '#6a4a8a'], [104, 28, '#90c890', '#c8483a'], [136, 38, '#e8c870', '#3a8a5a']];
+  for (const [a, w, c1, roof] of hs) {
+    const hh = 18 + (a % 3) * 4, top = 216 - hh;
+    for (let i = 0; i < 9; i++) { const rw = R((w + 6) * (i + 1) / 9); F(x, a + w / 2 - rw / 2 - 1, top - 9 + i, rw + 2, 1, OUT); }
+    for (let i = 1; i < 9; i++) { const rw = R((w + 6) * (i + 1) / 9) - 2; F(x, a + w / 2 - rw / 2, top - 9 + i, rw, 1, roof); }
+    box(x, a, top, w, hh, c1); box(x, a + 4, top + 5, 7, 7, '#9fd8ff', '#d8f0ff'); if (w > 28) box(x, a + w - 11, top + 5, 7, 7, '#9fd8ff', '#d8f0ff');
+    box(x, a + (w >> 1) - 3, top + hh - 10, 7, 10, '#8a5a34');
+  }
+  F(x, 0, 216, W, 104, '#6ac05a'); F(x, 0, 216, W, 2, '#4fa04a');
+  F(x, 0, 226, W, 16, '#dccca4'); F(x, 0, 226, W, 1, '#c0ae84'); F(x, 0, 241, W, 1, '#c0ae84');
+  for (let i = 0; i < 40; i++) F(x, (i * 37) % 180, 246 + (i * 23) % 70, 2, 1, ['#8ee07a', '#ff8ab0', '#ffe14a'][i % 3]);
+  tree(x, 12, 226, .8); tree(x, 168, 226, .8, '#3f9a4a');
+  TITLE_BG = c; return c;
+}
+function drawTitle() {
+  g.drawImage(titleBg(), 0, 0);
+  const len = 22, lp = Math.floor(T / len), t = (T % len) / len;
+  if (lp !== titleLoop) { titleLoop = lp; titleLook = { g: lp % 2 ? 'f' : 'm', hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; }
+  const age = Math.floor(t * 100), x = -12 + t * 204, fl = titleLook;
+  if (age < 90) {
+    const s_ = stageOf(age), fr = Math.floor(T * 5) % 2 ? 1 : 2;
+    const s = person({ st: s_, g: fl.g, hair: greyed(age, fl.hair), top: s_ === 'old' ? '#8a7a6a' : fl.top, bot: fl.bot, skirt: fl.g === 'f' ? fl.skirt : 0, fit: s_ === 'kid' ? 'school_p' : s_ === 'teen' ? 'school_t' : s_ === 'old' ? 'elder' : 'casual', fr: s_ === 'baby' ? 0 : fr, cane: s_ === 'old' ? 1 : 0, mood: 'h', blink: 0 });
+    const y = 238 - s.ay - (s_ === 'baby' ? Math.floor(T * 6) % 2 : 0);
+    g.drawImage(s.img, R(x - 10), R(y));
+    txt(age + '岁', x, y + 1, 6, '#ffffff');
+  } else {
+    const k = (age - 90) / 10, s = person({ st: 'old', g: fl.g, hair: 'white', fit: 'ghost', mood: 'z' }), y = 238 - s.ay - k * 50;
+    g.globalAlpha = 1 - k; g.drawImage(s.img, R(x - 10), R(y)); g.drawImage(I.halo, R(x - 4), R(y + 1)); g.globalAlpha = 1;
+  }
+  const bob = Math.sin(T * 2) * 1.5;
+  txt('人生重开', 90, 58 + bob, 30, '#ffe14a', 'center', OUT);
+  g.fillStyle = OUT; g.fillRect(54, 78, 72, 15); g.fillStyle = '#e8343a'; g.fillRect(55, 79, 70, 13); g.fillStyle = '#ffd23f'; g.fillRect(55, 80, 70, 1); g.fillRect(55, 90, 70, 1);
+  g.fillStyle = OUT; g.fillRect(48, 81, 7, 11); g.fillRect(125, 81, 7, 11); g.fillStyle = '#b8243a'; g.fillRect(49, 82, 6, 9); g.fillRect(125, 82, 6, 9);
+  txt('物　语', 90, 85, 10, '#ffffff', 'center', OUT);
+  txt('REBIRTHDAY', 90, 103, 8, '#dff6ff', 'center', OUT);
+  txt('抽天赋 · 分属性 · 过一生', 90, 116, 7.5, '#ffffff', 'center', '#2a4a8a');
+  if (SAVED) {
+    button(BTN.tCont, '继续人生 · ' + SAVED.age + '岁', { green: 1 });
+    button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 });
+  } else {
+    button(BTN.tNew, '开始新人生');
+    button(BTN.tAch, '成就 ' + Object.keys(META.ach).length + '/' + ACH.length, { blue: 1, size: 7 });
+  }
+  if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长活到 ' + META.best + ' 岁', 90, 306, 6.5, '#ffffff', 'center', '#2a5a2a');
+  g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
+}
+function drawCapsule(cx, cy, col, open) {
+  const o = open || 0;
+  const half = (dy, top, c) => { g.save(); g.beginPath(); g.rect(cx - 9, top ? cy - 10 + dy : cy + dy, 19, 10); g.clip(); dsc(g, cx, cy + dy, 8, OUT); dsc(g, cx, cy + dy, 7, c); g.restore(); };
+  half(-o, true, col); half(o, false, '#f4f4f8');
+  g.fillStyle = OUT; g.fillRect(cx - 8, cy - o, 17, 1); if (o) g.fillRect(cx - 8, cy + o, 17, 1);
+  g.fillStyle = '#ffffff'; g.fillRect(cx - 4, cy - 5 - o, 2, 2);
+}
+const DOME_CAPS = [[-10, 6, '#ff7eb6'], [0, 9, '#5ab0ff'], [10, 6, '#ffd23f'], [-5, 0, '#5fd35f'], [6, 1, '#b77bff'], [-13, -3, '#5ab0ff'], [13, -2, '#ff9a4a'], [0, -6, '#ff7eb6']];
+function drawMachine(cx, cy, sh, ang) {
+  const x = R(cx + sh);
+  dsc(g, x, cy - 22, 24, OUT); dsc(g, x, cy - 22, 23, '#d8f2ff');
+  for (const [dx, dy, c] of DOME_CAPS) { dsc(g, x + dx, cy - 18 + dy, 5.5, OUT); dsc(g, x + dx, cy - 18 + dy, 4.5, c); g.fillStyle = '#ffffff'; g.fillRect(x + dx - 2, cy - 21 + dy, 1, 1); }
+  g.globalAlpha = .5; g.fillStyle = '#ffffff'; g.fillRect(x - 15, cy - 36, 3, 8); g.fillRect(x - 12, cy - 40, 3, 3); g.globalAlpha = 1;
+  box(g, x - 28, cy - 2, 56, 46, '#e8453c', '#ff7a6a', '#b8302a');
+  box(g, x - 22, cy + 3, 44, 11, '#fff6d8');
+  txt('天赋扭蛋', x, cy + 8.5, 7, '#c8302a', 'center', null);
+  box(g, x - 10, cy + 25, 20, 14, '#26263a'); g.fillStyle = '#3a3a5a'; g.fillRect(x - 8, cy + 27, 16, 2);
+  odsc(g, x + 16, cy + 21, 5, '#f4f4f4'); g.fillStyle = OUT; g.fillRect(x + 15, cy + 20, 3, 3);
+  const hx = x + 16 + Math.cos(ang) * 6, hy = cy + 21 + Math.sin(ang) * 6; g.fillStyle = '#ffd23f'; g.fillRect(R(hx) - 1, R(hy) - 1, 3, 3);
+  box(g, x - 32, cy + 42, 64, 8, '#b8302a', '#d84a3a');
+}
+function drawGacha() {
+  drawVoid();
+  const G = gacha, best = Math.max(...G.tal.map(id => TAL[id].r)), col = RAR[best].c;
+  txt('天赋扭蛋', 90, 30, 16, '#ffe14a');
+  txt('抽 10 个天赋，从中挑选 3 个', 90, 48, 7.5, '#dcd0ff');
+  const sh = G.ph === 'shake' ? Math.sin(G.t * 50) * 2 : 0, ang = G.ph === 'shake' ? G.t * 14 : .6;
+  drawMachine(90, 150, sh, ang);
+  if (G.ph === 'drop' || G.ph === 'wait' || G.ph === 'open') {
+    let cx = 90, cy = 206;
+    if (G.ph === 'drop') { const u = Math.min(1, G.t / .7); cy = 186 + u * 20 - Math.abs(Math.sin(u * Math.PI * 2.5)) * 16 * (1 - u); }
+    if (G.ph === 'wait') { cx += Math.sin(T * 10) * 1.2; }
+    if (best >= 2 && G.ph !== 'drop') { g.globalAlpha = .25 + .15 * Math.sin(T * 6); dsc(g, cx, cy, 14, col); g.globalAlpha = 1; }
+    drawCapsule(R(cx), R(cy), col, G.ph === 'open' ? Math.min(6, G.t * 30) : 0);
+    if (G.ph === 'wait' && Math.floor(T * 2) % 2 === 0) txt('点一下打开扭蛋', 90, 230, 8, '#ffffff');
+    if (G.ph === 'open') { g.globalAlpha = Math.max(0, 1 - G.t * 2.2); g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  }
+  if (G.ph === 'ready') {
+    button(BTN.pull, '十连抽！');
+    if (META.inh && TAL[META.inh]) txt('前世继承：' + TAL[META.inh].n, 90, 284, 7, RAR[TAL[META.inh].r].c);
+    const o = rarityOdds(); txt('传说 ' + (o[3] * 100).toFixed(1) + '%  史诗 ' + (o[2] * 100).toFixed(1) + '%', 90, 300, 6.5, '#a89ad8');
+  }
+  button(BTN.back, '返回', { size: 6.5, blue: 1 });
+  drawParts();
+}
+function drawTalentPick() {
+  drawVoid();
+  const G = gacha, n = G.sel.length;
+  txt('选择 3 个天赋', 90, 14, 11, '#ffe14a');
+  txt('已选 ' + n + ' / 3', 90, 26, 7.5, n === 3 ? '#8aff96' : '#dcd0ff');
+  G.tal.forEach((id, i) => talentRow(id, 6, 33 + i * 25.5, 168, 24, G.sel.includes(id), id === META.inh ? '前世继承' : ''));
+  button(BTN.tOK, n === 3 ? '就是它们了！' : '还差 ' + (3 - n) + ' 个', { dis: n !== 3, green: n === 3 });
+  drawParts();
+}
+const CRIB = mk(70, 46), cg = CRIB.getContext('2d');
+function drawAlloc() {
+  drawVoid();
+  txt('分配属性点', 90, 13, 11, '#ffe14a');
+  // preview: the baby in a crib that depends on the family's money
+  const m = alloc.MNY + talBonus('MNY'), c = cg; c.clearRect(0, 0, 70, 46);
+  const base = m >= 10 ? ['#ffd23f', '#fff08a'] : m >= 7 ? ['#f4f4f8', '#ffffff'] : m >= 3 ? ['#c8904a', '#e8b070'] : ['#b89060', '#d8b080'];
+  if (m >= 7) { c.fillStyle = OUT; c.fillRect(8, 2, 54, 5); c.fillStyle = m >= 10 ? '#e8343a' : '#ff9ac8'; c.fillRect(9, 3, 52, 3); c.fillRect(9, 6, 6, 20); c.fillRect(55, 6, 6, 20); }
+  const bb = person({ st: 'baby', g: 'm', hair: 'black', top: '#ffe0b0', mood: 'h', blink: (T % 3) < .12 ? 1 : 0 });
+  if (m >= 3) { box(c, 10, 16, 50, 4, base[0], base[1]); for (let i = 14; i < 58; i += 6) { c.fillStyle = OUT; c.fillRect(i, 19, 2, 12); c.fillStyle = base[1]; c.fillRect(i, 19, 1, 12); } }
+  c.drawImage(bb.img, 25, m < 3 ? 2 : 0);
+  if (m >= 3) box(c, 10, 30, 50, 12, base[0], base[1]);
+  else { box(c, 12, 24, 46, 18, base[0], base[1]); c.fillStyle = '#9a7040'; c.fillRect(14, 32, 42, 1); box(c, 6, 20, 12, 6, base[1]); box(c, 52, 20, 12, 6, base[1]); }
+  if (m >= 10) { c.fillStyle = '#ffd23f'; c.fillRect(31, 12, 8, 3); c.fillRect(31, 10, 1, 2); c.fillRect(34, 9, 2, 3); c.fillRect(38, 10, 1, 2); }
+  box(g, 25, 22, 130, 98, '#2a1c4a'); g.fillStyle = '#3a2a5e'; g.fillRect(26, 104, 128, 15);
+  g.drawImage(CRIB, 20, 18, 140, 92);
+  const icons = [];
+  if (alloc.CHR + talBonus('CHR') >= 8) icons.push('spark'); if (alloc.INT + talBonus('INT') >= 8) icons.push('book');
+  if (alloc.STR + talBonus('STR') >= 8) icons.push('heart'); if (m >= 8) icons.push('coin');
+  icons.forEach((k, i) => { const x = 32 + i * 14, y = 28 + R(Math.sin(T * 3 + i) * 2); g.fillStyle = OUT; g.fillRect(x - 1, y - 1, 12, 11); g.fillStyle = '#fff'; g.fillRect(x, y, 10, 9); g.drawImage(EMO[k], x + R((10 - EMO[k].width) / 2), y + R((9 - EMO[k].height) / 2)); });
+  // chosen talents
+  pickTal.forEach((id, i) => { const t = TAL[id], x = 6 + i * 57; g.fillStyle = OUT; g.fillRect(x, 123, 54, 12); g.fillStyle = RAR[t.r].bg; g.fillRect(x + 1, 124, 52, 10); g.fillStyle = RAR[t.r].c; g.fillRect(x + 1, 124, 2, 10); txt(t.n, x + 28, 129, 6.5, RAR[t.r].d, 'center', null); });
+  panel(4, 138, 172, 128);
+  const left = allocLeft();
+  ALLOC_K.forEach((k, i) => {
+    const y = allocY(i), v = alloc[k], b = talBonus(k);
+    g.fillStyle = OUT; g.fillRect(10, y, 26, 14); g.fillStyle = SCOL[k]; g.fillRect(11, y + 1, 24, 12);
+    txt(SNAME[k], 23, y + 7, 7.5, '#ffffff', 'center', OUT);
+    button([40, y, 14, 14], '−', { size: 9, dis: v <= 0 });
+    for (let s = 0; s < 10; s++) { const x = 57 + s * 8; g.fillStyle = OUT; g.fillRect(x, y + 2, 7, 10); g.fillStyle = s < v ? SCOL[k] : '#d8c8a0'; g.fillRect(x + 1, y + 3, 5, 8); if (s < v) { g.fillStyle = '#ffffff'; g.globalAlpha = .5; g.fillRect(x + 1, y + 3, 5, 1); g.globalAlpha = 1; } }
+    button([138, y, 14, 14], '+', { size: 9, dis: v >= 10 || left <= 0 });
+    txt(String(v), b ? 159 : 163, y + 7, 10, '#4a2c17', 'center', null);
+    if (b) txt((b > 0 ? '+' : '') + b, 171, y + 8, 6.5, b > 0 ? '#2a8a3a' : '#c83a2a', 'right', null);
+  });
+  txt(left ? '还有 ' + left + ' 点没有分配' : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
+  button(BTN.aRand, '随机', { blue: 1 }); button(BTN.aGo, '开始新人生！', { dis: left !== 0, green: left === 0 });
+  button(BTN.back, '返回', { size: 6.5, blue: 1 });
+}
+function drawLife() {
+  g.fillStyle = '#140c2a'; g.fillRect(0, 0, W, H);
+  drawScene(SY);
+  drawParts(); drawEmote(); drawBanner();
+  drawHUD(); drawLog();
+  g.fillStyle = '#1e1438'; g.fillRect(0, 297, W, 23);
+  if (state === 'review') button(BTN.toEnd, '返回结局');
+  else if (L.end) { if (endT > .9) button(BTN.seeEnd, L.asc ? '飞升结算' : '查看这一生', { green: 1 }); }
+  else {
+    button(BTN.auto, ['自动播放', '加速 ×2', '停止'][auto], { blue: auto > 0, size: 7 });
+    button(BTN.next, '下一年 ▶');
+    if (!auto && Math.floor(T * 1.6) % 2 === 0) txt('点击屏幕继续', 89, 307, 6.5, '#b8b0d8');
+    if (auto) txt(auto === 1 ? '自动中…' : '快进中…', 89, 307, 6.5, '#8ab8ff');
+  }
+  drawPops();
+}
+function drawEnd() {
+  const st = state === 'inherit' ? 9 : stNow();
+  g.fillStyle = '#140c2a'; g.fillRect(0, 0, W, H);
+  const oy = 16;
+  g.drawImage(L.asc ? SCN.xian.bg : SCN.grave.bg, 0, oy);
+  txt(L.asc ? '飞升结算' : '人生总结', 90, 8, 9, '#ffe14a');
+  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? 'robe' : 'ghost', mood: 'z', cane: 0, fr: 0 }));
+  if (L.asc) {
+    const y = oy + 70 - Math.min(40, st * 8) + Math.sin(T * 2) * 2;
+    g.globalAlpha = .3 + .1 * Math.sin(T * 4); for (let r = 26; r > 8; r -= 6) dsc(g, 90, y + 14, r, '#fff3a0'); g.globalAlpha = 1;
+    g.drawImage(ghost.img, 80, R(y));
+  } else {
+    const ty = oy + 50;
+    dsc(g, 90, ty + 14, 16, OUT); g.fillStyle = OUT; g.fillRect(74, ty + 14, 32, 34);
+    dsc(g, 90, ty + 14, 15, '#b4b4c4'); g.fillStyle = '#b4b4c4'; g.fillRect(75, ty + 14, 30, 33);
+    g.fillStyle = '#d0d0dc'; g.fillRect(76, ty + 12, 2, 30); g.fillStyle = '#9090a4'; g.fillRect(103, ty + 14, 1, 32);
+    box(g, 68, ty + 45, 44, 7, '#8a8a9c', '#a8a8b8');
+    for (const [fx_, c] of [[70, '#ff6a8a'], [76, '#ffe14a'], [104, '#ffffff'], [110, '#ff6a8a']]) { g.fillStyle = '#3a7a3a'; g.fillRect(fx_, ty + 46, 1, 4); g.fillStyle = c; g.fillRect(fx_ - 1, ty + 44, 3, 2); }
+    txt('享年', 90, ty + 12, 6.5, '#3a3a4a', 'center', null);
+    txt(L.age + '岁', 90, ty + 25, L.age >= 1000 ? 8 : 10, '#26263a', 'center', null);
+    if (L.f.hadcat || L.pet) { const img = petImg(L.pet ? L.pet.k : 'cat', L.pet ? L.pet.alt : 0, Math.floor(T * 2) % 2); g.drawImage(img, 112, ty + 38); }
+    const y = oy + 64 - Math.min(10, st * 6) + Math.sin(T * 2) * 2;
+    g.globalAlpha = .85; g.drawImage(ghost.img, 124, R(y)); g.globalAlpha = 1; g.drawImage(I.halo, 130, R(y + 1));
+  }
+  txt('「' + (L.ep || (L.ep = epitaph())) + '」', 90, oy + 127, 7, '#ffe8c0', 'center', OUT);
+  panel(4, 150, 172, 144);
+  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])]]);
+  const ag = ageGrade(L.age); rows_.push(['享年', L.age, L.asc ? '飞升成仙' : ag[1], GCOL[L.asc ? 5 : ag[0]]]);
+  rows_.forEach((r, i) => {
+    const y = 162 + i * 17, show = st > .15 + i * .12;
+    if (!show) return;
+    txt(r[0], 12, y, 7.5, '#6a4a2a', 'left', null);
+    txt(String(r[1]), 46, y, 9, '#3a2a1a', 'center', null);
+    txt(r[2], 58, y, 7.5, r[3], 'left', OUT);
+  });
+  box(g, 116, 156, 54, 66, '#fff8e0', '#ffffff');
+  txt('总评', 143, 163, 7, '#8a6a4a', 'center', null);
+  if (st > 1) {
+    const k = Math.min(1, (st - 1) / .15), sz = (L.grade.length > 2 ? 17 : 23) * (2 - k);
+    txt(L.grade, 143, 184, sz, LCOL[L.grade], 'center', OUT);
+    txt(L.score + ' 分', 143, 203, 6.5, '#8a6a4a', 'center', null);
+    txt(lifeTitle(), 143, 214, 7, '#6a3a1a', 'center', null);
+  }
+  txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 270, 6.5, '#6a4a2a', 'center', null);
+  if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 90, 256, 6.5, '#b8780a', 'center', null);
+  button(BTN.review, '回顾一生', { blue: 1 }); button(BTN.nextLife, '再来一次！', { green: 1 });
+  drawParts();
+}
+function drawInherit() {
+  dim(.65); panel(14, 70, 152, 182);
+  txt('带一个天赋去下一世', 90, 84, 9, '#4a2c17', 'center', null);
+  L.tl.forEach((id, i) => talentRow(id, 20, 94 + i * 29, 140, 26, inhSel === id));
+  const r = [20, 183, 140, 16], sel = inhSel === 'none';
+  g.fillStyle = OUT; g.fillRect(r[0], r[1], r[2], r[3]); g.fillStyle = sel ? '#ffe890' : '#e8dcc0'; g.fillRect(r[0] + 1, r[1] + 1, r[2] - 2, r[3] - 2);
+  txt('什么都不带', 90, r[1] + 8, 7.5, '#6a5a4a', 'center', null);
+  txt('继承的天赋一定会出现在下次的扭蛋里', 90, 211, 6, '#8a6a4a', 'center', null);
+  button(BTN.inhGo, '投胎去！', { dis: !inhSel, green: !!inhSel });
+}
+function drawAch() {
+  drawVoid();
+  txt('成就 ' + Object.keys(META.ach).length + ' / ' + ACH.length, 90, 13, 11, '#ffe14a');
+  panel(4, 24, 172, 268);
+  const clip = [8, 28, 164, 260], rh = 25;
+  achMax = Math.max(0, ACH.length * rh + 4 - clip[3]); achScroll = clamp(achScroll, 0, achMax);
+  g.save(); g.beginPath(); g.rect(clip[0], clip[1], clip[2], clip[3]); g.clip();
+  ACH.forEach((a, i) => {
+    const y = clip[1] + 2 + i * rh - achScroll; if (y + rh < clip[1] || y > clip[1] + clip[3]) return;
+    const got = META.ach[a[0]], secret = !got && a[4];
+    g.fillStyle = OUT; g.fillRect(10, y, 160, rh - 2); g.fillStyle = got ? '#fff4c8' : '#e4d8bc'; g.fillRect(11, y + 1, 158, rh - 4);
+    g.drawImage(got ? I.trophy : I.lock, got ? 14 : 15, y + 8);
+    txt(secret ? '？？？' : a[1], 28, y + 7.5, 8, got ? '#7a4a10' : '#8a7a6a', 'left', null, 1, clip);
+    txt(secret ? a[4] : a[2], 28, y + 17, 6.5, got ? '#8a6a4a' : '#a09080', 'left', null, 1, clip);
+  });
+  g.restore();
+  button(BTN.achBack, '返回', { blue: 1 });
+}
+function drawMenu() {
+  dim(.6); panel(30, 96, 120, 124);
+  txt('暂停', 90, 111, 11, '#4a2c17', 'center', null);
+  button(BTN.mResume, '继续'); button(BTN.mMusic, META.muted ? '声音：关' : '声音：开', { blue: 1 }); button(BTN.mHome, '回到标题', { red: 1 });
+  txt('进度会自动保存', 90, 208, 6.5, '#8a6a4a', 'center', null);
+}
+function drawToast() {
+  const t = TOASTS[0]; if (!t) return;
+  const k = t.t < .3 ? t.t / .3 : t.t > 2.3 ? Math.max(0, 1 - (t.t - 2.3) / .3) : 1, y = R(-26 + 30 * k);
+  g.fillStyle = OUT; g.fillRect(18, y, 144, 24); g.fillStyle = '#3a2a5e'; g.fillRect(19, y + 1, 142, 22); g.fillStyle = '#ffd23f'; g.fillRect(19, y + 1, 142, 1); g.fillRect(19, y + 22, 142, 1);
+  g.drawImage(I.trophy, 25, y + 8);
+  txt('成就解锁', 40, y + 7.5, 6, '#ffd23f', 'left'); txt(t.n, 40, y + 16, 8.5, '#ffffff', 'left');
+}
+
+// ============================================================ input
+function tapTitle(p) {
+  if (inR(p, BTN.mute)) return toggleMute();
+  if (SAVED) {
+    if (inR(p, BTN.tCont)) return resumeLife();
+    if (inR(p, BTN.tNew2)) { clearRun(); startGacha(); SFX.click(); return; }
+    if (inR(p, BTN.tAch2)) return openAch('title');
+  } else {
+    if (inR(p, BTN.tNew)) { startGacha(); SFX.click(); return; }
+    if (inR(p, BTN.tAch)) return openAch('title');
+  }
+}
+function tapGacha(p) {
+  const G = gacha;
+  if (G.ph === 'ready' && inR(p, BTN.back)) { go('title'); SFX.click(); return; }
+  if (G.ph === 'ready' && inR(p, BTN.pull)) { G.ph = 'shake'; G.t = 0; SFX.crank(); return; }
+  if (G.ph === 'wait') { G.ph = 'open'; G.t = 0; const best = Math.max(...G.tal.map(id => TAL[id].r)); confetti(30 + best * 15, 200, best >= 2 ? [RAR[best].c, '#ffffff', '#ffe14a'] : null); shake = best >= 3 ? 3 : 0; }
+}
+function tapTalent(p) {
+  const G = gacha;
+  if (inR(p, BTN.tOK)) { if (G.sel.length === 3) { pickTal = G.sel.slice(); alloc = { CHR: 5, INT: 5, STR: 5, MNY: 5 }; go('alloc'); SFX.select(); } else SFX.no(); return; }
+  for (let i = 0; i < G.tal.length; i++) {
+    if (!inR(p, [6, 33 + i * 25.5, 168, 24])) continue;
+    const id = G.tal[i], j = G.sel.indexOf(id);
+    if (j >= 0) { G.sel.splice(j, 1); SFX.minus(); }
+    else if (G.sel.length < 3) { G.sel.push(id); SFX.plus(); }
+    else SFX.no();
+    return;
+  }
+}
+function tapAlloc(p) {
+  if (inR(p, BTN.back)) { go('talent'); SFX.click(); return; }
+  if (inR(p, BTN.aRand)) {
+    for (const k of ALLOC_K) alloc[k] = 0; let left = 20;
+    while (left > 0) { const k = pick(ALLOC_K); if (alloc[k] < 10) { alloc[k]++; left--; } }
+    SFX.select(); return;
+  }
+  if (inR(p, BTN.aGo)) { if (allocLeft() === 0) startLife(); else SFX.no(); return; }
+  ALLOC_K.forEach((k, i) => {
+    const y = allocY(i);
+    if (inR(p, [38, y - 2, 18, 18])) { if (alloc[k] > 0) { alloc[k]--; SFX.minus(); } else SFX.no(); }
+    else if (inR(p, [136, y - 2, 18, 18])) { if (alloc[k] < 10 && allocLeft() > 0) { alloc[k]++; SFX.plus(); } else SFX.no(); }
+    else if (inR(p, [56, y, 80, 14])) {
+      const s = clamp(Math.floor((p.x - 57) / 8), 0, 9), want = alloc[k] === s + 1 ? s : s + 1, can = alloc[k] + allocLeft();
+      alloc[k] = Math.min(want, can, 10); SFX.plus();
+    }
+  });
+}
+function tapLife(p) {
+  if (inR(p, BTN.menu)) { menuOpen = true; auto = 0; SFX.click(); return; }
+  if (inR(p, BTN.mute)) return toggleMute();
+  if (state === 'review') { if (inR(p, BTN.toEnd)) { go('end'); st = 5; SFX.click(); } return; }
+  if (logScroll > 30 && inR(p, BTN.jump)) { logScroll = 0; return; }
+  if (L.end) { if (endT > .9 && inR(p, BTN.seeEnd)) { go('end'); SFX.click(); } return; }
+  if (inR(p, BTN.auto)) { auto = (auto + 1) % 3; SFX.click(); return; }
+  if (banner && banner.t < 1.4) { banner.t = 1.4; return; }
+  if (p.y > SY) nextYear();
+}
+function tapEnd(p) {
+  if (inR(p, BTN.review)) { go('review'); logScroll = 0; SFX.click(); return; }
+  if (inR(p, BTN.nextLife)) { inhSel = null; go('inherit'); SFX.click(); }
+}
+function tapInherit(p) {
+  L.tl.forEach((id, i) => { if (inR(p, [20, 94 + i * 29, 140, 26])) { inhSel = id; SFX.select(); } });
+  if (inR(p, [20, 183, 140, 16])) { inhSel = 'none'; SFX.click(); }
+  if (inR(p, BTN.inhGo) && inhSel) { META.inh = inhSel === 'none' ? null : inhSel; saveMeta(); startGacha(); SFX.start(); }
+}
+function tapMenu(p) {
+  if (inR(p, BTN.mResume)) { menuOpen = false; SFX.click(); }
+  else if (inR(p, BTN.mMusic)) toggleMute();
+  else if (inR(p, BTN.mHome)) { menuOpen = false; go('title'); SFX.click(); }
+}
+function onTap(p) {
+  if (menuOpen) return tapMenu(p);
+  switch (state) {
+    case 'title': return tapTitle(p);
+    case 'gacha': return tapGacha(p);
+    case 'talent': return tapTalent(p);
+    case 'alloc': return tapAlloc(p);
+    case 'life': case 'review': return tapLife(p);
+    case 'end': return tapEnd(p);
+    case 'inherit': return tapInherit(p);
+    case 'ach': if (inR(p, BTN.achBack)) { go(achFrom); SFX.click(); } return;
+  }
+}
+window.addEventListener('pointerdown', e => {
+  e.preventDefault(); initAudio();
+  const p = toLogical(e);
+  const area = (state === 'life' || state === 'review') && !menuOpen && inR(p, [LOG.x, LOG.y, LOG.w, LOG.h]) ? 'log' : state === 'ach' && inR(p, [4, 24, 172, 268]) ? 'ach' : null;
+  ptr = { x0: p.x, y0: p.y, moved: false, s0: area === 'ach' ? achScroll : logScroll, area };
+}, { passive: false });
+window.addEventListener('pointermove', e => {
+  if (!ptr) return;
+  const p = toLogical(e), dy = p.y - ptr.y0;
+  if (Math.abs(dy) > 4 || Math.abs(p.x - ptr.x0) > 4) ptr.moved = true;
+  if (ptr.moved && ptr.area === 'log') logScroll = clamp(ptr.s0 + dy, 0, logMax);
+  if (ptr.moved && ptr.area === 'ach') achScroll = clamp(ptr.s0 - dy, 0, achMax);
+});
+window.addEventListener('pointerup', e => { if (!ptr) return; const p = toLogical(e), wasTap = !ptr.moved; ptr = null; if (wasTap) onTap(p); });
+window.addEventListener('pointercancel', () => { ptr = null; });
+window.addEventListener('wheel', e => { if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
+window.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if ((e.key === ' ' || e.key === 'Enter') && state === 'life' && !menuOpen && L && !L.end) { e.preventDefault(); initAudio(); if (banner && banner.t < 1.4) banner.t = 1.4; else nextYear(); }
+  if (e.key === 'Escape' && state === 'life') menuOpen = !menuOpen;
+});
+window.addEventListener('contextmenu', e => e.preventDefault());
+['touchstart', 'touchmove', 'touchend'].forEach(ev => window.addEventListener(ev, e => { if (e.cancelable) e.preventDefault(); }, { passive: false }));
+['selectstart', 'dragstart', 'gesturestart'].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+
+// ============================================================ loop
+function update(dt) {
+  T += dt; st += dt; yearT += dt; shake = Math.max(0, shake - dt * 6);
+  if (state === 'gacha') {
+    const G = gacha; G.t += dt;
+    if (G.ph === 'shake' && G.t > .9) { G.ph = 'drop'; G.t = 0; SFX.pop(); }
+    else if (G.ph === 'drop' && G.t > .7) { G.ph = 'wait'; G.t = 0; }
+    else if (G.ph === 'open' && G.t > .45) { go('talent'); SFX.reveal(Math.max(...G.tal.map(id => TAL[id].r))); }
+  }
+  if ((state === 'life' || state === 'review') && L) {
+    const sc = SCN[curScene];
+    for (const a of cast) {
+      if (a.fixed || (a.k === 'me' && L.end)) { a.mv = false; continue; }
+      if (a.wait > 0) { a.wait -= dt; a.mv = false; continue; }
+      const d = a.tx - a.x, sp = a.k === 'pet' ? 20 : 12;
+      if (Math.abs(d) < 1) { a.wait = rand(1.2, 3.5); a.tx = clamp(a.x + rand(-45, 45), sc.walk[0], sc.walk[1]); a.mv = false; }
+      else { a.x += Math.sign(d) * Math.min(Math.abs(d), sp * dt); a.mv = true; }
+    }
+    if (state === 'life' && auto && !L.end && !menuOpen && !banner && yearT >= (auto === 1 ? 1.25 : .55)) nextYear();
+    if (L.end) endT += dt;
+  }
+  if (state === 'end' && st > 1 && st - dt <= 1) { tone(180, .18, 'square', .08, 90); noise(.15, .12, 800); shake = 2; if (L.grade === 'SSS' || L.grade === 'SS') { confetti(50, 170); SFX.big(); } }
+  for (const p of P) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; }
+  P = P.filter(p => p.t < p.life);
+  for (const p of POPS) p.t += dt; POPS = POPS.filter(p => p.t < 1.3);
+  if (TOASTS.length) { const t = TOASTS[0]; if (!t.t) SFX.ach(); t.t += dt; if (t.t > 2.6) TOASTS.shift(); }
+  if (banner) { banner.t += dt; if (banner.t > 1.8) banner = null; }
+  for (const k in hudFlash) { hudFlash[k].t += dt; if (hudFlash[k].t > 1) delete hudFlash[k]; }
+}
+function wantedTrack() {
+  if (state === 'title' || state === 'ach') return 'title';
+  if (state === 'gacha' || state === 'talent' || state === 'alloc') return 'setup';
+  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return 'xian'; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
+  return 'end';
+}
+function render() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#140c2a'; ctx.fillRect(0, 0, cv.width, cv.height);
+  g.imageSmoothingEnabled = false; g.clearRect(0, 0, W, H); TQ.length = 0;
+  switch (state) {
+    case 'title': drawTitle(); break;
+    case 'gacha': drawGacha(); break;
+    case 'talent': drawTalentPick(); break;
+    case 'alloc': drawAlloc(); break;
+    case 'life': case 'review': drawLife(); break;
+    case 'end': drawEnd(); break;
+    case 'inherit': drawEnd(); flush(); drawInherit(); break;
+    case 'ach': drawAch(); break;
+  }
+  flush();
+  if (menuOpen) { drawMenu(); flush(); }
+  if (TOASTS.length) { drawToast(); flush(); }
+}
+
+// ============================================================ boot
+window.addEventListener('resize', fit); fit();
+buildScenes();
+const ALLTEXT = [...new Set((SCRIPT_TEXT.match(/[^\x00-\x7f]/g) || []))].join('') + '0123456789+-×/SABCD';
+try { if (document.fonts && document.fonts.load) document.fonts.load('12px "ZCOOL QingKe HuangYou"', ALLTEXT).catch(() => {}); } catch (e) {}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt); render(); musicUpdate(wantedTrack());
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
