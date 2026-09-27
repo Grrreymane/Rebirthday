@@ -125,6 +125,7 @@ const BODY = { tod: [3, 1], kid: [4, 2], teen: [5, 3], adult: [6, 3], mid: [6, 3
 function stageOf(age) { return age < 2 ? 'baby' : age < 6 ? 'tod' : age < 13 ? 'kid' : age < 19 ? 'teen' : age < 45 ? 'adult' : age < 65 ? 'mid' : 'old'; }
 const FITS = {
   casual: {}, elder: {},
+  hoodie: { hoodie: 1 }, stripe: { hstripe: '#f4f4f4' }, jacket: { jacket: '#f4f4f4' }, overall: { overall: 1 }, dressc: { dress: 1, belt: 1 },
   school_p: { top: '#f6f6f6', bot: '#3d5fa8', scarf: 1 },
   school_t: { top: '#f6f6f6', arm: '#3d6fc8', bot: '#3d5fa8', stripe: '#f6f6f6', shoulder: '#3d6fc8' },
   suit: { top: '#2e3a5c', bot: '#2e3a5c', shirt: '#f4f4f4', tie: '#d8403a' },
@@ -189,6 +190,7 @@ function person(o) {
     if (fit.cape) { G.rect(tx0 - 2, t0, tx1 - tx0 + 5, n + m - 1, fit.cape); G.rect(tx0 - 3, t0 + 2, tx1 - tx0 + 7, n + m - 3, fit.cape); }
     if (fit.veil) { G.rect(3, oy + 2, 2, 13, fit.veil); G.rect(15, oy + 2, 2, 13, fit.veil); }
     if (!o.bald && style === 'long') { G.rect(3, oy + 4, 3, 11, hc[0]); G.rect(14, oy + 4, 3, 11, hc[0]); }
+    if (!o.bald && style === 'wavy') { for (let y = oy + 4; y < oy + 17; y++) { const w = (y >> 1) % 2; G.rect(2 + w, y, 3, 1, hc[0]); G.rect(15 - w, y, 3, 1, hc[0]); } }
     // torso and arms
     G.rect(tx0, t0, tx1 - tx0 + 1, n, top);
     const armC = fit.arm || top, armW = fit.wide ? 2 : 1;
@@ -206,6 +208,11 @@ function person(o) {
     if (fit.num) G.px([[10, t0 + 1], [9, t0 + 2], [10, t0 + 2], [10, t0 + 3]], fit.num);
     if (fit.sparkle) G.px([[8, t0 + 1], [11, t0 + 3], [9, t0 + 4]], '#fff2fa');
     if (fit.flower) G.set(8, t0 + 1, fit.flower);
+    if (fit.hoodie) { G.rect(tx0, t0, tx1 - tx0 + 1, 1, shade(top, -.18)); G.px([[9, t0 + 1], [10, t0 + 1]], '#f4f4f4'); if (n > 3) G.rect(tx0 + 1, t0 + n - 2, tx1 - tx0 - 1, 1, shade(top, -.18)); }
+    if (fit.hstripe) for (let y = t0 + 1; y < t0 + n; y += 2) G.rect(tx0, y, tx1 - tx0 + 1, 1, fit.hstripe);
+    if (fit.jacket) { G.rect(9, t0, 2, n, fit.jacket); G.px([[8, t0], [11, t0]], shade(top, -.25)); }
+    if (fit.overall) { G.rect(8, t0 + 1, 4, n - 1, bot); G.px([[7, t0], [12, t0], [8, t0 + 1], [11, t0 + 1]], bot); G.set(9, t0 + 2, '#ffd23f'); G.set(10, t0 + 2, '#ffd23f'); }
+    if (fit.belt) G.rect(tx0, t0 + n - 1, tx1 - tx0 + 1, 1, shade(top, -.3));
     // legs, skirt/dress and shoes
     const shoe = '#4a3434', lift = o.fr === 1 ? 'l' : o.fr === 2 ? 'r' : '';
     const legs = (c, from) => {
@@ -235,6 +242,15 @@ function person(o) {
     if (o.bald) {
       G.px([[4, oy + 5], [4, oy + 6], [15, oy + 5], [15, oy + 6], [5, oy + 4], [14, oy + 4]], hc[0]);
       G.px([[8, oy + 2], [7, oy + 3]], '#fff4e8');
+    } else if (style === 'buzz') {
+      cap(oy + 3); G.px([[4, oy + 4], [15, oy + 4], [4, oy + 5], [15, oy + 5]], hc[0]);
+    } else if (style === 'side') {
+      cap(oy + 4); G.rect(4, oy + 5, 12, 1, hc[0]); G.rect(4, oy + 6, 6, 1, hc[0]); G.px([[4, oy + 7], [15, oy + 6], [15, oy + 7], [10, oy + 6]], hc[0]);
+    } else if (style === 'curly') {
+      for (let y = 0; y < 34; y++) for (let x = 0; x < 20; x++) { const dx = (x + .5 - cx) / 7.2, dy = (y + .5 - (oy + 5)) / 6.2; if (dx * dx + dy * dy <= 1 && y <= oy + 6) G.set(x, y, hc[0]); }
+      G.px([[3, oy + 7], [16, oy + 7], [3, oy + 8], [16, oy + 8], [5, oy + 6], [14, oy + 6], [2, oy + 5], [17, oy + 5]], hc[0]);
+    } else if (style === 'bob') {
+      cap(oy + 4); G.rect(4, oy + 5, 12, 2, hc[0]); G.rect(3, oy + 5, 2, 6, hc[0]); G.rect(15, oy + 5, 2, 6, hc[0]); G.px([[4, oy + 11], [15, oy + 11]], hc[0]);
     } else if (style === 'spiky') {
       cap(oy + 4);
       for (const [sx, h] of [[5, 3], [8, 5], [11, 4], [14, 3]]) for (let k = 0; k < h; k++) { G.set(sx, oy + 1 - k, hc[0]); if (k < h - 1) G.set(sx + 1, oy + 1 - k, hc[0]); }
@@ -248,6 +264,8 @@ function person(o) {
       if (style === 'pony') { G.rect(15, oy + 3, 2, 2, '#e8453c'); G.rect(16, oy + 5, 2, 5, hc[0]); G.set(17, oy + 10, hc[0]); }
       if (style === 'bun') G.ell(cx, oy - .2, 2.6, 2.2, hc[0]);
       if (style === 'topknot') { G.ell(cx, oy - .3, 1.9, 1.9, hc[0]); G.rect(7, oy - 1, 6, 1, '#c8a040'); }
+      if (style === 'wavy') G.px([[4, oy + 8], [15, oy + 8]], hc[0]);
+      if (style === 'twin') { G.rect(1, oy + 4, 2, 7, hc[0]); G.rect(17, oy + 4, 2, 7, hc[0]); G.px([[1, oy + 11], [18, oy + 11]], hc[0]); G.px([[3, oy + 4], [16, oy + 4]], '#ff6a8a'); }
     }
     if (!o.bald) G.px([[7, oy + 2], [8, oy + 2], [6, oy + 3]], hc[1]);
     if (o.ears) { const ec = '#e8943a'; G.px([[4, oy + 1], [5, oy + 1], [6, oy + 1], [4, oy], [5, oy], [4, oy - 1], [4, oy - 2], [13, oy + 1], [14, oy + 1], [15, oy + 1], [14, oy], [15, oy], [15, oy - 1], [15, oy - 2]], ec); G.px([[5, oy], [14, oy]], '#ffc0b0'); }
@@ -398,39 +416,79 @@ function buildScenes() {
     F(x, 116, 28, 2, 58, '#9aa0b0'); box(x, 112, 26, 10, 12, '#d8f0ff'); F(x, 113, 86, 8, 2, '#9aa0b0');
     o.walk = [22, 104];
   });
-  // homes: 0 poor, 1 ordinary, 2 rich
+  // homes by wealth: a village farmhouse or a city rental, three ordinary flats, a mansion and an estate
+  scn('home0v', (x) => {
+    F(x, 0, 0, 180, FY, '#c49a64'); for (let i = 0; i < 60; i++) F(x, (i * 47) % 180, (i * 23) % 64, 3, 1, i % 2 ? '#b08650' : '#d4aa74');
+    F(x, 0, 0, 180, 5, '#5a3a22'); for (const bx of [30, 90, 150]) F(x, bx, 0, 4, FY, '#6a4424');
+    box(x, 110, 12, 26, 20, '#8a5a34'); F(x, 112, 14, 22, 16, '#f4ead0'); for (let i = 0; i < 3; i++) F(x, 112 + i * 8, 14, 1, 16, '#8a5a34'); F(x, 112, 21, 22, 1, '#8a5a34');
+    for (const [a, c] of [[46, '#f2c040'], [52, '#e8453c'], [58, '#f2c040']]) { F(x, a, 5, 1, 4, '#6a4424'); for (let k = 0; k < 5; k++) dsc(x, a, 11 + k * 4, 2, c); }
+    box(x, 164, 6, 12, 16, '#e8453c'); x.fillStyle = '#ffd23f'; x.fillRect(168, 10, 4, 1); x.fillRect(168, 14, 4, 1); x.fillRect(169, 11, 2, 3);
+    F(x, 0, FY, 180, 50, '#9a7a52'); for (let i = 0; i < 40; i++) F(x, (i * 31) % 180, FY + 4 + (i * 13) % 44, 2, 1, '#86683f'); F(x, 0, FY, 180, 2, OUT);
+    box(x, 8, 48, 36, 30, '#a86a44', '#c88a5a'); for (let i = 10; i < 44; i += 6) F(x, i, 50, 1, 26, '#8a4a2a'); box(x, 12, 40, 18, 10, '#b8b0a0'); F(x, 16, 26, 6, 14, '#8a8078'); odsc(x, 21, 44, 5, '#3a3a44');
+    x.globalAlpha = .5; dsc(x, 19, 22, 3, '#d8d8e0'); dsc(x, 22, 16, 3, '#d8d8e0'); x.globalAlpha = 1;
+    box(x, 124, 52, 52, 26, '#b86a4a', '#d88a6a'); box(x, 126, 50, 48, 8, '#d83a3a', '#ff6a5a'); F(x, 130, 52, 12, 3, '#ffd23f'); box(x, 158, 46, 14, 6, '#f4f0e0');
+    box(x, 70, 70, 26, 10, '#a87444', '#c89060'); F(x, 72, 80, 2, 6, OUT); F(x, 92, 80, 2, 6, OUT); dsc(x, 78, 68, 3, '#f4f4f4'); dsc(x, 88, 68, 3, '#f4f4f4');
+  });
   scn('home0', (x) => {
-    wallpaper(x, '#caa878'); wainscot(x, 52, '#a88858');
-    F(x, 40, 10, 1, 8, '#8a6a44'); F(x, 41, 17, 1, 6, '#8a6a44'); F(x, 140, 30, 1, 7, '#8a6a44'); F(x, 139, 36, 1, 5, '#8a6a44');
-    winV(x, 110, 12, 24, 20, 'trees', '#b08050');
-    F(x, 70, 0, 1, 14, '#3a3a3a'); odsc(x, 70, 16, 2, '#fff3b0');
-    box(x, 14, 16, 16, 20, '#f4f0e0'); F(x, 16, 18, 12, 4, '#e8453c'); for (let i = 0; i < 4; i++) F(x, 17 + i * 3, 25, 2, 2, '#8a8aa0'); for (let i = 0; i < 4; i++) F(x, 17 + i * 3, 29, 2, 2, '#8a8aa0');
-    floorWood(x, '#8e6c46', '#74563a');
-    box(x, 20, 62, 28, 18, '#9a7048', '#b88a5a'); box(x, 23, 47, 22, 16, '#5a5a6a'); box(x, 25, 49, 16, 11, '#6a9ab0', '#9ac8d8'); F(x, 42, 51, 2, 2, '#e8453c');
-    box(x, 118, 74, 48, 12, '#d8c8a0', '#efe2c0'); box(x, 121, 72, 13, 6, '#f4f4f4');
+    wallpaper(x, '#dcd8cc'); wainscot(x, 56, '#b8b4a8');
+    for (const [a, b, r] of [[30, 8, 6], [150, 20, 5], [60, 30, 4]]) { x.globalAlpha = .25; dsc(x, a, b, r, '#9a8a6a'); x.globalAlpha = 1; }
+    winV(x, 72, 12, 26, 20, 'city', '#c8c8d0');
+    F(x, 124, 8, 1, 30, '#3a3a4a'); F(x, 116, 10, 30, 1, '#6a6a7a'); for (const [a, c] of [[119, '#e8534a'], [126, '#4a90d9'], [134, '#f2a93b'], [141, '#f4f4f4']]) box(x, a - 2, 11, 6, 10, c);
+    box(x, 150, 30, 20, 3, '#8a8a9a'); box(x, 152, 18, 5, 12, '#e8e8f0'); box(x, 160, 22, 7, 8, '#4a90d9');
+    floorTile(x, '#c8c4b8', '#bcb8ac', 10);
+    box(x, 8, 58, 50, 20, '#a8b8d0', '#c8d8f0'); box(x, 8, 54, 12, 8, '#f4f4f4'); F(x, 24, 64, 30, 1, '#8898b0');
+    box(x, 96, 66, 26, 4, '#b8a888'); F(x, 98, 70, 2, 10, OUT); F(x, 118, 70, 2, 10, OUT);
+    for (const a of [100, 106, 112]) { box(x, a, 59, 5, 7, '#f4f4f4'); F(x, a + 1, 60, 3, 1, '#e8453c'); }
+    F(x, 140, 50, 2, 30, '#6a6a7a'); odsc(x, 141, 48, 6, '#d8d8e0'); F(x, 138, 46, 7, 1, '#9a9aaa'); F(x, 136, 80, 11, 2, '#6a6a7a');
   });
-  scn('home1', (x) => {
-    wallpaper(x, '#f6e4c6', '#eed8b4', 6); wainscot(x, 54, '#c89868');
-    winV(x, 74, 10, 32, 26, 'city'); F(x, 70, 8, 40, 3, '#8a5a34');
-    box(x, 68, 10, 7, 30, '#e8534a', '#f07a6a'); box(x, 105, 10, 7, 30, '#e8534a', '#f07a6a');
-    wclock(x, 140, 18); box(x, 18, 14, 22, 16, '#f4f4f4'); F(x, 20, 16, 18, 12, '#8fc4a0'); dsc(x, 30, 22, 4, '#ffe14a');
-    floorWood(x, '#c48c54', '#a87444');
-    x.fillStyle = '#d86a5a'; for (let dy = -7; dy <= 7; dy++) { const hw = R(Math.sqrt(1 - (dy / 7.5) ** 2) * 40); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
-    x.fillStyle = '#e88a6a'; for (let dy = -5; dy <= 5; dy++) { const hw = R(Math.sqrt(1 - (dy / 5.5) ** 2) * 32); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
-    box(x, 10, 64, 38, 16, '#8a5a34', '#a87444'); box(x, 15, 46, 28, 19, '#26263a'); F(x, 17, 48, 24, 14, '#4a6a9a'); F(x, 18, 49, 8, 3, '#6a8aba');
-    sofa(x, 118, 60, '#4aa8a0'); plant(x, 164, 64);
+  const home1 = (id, P, flip) => scn(id, (x) => {
+    wallpaper(x, P.wall, P.stripe, 6); wainscot(x, 54, P.wain);
+    const X = v => flip ? 180 - v : v;
+    winV(x, X(90) - 16, 10, 32, 26, 'city'); box(x, X(90) - 22, 10, 7, 30, P.curt, shade(P.curt, .2)); box(x, X(90) + 15, 10, 7, 30, P.curt, shade(P.curt, .2)); F(x, X(90) - 20, 8, 40, 3, '#8a5a34');
+    wclock(x, X(146), 18); box(x, X(30) - 11, 14, 22, 16, '#f4f4f4'); F(x, X(30) - 9, 16, 18, 12, P.pic); dsc(x, X(30), 22, 4, '#ffe14a');
+    if (P.shelf) for (const sy of [30, 42]) { const sx = X(140) - 16; box(x, sx, sy + 7, 32, 3, '#8a5a34', '#a87444'); for (let i = 0; i < 6; i++) box(x, sx + 2 + i * 4, sy + (i % 2), 4, 8 - (i % 2), ['#e8534a', '#4a90d9', '#5fb85a', '#f2a93b', '#9b6bd6'][(i + sy) % 5]); }
+    floorWood(x, P.floor, P.floor2);
+    x.fillStyle = P.rug; for (let dy = -7; dy <= 7; dy++) { const hw = R(Math.sqrt(1 - (dy / 7.5) ** 2) * 40); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
+    x.fillStyle = shade(P.rug, .2); for (let dy = -5; dy <= 5; dy++) { const hw = R(Math.sqrt(1 - (dy / 5.5) ** 2) * 32); x.fillRect(96 - hw, 96 + dy, hw * 2, 1); }
+    box(x, X(29) - 19, 64, 38, 16, '#8a5a34', '#a87444'); box(x, X(29) - 14, 46, 28, 19, '#26263a'); F(x, X(29) - 12, 48, 24, 14, '#4a6a9a'); F(x, X(29) - 11, 49, 8, 3, '#6a8aba');
+    if (P.tank) { box(x, X(29) - 19, 38, 14, 8, '#9fd4ff', '#c8ecff'); F(x, X(29) - 15, 41, 3, 2, '#f2a93b'); }
+    sofa(x, flip ? 180 - 118 - 44 : 118, 60, P.sofa);
+    plant(x, flip ? 180 - 164 - 10 : 164, 64);
   });
+  home1('home1', { wall: '#f6e4c6', stripe: '#eed8b4', wain: '#c89868', curt: '#e8534a', pic: '#8fc4a0', floor: '#c48c54', floor2: '#a87444', rug: '#d86a5a', sofa: '#4aa8a0' }, false);
+  home1('home1b', { wall: '#dcecf4', stripe: '#cfe2ee', wain: '#7a9ab8', curt: '#f2c040', pic: '#e8a0b0', floor: '#b8906a', floor2: '#9a7452', rug: '#6a8ac8', sofa: '#e87a5a', shelf: 1 }, true);
+  home1('home1c', { wall: '#f0e6f4', stripe: '#e6dcee', wain: '#9a7aa8', curt: '#5fb85a', pic: '#9fd4ff', floor: '#d8b088', floor2: '#b88e66', rug: '#e8b050', sofa: '#8a6ab8', tank: 1 }, false);
   scn('home2', (x) => {
-    wallpaper(x, '#f6ecd8', '#f0e2c8', 10); wainscot(x, 48, '#e0cca8', '#fff4dc');
-    for (const px of [8, 60, 116, 168]) { F(x, px, 0, 6, FY, '#e8d8b8'); F(x, px, 0, 1, FY, '#fff8e8'); F(x, px + 5, 0, 1, FY, '#c8b490'); }
-    box(x, 72, 6, 38, 40, '#f8f4ec'); F(x, 74, 8, 34, 36, '#9fd8ff'); F(x, 74, 34, 34, 10, '#b8e6ff'); cloud(x, 80, 18); F(x, 90, 7, 2, 38, '#f8f4ec'); F(x, 73, 26, 36, 2, '#f8f4ec');
-    box(x, 66, 4, 8, 44, '#b8283a', '#d8485a'); box(x, 108, 4, 8, 44, '#b8283a', '#d8485a');
-    box(x, 20, 10, 26, 20, '#c8a040'); F(x, 22, 12, 22, 16, '#6a8ab0'); F(x, 22, 22, 22, 6, '#4f8a4a'); dsc(x, 38, 17, 3, '#ffe8a0');
-    F(x, 140, 0, 1, 8, '#c8a040'); box(x, 130, 8, 21, 4, '#ffd23f'); for (let i = 0; i < 5; i++) { F(x, 132 + i * 4, 12, 1, 3, '#fff8d0'); F(x, 132 + i * 4, 15, 1, 1, '#9fe8ff'); }
-    floorTile(x, '#f2eadc', '#ddd0bc', 12);
-    F(x, 60, 76, 66, 44, '#b8283a'); F(x, 62, 76, 62, 44, '#c8384a'); F(x, 64, 76, 58, 44, '#b8283a'); F(x, 60, FY, 66, 2, OUT);
-    box(x, 134, 56, 40, 16, '#26263a', '#4a4a5c'); F(x, 136, 60, 36, 3, '#f4f4f4'); for (let i = 0; i < 9; i++) F(x, 137 + i * 4, 60, 1, 2, OUT); F(x, 138, 72, 2, 12, OUT); F(x, 168, 72, 2, 12, OUT); box(x, 146, 84, 14, 4, '#26263a');
-    box(x, 14, 64, 10, 16, '#e8e0f0'); odsc(x, 19, 60, 4, '#e86fa8'); dsc(x, 17, 58, 2, '#ff9fc8');
+    wallpaper(x, '#f4ead6', '#efe2c8', 8); wainscot(x, 46, '#e0cca8', '#fff4dc');
+    for (const px of [6, 168]) { F(x, px, 0, 7, FY, '#e8d8b8'); F(x, px, 0, 1, FY, '#fff8e8'); F(x, px + 6, 0, 1, FY, '#c8b490'); F(x, px - 1, 0, 9, 3, '#c8a040'); }
+    for (let i = 0; i < 11; i++) {
+      const y = 70 - i * 4, w = 72 - i * 4, x0 = R(90 - w / 2);
+      F(x, x0 - 1, y - 4, w + 2, 5, OUT); F(x, x0, y - 3, w, 3, '#f2eadc'); F(x, x0, y - 3, w, 1, '#ffffff'); F(x, x0, y - 1, w, 1, '#d8ccb8');
+      const cw = R(16 - i * .8); F(x, R(90 - cw / 2), y - 3, cw, 3, '#c8384a'); F(x, R(90 - cw / 2), y - 1, cw, 1, '#9a1a30');
+      F(x, x0 - 2, y - 7, 1, 6, '#c8a040'); F(x, x0 + w + 1, y - 7, 1, 6, '#c8a040');
+    }
+    for (let i = 0; i < 10; i++) { F(x, R(90 - (72 - i * 4) / 2) - 2, 63 - i * 4, 3, 1, '#ffd23f'); F(x, R(90 + (72 - i * 4) / 2), 63 - i * 4, 3, 1, '#ffd23f'); }
+    F(x, 90, 18, 1, 6, '#c8a040'); F(x, 64, 24, 52, 2, '#c8a040'); for (let i = 64; i < 116; i += 6) F(x, i, 26, 2, 4, '#c8a040');
+    for (const a of [22, 136]) { box(x, a, 6, 22, 40, '#f8f4ec'); F(x, a + 2, 8, 18, 36, '#9fd8ff'); F(x, a + 2, 32, 18, 12, '#8ad08a'); dsc(x, a + 11, 36, 4, '#5ab0e8'); F(x, a + 10, 7, 2, 38, '#f8f4ec'); box(x, a - 3, 4, 5, 42, '#c8a040', '#e8c860'); box(x, a + 20, 4, 5, 42, '#c8a040', '#e8c860'); }
+    F(x, 90, 0, 1, 6, '#c8a040'); box(x, 78, 6, 25, 5, '#ffd23f', '#fff08a'); for (let i = 0; i < 6; i++) { F(x, 80 + i * 4, 11, 1, 4, '#fff8d0'); F(x, 80 + i * 4, 15, 1, 1, '#9fe8ff'); } box(x, 84, 2, 13, 4, '#ffd23f');
+    floorTile(x, '#f4ecde', '#e0d4c0', 12); for (let i = 0; i < 180; i += 24) F(x, i + 4, FY + 6, 6, 1, '#ffffff');
+    F(x, 78, FY, 24, 50, '#b8283a'); F(x, 80, FY, 20, 50, '#c8384a'); F(x, 78, FY, 24, 2, OUT);
+    box(x, 124, 60, 44, 16, '#1e1e2a', '#3a3a4c'); F(x, 126, 64, 40, 3, '#f4f4f4'); for (let i = 0; i < 10; i++) F(x, 127 + i * 4, 64, 1, 2, OUT); F(x, 128, 76, 2, 10, OUT); F(x, 162, 76, 2, 10, OUT); box(x, 138, 86, 16, 4, '#1e1e2a');
+    box(x, 10, 62, 14, 18, '#f0e8f8', '#ffffff'); odsc(x, 17, 58, 5, '#e86fa8'); dsc(x, 15, 56, 2, '#ff9fc8'); odsc(x, 22, 56, 3, '#ffe14a');
+    box(x, 30, 64, 30, 12, '#8a2238', '#aa3a50'); box(x, 28, 60, 34, 6, '#6a1a2a'); F(x, 34, 76, 2, 6, '#c8a040'); F(x, 54, 76, 2, 6, '#c8a040');
+  });
+  scn('home3', (x) => {
+    F(x, 0, 0, 180, FY, '#f6ecd8'); for (let i = 0; i < 180; i += 12) F(x, i, 0, 1, FY, '#ecdcc0');
+    box(x, 40, 4, 100, 62, '#c8a040'); F(x, 42, 6, 96, 58, '#9fd8ff'); F(x, 42, 40, 96, 24, '#7ac86a'); for (let i = 42; i < 138; i += 8) odsc(x, i + 4, 40, 4, '#4fa04a');
+    F(x, 42, 52, 96, 12, '#d8d0c0'); odsc(x, 90, 50, 10, '#e8e0d0'); dsc(x, 90, 50, 7, '#5ab0e8'); box(x, 87, 34, 6, 16, '#e8e0d0'); dsc(x, 90, 32, 4, '#e8e0d0');
+    for (const a of [66, 89, 114]) F(x, a, 6, 2, 58, '#c8a040'); F(x, 42, 30, 96, 2, '#c8a040');
+    for (const a of [8, 158]) { box(x, a, 0, 14, FY, '#f0e0c0', '#fff4e0'); F(x, a + 3, 0, 2, FY, '#e0c898'); F(x, a + 9, 0, 2, FY, '#e0c898'); box(x, a - 2, 0, 18, 5, '#ffd23f', '#fff08a'); box(x, a - 2, FY - 5, 18, 5, '#ffd23f', '#fff08a'); }
+    F(x, 90, 0, 1, 4, '#ffd23f'); box(x, 74, 4, 33, 6, '#ffd23f', '#fff08a'); for (let i = 0; i < 8; i++) { F(x, 76 + i * 4, 10, 1, 5, '#fff8d0'); F(x, 76 + i * 4, 15, 1, 2, '#9fe8ff'); }
+    floorTile(x, '#fbf4e8', '#ece0cc', 10); for (let i = 0; i < 180; i += 20) F(x, i + 6, FY + 5, 8, 1, '#ffffff');
+    F(x, 70, FY, 40, 50, '#9a1a30'); F(x, 73, FY, 34, 50, '#b8283a'); F(x, 76, FY, 28, 50, '#9a1a30'); F(x, 70, FY, 40, 2, OUT); for (let y = FY + 4; y < SH; y += 8) F(x, 73, y, 34, 1, '#ffd23f');
+    box(x, 24, 56, 14, 24, '#e8e0d0', '#ffffff'); odsc(x, 31, 48, 6, '#f0ece4'); box(x, 27, 40, 8, 10, '#f0ece4'); dsc(x, 31, 38, 3, '#f0ece4');
+    box(x, 138, 48, 34, 30, '#8a7a6a', '#aa9a8a'); F(x, 144, 56, 22, 20, '#26262e'); F(x, 148, 66, 14, 8, '#ff7a2a'); F(x, 151, 62, 8, 6, '#ffc83a'); F(x, 153, 60, 4, 3, '#fff0a0'); box(x, 136, 44, 38, 5, '#6a5a4a');
+    box(x, 44, 70, 22, 10, '#8a1a2a', '#aa3a4a'); box(x, 114, 70, 22, 10, '#8a1a2a', '#aa3a4a');
   });
   // kindergarten
   scn('kg', (x) => {
@@ -698,7 +756,7 @@ function buildScenes() {
   // setup screens: starry void
   scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
 }
-const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+const SCENE_NAME = { hosp: '医院', home0: '出租屋', home0v: '农家小院', home1: '家', home1b: '家', home1c: '家', home2: '豪宅', home3: '庄园', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
 
 // ============================================================ talents
 const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
@@ -778,23 +836,28 @@ const parAge = k => L.age + L.par[k].a0;
 function addFx(fx, raw) {
   for (const k in fx) {
     let v = fx[k];
-    if (v > 0 && !raw) { let got = 0; for (let i = 0; i < v; i++) { const c = L.a[k] + got; if (Math.random() < clamp((k === 'SPR' ? 1.5 : 1.7) - c / (k === 'SPR' ? 11 : 13), .2, 1)) got++; } v = got; }
+    if (v > 0 && !raw) { let got = 0; for (let i = 0; i < v; i++) { const c = L.a[k] + got; if (Math.random() < clamp((k === 'SPR' ? 1.6 : 1.7) - c / (k === 'SPR' ? 9 : 13), k === 'SPR' ? .12 : .2, 1)) got++; } v = got; }
     if (!v) continue;
     L.a[k] += v; YR.d[k] = (YR.d[k] || 0) + v; if (L.a[k] > L.mx[k]) L.mx[k] = L.a[k];
   }
 }
 const canLove = () => !tal('danshen') && !L.love && !L.mar;
-function newPartner(o) { return Object.assign({ g: L.g === 'm' ? 'f' : 'm', hair: pick(['black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) }, o || {}); }
+const STYLES = { m: ['short', 'short', 'side', 'curly', 'buzz'], f: ['long', 'long', 'bob', 'twin', 'wavy', 'pony', 'curly'] };
+function randLook(g_) { return { g: g_, hair: pick(['black', 'black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: g_ === 'f' && chance(.5) ? 1 : 0, style: pick(STYLES[g_]), cv: g_ === 'f' && chance(.3) ? 'dressc' : pick(['casual', 'hoodie', 'stripe', 'jacket', 'overall']) }; }
+// a person's hairstyle adjusted for their age
+function styleAt(style, g_, st) { if (!style) return undefined; if (g_ === 'f' && st === 'old' && style !== 'bob' && style !== 'curly') return 'bun'; if (g_ === 'f' && (st === 'tod' || st === 'kid') && (style === 'wavy' || style === 'long')) return 'pony'; return style; }
+const casualOf = (look, st) => st === 'old' ? 'elder' : (look && look.cv) || 'casual';
+function newPartner(o) { return Object.assign(randLook(L.g === 'm' ? 'f' : 'm'), o || {}); }
 function startLove(o) { L.love = 1; L.loveAge = L.age; L.f.loved = 1; L.pt = newPartner(o); }
 function endLove() { L.love = 0; L.mar = 0; L.pt = null; }
 // The partner leaves the story for good (death, ascension): they also leave the stage.
 function losePartner() { L.love = 0; L.mar = 0; L.pt = null; L.f.widowed = 1; }
 function marry() { L.mar = 1; L.love = 1; L.marAge = L.age; L.f.mar1 = 1; }
-function addKid() { const k = { g: chance(.5) ? 'm' : 'f', born: L.age, hair: L.pt && chance(.5) ? L.pt.hair : L.look.hair, top: pick(TOPS), bot: pick(BOTS) }; L.kids.push(k); return k; }
+function addKid() { const g_ = chance(.5) ? 'm' : 'f', k = Object.assign(randLook(g_), { born: L.age, hair: L.pt && chance(.5) ? L.pt.hair : L.look.hair }); L.kids.push(k); return k; }
 const CAT_N = [['小橘', '年糕', '大黄', '橘座'], ['煤球', '黑米', '芝麻', '警长']], DOG_N = [['旺财', '豆豆', '可乐', '来福'], ['小白', '雪球', '棉花', '汤圆']];
 function getPet(k) { const alt = chance(.4) ? 1 : 0; L.pet = { k, alt, born: L.age, n: pick((k === 'cat' ? CAT_N : DOG_N)[alt]) }; L.lastPet = { k, alt, n: L.pet.n }; L.f['had' + k] = 1; }
 function setJob(j) { L.job = j; L.jobAge = L.age; return JOBS[j].t || null; }
-const homeSc = () => L.a.MNY >= 9 ? 'home2' : (L.a.MNY >= 4 || L.f.house) ? 'home1' : 'home0';
+const homeSc = () => (L.a.MNY >= 13 || L.f.richest) ? 'home3' : L.a.MNY >= 9 ? 'home2' : (L.a.MNY >= 4 || L.f.house) ? ['home1', 'home1b', 'home1c'][L.hv || 0] : L.bp === 'village' ? 'home0v' : 'home0';
 function fmt(s) {
   return s.replace(/\{(\w+)\}/g, (m, k) => {
     const pg = L.pt ? L.pt.g : (L.g === 'm' ? 'f' : 'm');
@@ -1130,6 +1193,10 @@ E('c_hair', 22, 45, '你连续加了一个月的班，每天洗头都掉一大�
 E('viral', 15, 60, '你随手拍的一条搞笑视频在网上爆火了，播放量破亿。', { w: .5, fx: { CHR: 1, SPR: 2 }, em: 'star' });
 E('rescue', 16, 60, '你跳进河里救起了一个落水的小孩，被评为“见义勇为好市民”。', { c: () => L.a.STR >= 6, w: .5, fx: { SPR: 2 }, em: 'star', sc: 'park' });
 E('wallet', 16, 70, '你的钱包在地铁上被偷了。', { fx: { SPR: -1 }, em: 'anger', sc: 'street' });
+E('lowtide', 12, 100, '你陷入了一段低谷，很长一段时间，做什么都提不起兴趣。', { p: '*', c: () => L.a.SPR <= 2 && !L.f.blue, w: 1.5, fx: { STR: -1 }, f: { blue: 1 }, em: 'sad' });
+E('uptide', 12, 100, () => L.mar || L.kids.length ? '在家人的陪伴下，你慢慢走出了低谷。' : '你养了一盆花，每天看着它长大，慢慢走出了低谷。', { p: '*', c: () => L.f.blue, rep: 1, cd: 2, w: 2, fx: { SPR: 3 }, u: ['blue'], em: 'heart' });
+E('sunny', 16, 90, '你每天都乐呵呵的，身边的人都说，和你待在一起很开心。', { p: '*', c: () => L.a.SPR >= 12, w: 1.5, fx: { CHR: 1 }, em: 'note' });
+E('sunny2', 45, 100, '你心态好，体检报告比同龄人年轻了十岁。', { p: '*', c: () => L.a.SPR >= 12, w: 1.5, fx: { STR: 1 }, em: 'heart', sc: 'hosp' });
 E('insomnia', 18, 70, '你开始失眠，每天夜里盯着天花板数羊。', { c: () => L.a.SPR <= 3, fx: { STR: -1 }, em: 'zzz' });
 E('guitar', 18, 40, '你学会了弹吉他，在楼下弹唱时被邻居投诉了。', { fx: { SPR: 1 }, em: 'note', sc: 'street' });
 E('fishing', 28, 85, '你迷上了钓鱼，一坐就是一整天，一条鱼都没钓上来。', { w: .35, fx: { SPR: 1 }, f: { fish: 1 }, em: 'note', sc: 'park' });
@@ -1606,13 +1673,14 @@ function newLife(tids, pts) {
     t: {}, tl: tids.slice(), f: {}, used: {}, at: {}, q: [], log: [], newAch: 0,
     job: null, oldJob: null, path: null, xl: 0, xs: null, xage: ri(7, 13), yage: ri(12, 17),
     love: 0, mar: 0, pt: null, kids: [], pet: null,
-    par: { dad: Object.assign({ a0: ri(24, 34), alive: 1, g: 'm' }, look()), mom: Object.assign({ a0: ri(22, 32), alive: 1, g: 'f', skirt: chance(.5) }, look()) },
-    look: Object.assign(look(), { skirt: chance(.5), elder: pick(ELDER_TOPS), beard: chance(.35) }),
+    par: { dad: Object.assign(randLook('m'), { a0: ri(24, 34), alive: 1 }), mom: Object.assign(randLook('f'), { a0: ri(22, 32), alive: 1 }) },
+    look: null, hv: ri(0, 2),
     end: false, asc: false, grade: null,
   };
   L.kl = META.last ? JSON.parse(JSON.stringify(META.last)) : null;
   { const m = L.a.MNY + (TAL.shoufu && tids.includes('shoufu') ? 9 : 0), w = m <= 2 ? [.7, .3, 0, 0] : m <= 5 ? [.25, .45, .3, 0] : m <= 8 ? [0, .25, .7, .05] : [0, 0, .7, .3];
     let r = Math.random(), i = 0; for (; i < 3; i++) { if (r < w[i]) break; r -= w[i]; } L.bp = ['village', 'county', 'city', 'abroad'][i]; }
+  L.look = Object.assign(randLook(L.g), { elder: pick(ELDER_TOPS), beard: chance(.35) });
   for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
   if (tal('jinshi')) L.f.glasses = 1;
   for (const k of STATS) L.mx[k] = L.a[k];
@@ -1701,7 +1769,7 @@ function deathCheck() {
   if (L.path === 'xian' && L.xl >= 1) { if (a > xcap()) die(XSD().old); return; }
   if (L.a.STR <= 0) { die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你的身体终于撑不住了，在病床上离开了人世。'); return; }
   if (a < 50) return;
-  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * (L.a.SPR <= 1 ? 1.25 : 1);
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1.2 - L.a.SPR * .025, .8, 1.3); // a happy life is a longer one
   if (chance(.0045 * Math.pow(1.09, a - 50) * m)) die(naturalDeath());
 }
 function runYear() {
@@ -2212,7 +2280,7 @@ function talentRow(id, x, y, w, h, sel, tag) {
 
 // ============================================================ game state
 let state = 'title', st = 0, T = 0, menuOpen = false, ptr = null;
-let gacha = null, alloc = null, pickTal = [], inhSel = null, achScroll = 0, achMax = 0, achFrom = 'title', logScroll = 0, logMax = 0;
+let statInfo = false, gacha = null, alloc = null, pickTal = [], inhSel = null, achScroll = 0, achMax = 0, achFrom = 'title', logScroll = 0, logMax = 0;
 let curScene = 'hosp', cast = [], yearT = 99, lastG = 0, emote = null, POPS = [], banner = null, P = [], auto = 0, hudFlash = {}, endT = 0;
 let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = null, sparkT = 0;
 function go(s) { state = s; st = 0; ptr = null; }
@@ -2279,7 +2347,7 @@ function afterYear(yr, chosen) {
 }
 
 // ============================================================ the cast on stage
-const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
+const FAMILY_SC = /^(home\w*|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
 function setupCast() {
   const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
   const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
@@ -2300,7 +2368,7 @@ function setupCast() {
   }
   const npc = (id, st_, o) => {
     const a = add(id, 'npc', o), p = old[id];
-    a.look = p && p.look && p.look.st === st_ ? p.look : { st: st_, g: chance(.5) ? 'm' : 'f', hair: pick(['black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.4) ? 1 : 0 };
+    if (p && p.look && p.look.st === st_) a.look = p.look; else { const rl = randLook(chance(.5) ? 'm' : 'f'); a.look = Object.assign(rl, { st: st_, style: styleAt(rl.style, rl.g, st_), fit: casualOf(rl, st_) }); }
     return a;
   };
   if (curScene === 'class' || curScene === 'office' || curScene === 'arena') {
@@ -2310,6 +2378,7 @@ function setupCast() {
     if (curScene === 'class' && L.job !== 'teacher' && L.age < 19) { const t = npc('teacher', 'adult', { fixed: 1, x: 121, y: 84 }); t.look.fit = 'teacher'; }
   }
   if (curScene === 'kg' && L.age < 7) { npc('kg1', 'tod'); npc('kg2', 'tod'); }
+  if (curScene === 'home2' || curScene === 'home3') { const bt = npc('butler', 'adult', { fixed: 1, x: curScene === 'home3' ? 158 : 64, y: 90 }); bt.look.fit = 'suit'; bt.look.g = 'm'; bt.look.style = 'side'; if (curScene === 'home3') { const md = npc('maid', 'adult', { fixed: 1, x: 22, y: 92 }); md.look.fit = 'chef'; md.look.g = 'f'; } }
   if (curScene === 'campus' && !L.job) npc('stu1', 'adult');
   cast = out;
 }
@@ -2333,12 +2402,13 @@ function meLook(fr, blink) {
   let s = stageOf(a);
   if (xian && a >= 19) s = a > 300 ? 'old' : 'adult';
   if (tal('shiba') && a >= 19) s = 'adult';
-  let hair = L.look.hair, style;
+  let hair = L.look.hair, style = styleAt(L.look.style, L.g, s);
   if (L.f.dye && a >= 13 && a < 24) { hair = 'dye'; style = 'spiky'; }
   else if (!tal('shiba') && !xian) hair = greyed(a, hair);
   if (xian && a > 300) hair = 'white';
   if (xian && L.g === 'm') style = 'topknot';
-  const fitId = dead ? 'ghost' : myFit();
+  let fitId = dead ? 'ghost' : myFit();
+  if (fitId === 'casual') fitId = L.look.cv || 'casual';
   return { st: s, g: L.g, hair, style, fit: fitId, top: fitId === 'elder' ? L.look.elder : L.look.top, bot: L.look.bot, skirt: L.g === 'f' && L.look.skirt ? 1 : 0,
     gl: L.f.glasses && a >= 6 && !xian ? 1 : 0, bald: L.f.bald && a >= 22 && !xian ? 1 : 0, mood: dead ? 'z' : lastG > 0 ? 'h' : lastG < 0 ? 's' : 'n', blink: blink ? 1 : 0, fr: dead ? 0 : fr,
     ears: L.path === 'xian' && XB() === 'yao' ? 1 : 0,
@@ -2351,15 +2421,15 @@ function lookOf(a, fr, blink) {
   if (a.k === 'pt') {
     const p = L.pt, age = L.age, xian = L.path === 'xian';
     const s = xian || tal('shiba') ? 'adult' : stageOf(age);
-    const fitId = curScene === 'wedding' && L.marAge === age ? (p.g === 'm' ? 'groom' : 'bride') : p.fit || (s === 'old' ? 'elder' : 'casual');
-    return Object.assign(base, { ears: p.ears ? 1 : 0, st: s, g: p.g, hair: xian ? p.hair : greyed(age, p.hair), fit: fitId, top: fitId === 'elder' ? '#7a8a9a' : p.top, bot: p.bot, skirt: p.g === 'f' && p.skirt ? 1 : 0, cane: s === 'old' && age >= 80 ? 1 : 0 });
+    const fitId = curScene === 'wedding' && L.marAge === age ? (p.g === 'm' ? 'groom' : 'bride') : p.fit || casualOf(p, s);
+    return Object.assign(base, { style: styleAt(p.style, p.g, s), ears: p.ears ? 1 : 0, st: s, g: p.g, hair: xian ? p.hair : greyed(age, p.hair), fit: fitId, top: fitId === 'elder' ? '#7a8a9a' : p.top, bot: p.bot, skirt: p.g === 'f' && p.skirt ? 1 : 0, cane: s === 'old' && age >= 80 ? 1 : 0 });
   }
   if (a.k === 'kid') {
     const k = L.kids[a.i], ka = L.age - k.born, s = stageOf(ka);
-    return Object.assign(base, { st: s, g: k.g, hair: k.hair, fit: ka >= 6 && ka <= 12 ? 'school_p' : ka >= 13 && ka <= 18 ? 'school_t' : 'casual', top: s === 'baby' ? (k.g === 'm' ? '#a8d8ff' : '#ffc8dc') : k.top, bot: k.bot, skirt: k.g === 'f' ? 1 : 0 });
+    return Object.assign(base, { style: styleAt(k.style, k.g, s), st: s, g: k.g, hair: k.hair, fit: ka >= 6 && ka <= 12 ? 'school_p' : ka >= 13 && ka <= 18 ? 'school_t' : casualOf(k, s), top: s === 'baby' ? (k.g === 'm' ? '#a8d8ff' : '#ffc8dc') : k.top, bot: k.bot, skirt: k.g === 'f' ? 1 : 0 });
   }
   const p = L.par[a.k], age = parAge(a.k), s = stageOf(age);
-  return Object.assign(base, { st: s, g: p.g, hair: greyed(age, p.hair), fit: s === 'old' ? 'elder' : 'casual', top: s === 'old' ? '#8a7a6a' : p.top, bot: p.bot, skirt: p.skirt ? 1 : 0, cane: age >= 80 ? 1 : 0 });
+  return Object.assign(base, { style: styleAt(p.style, p.g, s), st: s, g: p.g, hair: greyed(age, p.hair), fit: casualOf(p, s), top: s === 'old' ? '#8a7a6a' : p.top, bot: p.bot, skirt: p.skirt ? 1 : 0, cane: age >= 80 ? 1 : 0 });
 }
 function drawActor(a, oy) {
   if (a.k === 'pet') {
@@ -2409,6 +2479,8 @@ function drawScene(oy) {
   }
   if (curScene === 'stage' || curScene === 'arena') for (let i = 0; i < 12; i++) { const x = (i * 16 + 7) % 180, on = Math.floor(T * 4 + i * 1.7) % 3; if (curScene === 'stage' && on) { g.fillStyle = ['#ff4ae0', '#4ae0ff', '#ffe14a'][i % 3]; g.fillRect(x, oy + 104 - (i % 3) * 2, 1, 3); } }
   if (curScene === 'isekai') { const b = Math.abs(Math.sin(T * 3)) * 4; odsc(g, 150, oy + 98 - b, 5, '#5ac8ff'); g.fillStyle = '#b8ecff'; g.fillRect(147, oy + 95 - b, 2, 1); g.fillStyle = OUT; g.fillRect(148, oy + 97 - b, 1, 1); g.fillRect(152, oy + 97 - b, 1, 1); }
+  if (curScene === 'home3') { const f = Math.floor(T * 6) % 3; g.fillStyle = ['#ff7a2a', '#ffa03a', '#ff6a2a'][f]; g.fillRect(148, oy + 66 - f, 14, 8 + f); g.fillStyle = '#fff0a0'; g.fillRect(153, oy + 61 - f, 4, 3); g.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) g.fillRect(86 + ((T * 20 + i * 5) % 8), oy + 44 - (i % 2), 1, 1); }
+  if (curScene === 'home2' || curScene === 'home3') { const k = Math.floor(T * 3) % 6; g.fillStyle = '#ffffff'; g.fillRect((curScene === 'home2' ? 80 : 76) + k * 4, oy + (curScene === 'home2' ? 15 : 16), 1, 1); }
   if (curScene === 'mo') for (let i = 0; i < 6; i++) { const y = oy + 110 - ((T * 12 + i * 23) % 90), xx = (i * 31 + Math.sin(T + i) * 6) % 180; g.fillStyle = i % 2 ? '#ff6a3a' : '#ffb03a'; g.fillRect(R(xx), R(y), 1, 1); }
   if (curScene === 'yao') for (let i = 0; i < 8; i++) { const on = (Math.sin(T * 2 + i * 1.7) + 1) / 2; g.globalAlpha = on; g.fillStyle = '#e8ff8a'; g.fillRect(R((i * 29 + Math.sin(T * .5 + i) * 10 + 180) % 180), R(oy + 60 + (i * 13) % 45 + Math.cos(T * .7 + i) * 4), 1, 1); g.globalAlpha = 1; }
   if (curScene === 'ruins') for (let i = 0; i < 2; i++) {
@@ -2689,6 +2761,7 @@ function drawAlloc() {
     txt(String(v), b ? 159 : 163, y + 7, 10, '#4a2c17', 'center', null);
     if (b) txt((b > 0 ? '+' : '') + b, 171, y + 8, 6.5, b > 0 ? '#2a8a3a' : '#c83a2a', 'right', null);
   });
+  txt('点属性名查看作用', 150, 13, 6, '#a89ad8', 'center');
   txt(left ? '还有 ' + left + ' 点没有分配' + (TAL[pickTal[0]].r === 4 ? '（含诅咒补偿）' : '') : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
   button(BTN.aRand, '随机', { blue: 1 }); button(BTN.aGo, '开始新人生！', { dis: left !== 0, green: left === 0 });
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
@@ -2903,6 +2976,25 @@ function drawBook() {
   g.restore();
   button(BTN.achBack, '返回', { blue: 1 });
 }
+const STAT_HELP = {
+  CHR: '恋爱机会、被星探发掘、明星路线',
+  INT: '考试学历、职业选择、修仙悟性',
+  STR: '寿命长短、生病多少；降到 0 就会死',
+  MNY: '出生环境、住什么房子、富豪路线',
+  SPR: '寿命、婚姻是否稳定、心魔劫；太低会失眠、陷入低谷',
+};
+function drawStatInfo() {
+  dim(.6); panel(8, 64, 164, 176);
+  txt('属性有什么用？', 90, 78, 9.5, '#4a2c17', 'center', null);
+  STATS.forEach((k, i) => {
+    const y = 94 + i * 26;
+    g.fillStyle = OUT; g.fillRect(14, y - 6, 26, 13); g.fillStyle = SCOL[k]; g.fillRect(15, y - 5, 24, 11);
+    txt(SNAME[k], 27, y + .5, 7, '#ffffff', 'center', OUT);
+    wrap(STAT_HELP[k], 6.5, 118).slice(0, 2).forEach((t, j) => txt(t, 46, y - (wrap(STAT_HELP[k], 6.5, 118).length > 1 ? 4 : 0) + j * 9, 6.5, '#5a3a1a', 'left', null));
+  });
+  txt('每项属性一生中的最高值，还决定人生总评', 90, 218, 6, '#8a6a4a', 'center', null);
+  txt('点任意处关闭', 90, 228, 6, '#a08a6a', 'center', null);
+}
 function drawMenu() {
   dim(.6); panel(30, 96, 120, 124);
   txt('暂停', 90, 111, 11, '#4a2c17', 'center', null);
@@ -2954,6 +3046,7 @@ function tapTalent(p) {
 }
 function tapAlloc(p) {
   if (inR(p, BTN.back)) { go('talent'); SFX.click(); return; }
+  if (ALLOC_K.some((k, i) => inR(p, [10, allocY(i), 26, 14]))) { statInfo = true; SFX.click(); return; }
   if (inR(p, BTN.aRand)) {
     for (const k of ALLOC_K) alloc[k] = 0; let left = allocTotal();
     while (left > 0) { const k = pick(ALLOC_K); if (alloc[k] < 10) { alloc[k]++; left--; } }
@@ -2972,6 +3065,7 @@ function tapAlloc(p) {
 }
 function tapLife(p) {
   if (inR(p, BTN.menu)) { menuOpen = true; auto = 0; SFX.click(); return; }
+  if (p.y >= 16 && p.y <= SY && p.x < 176) { statInfo = true; SFX.click(); return; }
   if (inR(p, BTN.mute)) return toggleMute();
   if (state === 'review') { if (inR(p, BTN.toEnd)) { go('end'); st = 5; SFX.click(); } return; }
   if (logScroll > 30 && inR(p, BTN.jump)) { logScroll = 0; return; }
@@ -2998,6 +3092,7 @@ function tapMenu(p) {
   else if (inR(p, BTN.mHome)) { menuOpen = false; go('title'); SFX.click(); }
 }
 function onTap(p) {
+  if (statInfo) { statInfo = false; SFX.click(); return; }
   if (menuOpen) return tapMenu(p);
   switch (state) {
     case 'title': return tapTitle(p);
@@ -3095,6 +3190,7 @@ function render() {
   }
   flush();
   if (menuOpen) { drawMenu(); flush(); }
+  if (statInfo) { drawStatInfo(); flush(); }
   if (TOASTS.length) { drawToast(); flush(); }
 }
 
