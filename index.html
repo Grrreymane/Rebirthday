@@ -17,7 +17,8 @@
 <meta name="twitter:image" content="https://grrreymane.github.io/Rebirthday/cover.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap">
+<!-- loaded without blocking: if Google Fonts is slow or unreachable the game starts with system fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap" media="print" onload="this.media='all'">
 <style>
   :root { --ground: #140c2a; color-scheme: dark; }
   html, body { height: 100%; margin: 0; background: var(--ground); overflow: hidden; overscroll-behavior: none; }
@@ -1781,7 +1782,7 @@ const UPG = [
 const GRADE_RP = { D: 1, C: 2, B: 3, A: 4, S: 5, SS: 6, SSS: 8 };
 const saveMeta = () => save('rl-meta', META);
 let SAVED = load('rl-run', null);
-if (SAVED && (SAVED.v !== 1 || SAVED.end)) SAVED = null;
+if (SAVED && (SAVED.v !== 1 || SAVED.end || !Array.isArray(SAVED.log) || !SAVED.a || !SAVED.f || !SAVED.look || !SAVED.par)) SAVED = null;
 function saveRun() { if (L && !L.end) { SAVED = L; save('rl-run', L); } }
 function clearRun() { SAVED = null; try { localStorage.removeItem('rl-run'); } catch (e) {} }
 let TOASTS = [];
@@ -3032,9 +3033,16 @@ buildScenes();
 const ALLTEXT = [...new Set((SCRIPT_TEXT.match(/[^\x00-\x7f]/g) || []))].join('') + '0123456789+-×/SABCD';
 try { if (document.fonts && document.fonts.load) document.fonts.load('12px "ZCOOL QingKe HuangYou"', ALLTEXT).catch(() => {}); } catch (e) {}
 let last = performance.now();
+let frameErr = 0;
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
-  update(dt); render(); musicUpdate(wantedTrack());
+  // one bad frame must not freeze the game on a blank screen: log it, and bail out to the title if it keeps happening
+  try { update(dt); render(); musicUpdate(wantedTrack()); frameErr = 0; }
+  catch (e) {
+    console.error(e);
+    if (++frameErr === 20 && state !== 'title') { menuOpen = false; go('title'); }
+    if (frameErr === 60) { clearRun(); frameErr = 0; }
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
