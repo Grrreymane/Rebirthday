@@ -695,7 +695,7 @@ function endLove() { L.love = 0; L.mar = 0; L.pt = null; }
 function marry() { L.mar = 1; L.love = 1; L.marAge = L.age; L.f.mar1 = 1; }
 function addKid() { const k = { g: chance(.5) ? 'm' : 'f', born: L.age, hair: L.pt && chance(.5) ? L.pt.hair : L.look.hair, top: pick(TOPS), bot: pick(BOTS) }; L.kids.push(k); return k; }
 const CAT_N = [['小橘', '年糕', '大黄', '橘座'], ['煤球', '黑米', '芝麻', '警长']], DOG_N = [['旺财', '豆豆', '可乐', '来福'], ['小白', '雪球', '棉花', '汤圆']];
-function getPet(k) { const alt = chance(.4) ? 1 : 0; L.pet = { k, alt, born: L.age, n: pick((k === 'cat' ? CAT_N : DOG_N)[alt]) }; L.f['had' + k] = 1; }
+function getPet(k) { const alt = chance(.4) ? 1 : 0; L.pet = { k, alt, born: L.age, n: pick((k === 'cat' ? CAT_N : DOG_N)[alt]) }; L.lastPet = { k, alt, n: L.pet.n }; L.f['had' + k] = 1; }
 function setJob(j) { L.job = j; L.jobAge = L.age; return JOBS[j].t || null; }
 const homeSc = () => L.a.MNY >= 9 ? 'home2' : (L.a.MNY >= 4 || L.f.house) ? 'home1' : 'home0';
 function fmt(s) {
@@ -1165,6 +1165,17 @@ E('fatwater', 12, 60, '你喝凉水都长肉，体重秤看到你都想逃跑。
 E('broke', 20, 70, '你刚存下一点钱，家里的电器就接二连三地坏了。', { c: () => tal('qiongshen'), rep: 1, cd: 8, w: .8, fx: { MNY: -1 }, em: 'sad' });
 E('cold', 3, 90, '换季了，你又感冒了。', { c: () => tal('tiruo'), rep: 1, cd: 7, w: .5, fx: { STR: -1 }, em: 'ill' });
 E('fragile', 8, 80, '别人随口开了句玩笑，你难过了一整个星期。', { c: () => tal('boli'), rep: 1, cd: 6, w: .6, fx: { SPR: -1 }, em: 'sad' });
+const KL = () => L.kl || {};
+E('k_pet', 3, 9, () => { const kp = L.kl.pet; getPet(kp.k); L.pet.alt = kp.alt; L.pet.n = kp.n; L.lastPet = { k: kp.k, alt: kp.alt, n: kp.n }; L.f.karmaPet = 1;
+  const col = kp.k === 'cat' ? (kp.alt ? '黑' : '橘') : (kp.alt ? '白' : '黄');
+  return '一只' + col + (kp.k === 'cat' ? '猫' : '狗') + '蹲在你家门口，怎么赶都不走。你脱口而出：“' + kp.n + '？”它' + (kp.k === 'cat' ? '“喵”' : '“汪”') + '了一声，好像等你很久了。'; },
+  { c: () => KL().pet && !L.pet, w: 4, em: 'heart' });
+E('k_love', 18, 40, () => { startLove(L.kl.pt); L.f.karmaLove = 1; return '你在人群中看到一个人，总觉得在哪里见过。{ta}也愣住了：“我们……是不是认识？”'; },
+  { c: () => KL().pt && KL().pt.g !== L.g && canLove(), w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'street', love: 1 });
+E('k_dream', 5, 15, () => '你常常梦见另一段人生：梦里你是一名' + L.kl.job + '，活到了' + L.kl.age + '岁。', { c: () => KL().job, em: 'q' });
+E('k_rich', 8, 20, '你从小就对钱有一种莫名的自信，好像上辈子见过大钱。', { c: () => KL().rich, w: 2, fx: { MNY: 1, SPR: 1 }, em: 'coin' });
+E('k_asc', 6, 12, '你梦见自己在云端飞翔，醒来时枕边多了一片仙鹤的羽毛。', { c: () => KL().asc, w: 3, fx: { INT: 1 }, em: 'spark' });
+E('k_grave', 20, 70, () => '你路过一座陌生的墓碑，上面刻着「' + L.kl.ep + '」。你莫名其妙地红了眼眶。', { c: () => KL().ep, w: .6, em: 'sad', sc: 'grave' });
 E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
 // ---------------- the immortal path
 // Three ways to cultivate: the orthodox sect, the demon sect (faster, shorter-lived, a heart-demon trial)
@@ -1292,6 +1303,7 @@ function newLife(tids, pts) {
     look: Object.assign(look(), { skirt: chance(.5), elder: pick(ELDER_TOPS), beard: chance(.35) }),
     end: false, asc: false, grade: null,
   };
+  L.kl = META.last ? JSON.parse(JSON.stringify(META.last)) : null;
   for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
   if (tal('jinshi')) L.f.glasses = 1;
   for (const k of STATS) L.mx[k] = L.a[k];
@@ -1309,6 +1321,7 @@ function birth() {
   if (L.a.INT >= 10) ln.push('你出生时没有哭，而是若有所思地盯着天花板。');
   if (tal('chongsheng')) ln.push('你带着前世的记忆出生了：“怎么又是我？”');
   if (tal('dusheng')) L.f.only = 1;
+  if (L.kl && L.kl.young) { addFx({ STR: 1 }, true); ln.push('前世走得太早，这一世你的身子骨格外结实。'); }
   for (let i = 0; i < ln.length; i++) ln[i] = fmt(ln[i]);
   YR.em = L.a.STR <= 0 ? 'ill' : 'heart'; YR.sc = 'hosp';
 }
@@ -1474,12 +1487,26 @@ const ACH = [
   ['yaoasc', '化身神兽', '妖皇渡劫成功，化身上古神兽', () => L.asc && XB() === 'yao', '妖族的尽头是什么？'],
   ['nine', '九死一生', '触发九命猫复活', () => L.f.revived, '需要一只猫的九条命'],
   ['curse', '天命难违', '带着诅咒天赋拿到S及以上评价', () => ['S', 'SS', 'SSS'].includes(L.grade) && L.tl.some(id => TAL[id].r === 4)],
+  ['kpet', '猫的报恩', '前世的宠物转世来找你', () => L.f.karmaPet, '上辈子的毛孩子，会记得你'],
+  ['klove', '再续前缘', '与前世的伴侣重逢', () => L.f.karmaLove, '有些人，下辈子还会遇见'],
   ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
 ];
 // ============================================================ persistence
 function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-const META = Object.assign({ lives: 0, best: 0, ach: {}, inh: null, muted: false }, load('rl-meta', {}));
+const META = Object.assign({ lives: 0, best: 0, ach: {}, inh: null, inh2: null, muted: false, rp: 0, up: {}, last: null }, load('rl-meta', {}));
+if (!META.up) META.up = {};
+const upLv = id => META.up[id] || 0;
+const getInh = () => [META.inh, META.inh2].filter(id => id && TAL[id]);
+// permanent upgrades bought with reincarnation points
+const UPG = [
+  { id: 'pts', n: '天资聪颖', d: '开局属性点 +1', max: 5, cost: [5, 10, 15, 20, 25] },
+  { id: 'pool', n: '十一连抽', d: '扭蛋多抽 1 个天赋可选', max: 2, cost: [6, 15] },
+  { id: 'reroll', n: '再来一发', d: '每局可重抽一次扭蛋（天命不变）', max: 2, cost: [8, 20] },
+  { id: 'fate', n: '逆天改命', d: '每局可以重开一次命运胶囊', max: 1, cost: [15] },
+  { id: 'inh2', n: '双重继承', d: '转世时可以带走 2 个天赋', max: 1, cost: [30] },
+];
+const GRADE_RP = { D: 1, C: 2, B: 3, A: 4, S: 5, SS: 6, SSS: 8 };
 const saveMeta = () => save('rl-meta', META);
 let SAVED = load('rl-run', null);
 if (SAVED && (SAVED.v !== 1 || SAVED.end)) SAVED = null;
@@ -1492,7 +1519,12 @@ function checkAch() {
 function finishLife() {
   META.lives++; META.best = Math.max(META.best, L.age);
   L.score = lifeScore(); L.grade = letterOf(L.score);
-  checkAch(); saveMeta(); clearRun();
+  checkAch();
+  L.rpGain = GRADE_RP[L.grade] + (L.newAch || 0); META.rp = (META.rp || 0) + L.rpGain;
+  const j = L.oldJob || L.job;
+  META.last = { pet: L.lastPet || null, pt: L.pt && L.mar ? { g: L.pt.g, hair: L.pt.hair, top: L.pt.top, bot: L.pt.bot, skirt: L.pt.skirt, fit: L.pt.fit, ears: L.pt.ears } : null,
+    age: L.age, job: j && JOBS[j] && j !== 'retired' && j !== 'none' ? JOBS[j].n : null, ep: L.ep || (L.ep = epitaph()), young: L.age < 30 && !L.asc, rich: !!(L.f.richest || L.f.lotto || L.a.MNY >= 12), asc: L.asc };
+  saveMeta(); clearRun();
 }
 function rarityOdds() {
   const n = Object.keys(META.ach).length, o = [.6, .26, .1 + n * .004, .04 + n * .003];
@@ -1507,14 +1539,15 @@ function drawFate(ex) {
 }
 function drawTalents() {
   const odds = rarityOdds(), out = [], seen = new Set();
-  if (META.inh && TAL[META.inh]) { out.push(META.inh); seen.add(META.inh); }
+  for (const id of getInh()) { out.push(id); seen.add(id); }
   let guard = 0;
-  while (out.length < 10 && guard++ < 500) {
+  while (out.length < 10 + upLv('pool') && guard++ < 500) {
     let r = Math.random(), tier = 0; for (; tier < 3; tier++) { if (r < odds[tier]) break; r -= odds[tier]; }
     const pool = TAL_IDS.filter(id => TAL[id].r === tier && !seen.has(id)); if (!pool.length) continue;
     const id = pick(pool); seen.add(id); out.push(id);
   }
-  return out.sort((a, b) => (a === META.inh ? -1 : b === META.inh ? 1 : TAL[b].r - TAL[a].r));
+  const inh = getInh();
+  return out.sort((a, b) => (inh.includes(b) - inh.includes(a)) || TAL[b].r - TAL[a].r);
 }
 
 // ============================================================ audio
@@ -1819,9 +1852,9 @@ function talentRow(id, x, y, w, h, sel, tag) {
   g.fillStyle = rr.c; g.fillRect(x + 1, y + 1, 4, h - 2);
   if (sel) { g.fillStyle = '#ffb82a'; g.fillRect(x + 1, y + 1, w - 2, 1); g.fillRect(x + 1, y + h - 2, w - 2, 1); g.fillRect(x + w - 2, y + 1, 1, h - 2); }
   if (t.r === 3) { const k = Math.floor(T * 6 + y) % 24; g.fillStyle = '#ffffff'; g.fillRect(x + 8 + k * 6, y + 3, 1, 1); g.fillRect(x + 7 + ((k + 11) % 24) * 6, y + h - 4, 1, 1); }
-  const tight = h < 24;
-  txt(t.n, x + 10, y + (tight ? 6 : 7.5), tight ? 8 : 8.5, rr.d, 'left', null);
-  txt(t.d, x + 10, y + h - (tight ? 5 : 6.5), 6.5, '#6a5a4a', 'left', null);
+  const tight = h < 24, vt = h < 20;
+  txt(t.n, x + 10, y + (vt ? 5.3 : tight ? 6 : 7.5), vt ? 7.5 : tight ? 8 : 8.5, rr.d, 'left', null);
+  txt(t.d, x + 10, y + h - (vt ? 4.3 : tight ? 5 : 6.5), vt ? 6 : 6.5, '#6a5a4a', 'left', null);
   txt(rr.n, x + w - 5, y + 7, 6, rr.d, 'right', null);
   if (tag) txt(tag, x + w - 5, y + h - (h < 24 ? 5 : 6.5), 6, '#c8483a', 'right', null);
   if (sel) g.drawImage(I.check, x + w - 26, y + 4);
@@ -1835,7 +1868,9 @@ let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = -1, sparkT = 0;
 function go(s) { state = s; st = 0; ptr = null; }
 const stNow = () => st;
 function toggleMute() { META.muted = !META.muted; saveMeta(); if (!META.muted) SFX.click(); }
-function startGacha() { const tal_ = drawTalents(); gacha = { ph: 'ready', t: 0, tal: tal_, fate: drawFate(tal_), sel: [] }; go('gacha'); }
+function startGacha() { const tal_ = drawTalents(); gacha = { ph: 'ready', t: 0, tal: tal_, fate: drawFate(tal_), sel: [], rr: upLv('reroll'), fr: upLv('fate') }; go('gacha'); }
+const tRows = () => { const n = gacha.tal.length, step = n <= 10 ? 23 : 230 / n; return { step, h: Math.floor(step) - 2 }; };
+const okRect = () => gacha.rr > 0 ? [72, 293, 100, 20] : [40, 293, 100, 20], RR_RECT = [8, 293, 60, 20], FR_RECT = [40, 268, 100, 20];
 function openAch(from) { achFrom = from || state; achScroll = 0; go('ach'); SFX.click(); }
 function startLife() {
   newLife(pickTal, alloc); clearRun();
@@ -2102,7 +2137,7 @@ function drawLog() {
 }
 const BTN = {
   menu: [146, 0, 17, 17], mute: [163, 0, 17, 17],
-  tNew: [30, 252, 120, 22], tAch: [50, 280, 80, 16], tCont: [30, 248, 120, 22], tNew2: [30, 274, 58, 17], tAch2: [92, 274, 58, 17],
+  tNew: [30, 252, 120, 22], tAch: [30, 280, 58, 16], tCont: [30, 248, 120, 22], tNew2: [30, 274, 38, 17], tAch2: [71, 274, 38, 17], tShop2: [112, 274, 38, 17], tShop: [92, 280, 58, 16],
   back: [4, 4, 34, 15], pull: [45, 250, 90, 22], tOK: [40, 293, 100, 20],
   aRand: [10, 270, 60, 20], aGo: [76, 270, 94, 20],
   auto: [4, 299, 56, 18], next: [118, 299, 58, 18], seeEnd: [40, 299, 100, 18], toEnd: [40, 299, 100, 18],
@@ -2111,7 +2146,7 @@ const BTN = {
 };
 const ALLOC_K = ['CHR', 'INT', 'STR', 'MNY'];
 const allocY = i => 148 + i * 28;
-const allocTotal = () => 20 + (pickTal[0] && TAL[pickTal[0]].r === 4 ? 3 : 0);
+const allocTotal = () => 20 + upLv('pts') + (pickTal[0] && TAL[pickTal[0]].r === 4 ? 3 : 0);
 const allocLeft = () => allocTotal() - ALLOC_K.reduce((s, k) => s + alloc[k], 0);
 function talBonus(k) { let b = 0; for (const id of pickTal) { const fx = TAL[id].fx; if (fx && fx[k]) b += fx[k]; } return b; }
 
@@ -2162,12 +2197,12 @@ function drawTitle() {
   txt('抽天赋 · 分属性 · 过一生', 90, 116, 7.5, '#ffffff', 'center', '#2a4a8a');
   if (SAVED) {
     button(BTN.tCont, '继续人生 · ' + SAVED.age + '岁', { green: 1 });
-    button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 });
+    button(BTN.tNew2, '重开', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 });
   } else {
     button(BTN.tNew, '开始新人生');
-    button(BTN.tAch, '成就 ' + Object.keys(META.ach).length + '/' + ACH.length, { blue: 1, size: 7 });
+    button(BTN.tAch, '成就 ' + Object.keys(META.ach).length + '/' + ACH.length, { blue: 1, size: 7 }); button(BTN.tShop, '轮回殿', { red: 1, size: 7 });
   }
-  if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长活到 ' + META.best + ' 岁', 90, 306, 6.5, '#ffffff', 'center', '#2a5a2a');
+  if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长 ' + META.best + ' 岁 · 轮回点 ' + (META.rp || 0), 90, 306, 6.5, '#ffffff', 'center', '#2a5a2a');
   g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
 }
 function drawCapsule(cx, cy, col, open) {
@@ -2209,7 +2244,7 @@ function drawGacha() {
   }
   if (G.ph === 'ready') {
     button(BTN.pull, '十连抽！');
-    if (META.inh && TAL[META.inh]) txt('前世继承：' + TAL[META.inh].n, 90, 284, 7, RAR[TAL[META.inh].r].c);
+    if (getInh().length) txt('前世继承：' + getInh().map(id => TAL[id].n).join('、'), 90, 284, 7, '#ffe890');
     const o = rarityOdds(); txt('传说 ' + (o[3] * 100).toFixed(1) + '%  史诗 ' + (o[2] * 100).toFixed(1) + '%', 90, 300, 6.5, '#a89ad8');
   }
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
@@ -2228,7 +2263,8 @@ function drawFateCard() {
     txt(t.d, 90, 160, 7, '#6a5a4a', 'center', null);
     txt(curse ? '诅咒补偿：属性点 +3' : '这个天赋已经锁定', 90, 182, 7, curse ? '#8a3aa8' : '#8a6a4a', 'center', null);
     txt(curse ? '命运弄人，但也许会有转机' : t.r >= 2 ? '天命眷顾！' : '平平淡淡也是一种命', 90, 222, 8, curse ? '#c8a8e8' : '#ffe890');
-    if (st > .6 && Math.floor(T * 2) % 2 === 0) txt('点击继续，再自选 2 个天赋', 90, 260, 7.5, '#ffffff');
+    if (gacha.fr > 0) button(FR_RECT, '逆天改命（剩 ' + gacha.fr + ' 次）', { red: 1, size: 7 });
+    if (st > .6 && Math.floor(T * 2) % 2 === 0) txt('点击其他地方继续，再自选 2 个天赋', 90, gacha.fr > 0 ? 300 : 260, 7, '#ffffff');
   }
   drawParts();
 }
@@ -2239,8 +2275,10 @@ function drawTalentPick() {
   txt('已选 ' + n + ' / 2', 90, 24, 7.5, n === 2 ? '#8aff96' : '#dcd0ff');
   talentRow(G.fate, 6, 31, 168, 21, false, '天命 · 不可更改');
   g.fillStyle = '#6a5a9a'; g.fillRect(20, 55, 140, 1);
-  G.tal.forEach((id, i) => talentRow(id, 6, 58 + i * 23, 168, 21, G.sel.includes(id), id === META.inh ? '前世继承' : ''));
-  button(BTN.tOK, n === 2 ? '就是它们了！' : '还差 ' + (2 - n) + ' 个', { dis: n !== 2, green: n === 2 });
+  const tr = tRows(), inh = getInh();
+  G.tal.forEach((id, i) => talentRow(id, 6, R(58 + i * tr.step), 168, tr.h, G.sel.includes(id), inh.includes(id) ? '前世继承' : ''));
+  if (G.rr > 0) button(RR_RECT, '重抽 ×' + G.rr, { blue: 1, size: 7 });
+  button(okRect(), n === 2 ? '就是它们了！' : '还差 ' + (2 - n) + ' 个', { dis: n !== 2, green: n === 2 });
   drawParts();
 }
 const CRIB = mk(70, 46), cg = CRIB.getContext('2d');
@@ -2277,7 +2315,7 @@ function drawAlloc() {
     txt(String(v), b ? 159 : 163, y + 7, 10, '#4a2c17', 'center', null);
     if (b) txt((b > 0 ? '+' : '') + b, 171, y + 8, 6.5, b > 0 ? '#2a8a3a' : '#c83a2a', 'right', null);
   });
-  txt(left ? '还有 ' + left + ' 点没有分配' + (allocTotal() > 20 ? '（含诅咒补偿 3 点）' : '') : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
+  txt(left ? '还有 ' + left + ' 点没有分配' + (TAL[pickTal[0]].r === 4 ? '（含诅咒补偿）' : '') : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
   button(BTN.aRand, '随机', { blue: 1 }); button(BTN.aGo, '开始新人生！', { dis: left !== 0, green: left === 0 });
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
 }
@@ -2341,20 +2379,22 @@ function drawEnd() {
     txt(lifeTitle(), 143, 214, 7, '#6a3a1a', 'center', null);
   }
   txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 270, 6.5, '#6a4a2a', 'center', null);
-  if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 90, 256, 6.5, '#b8780a', 'center', null);
+  if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 60, 256, 6.5, '#b8780a', 'center', null);
+  if (st > 1 && L.rpGain) txt('轮回点 +' + L.rpGain, 143, 232, 7.5, '#b8780a', 'center', null);
   button(BTN.review, '回顾一生', { blue: 1 }); button(BTN.nextLife, '再来一次！', { green: 1 });
   drawParts();
 }
 const inhList = () => L.tl.filter(id => TAL[id].r !== 4);
 function drawInherit() {
   dim(.65); panel(14, 70, 152, 182);
-  txt('带一个天赋去下一世', 90, 84, 9, '#4a2c17', 'center', null);
-  inhList().forEach((id, i) => talentRow(id, 20, 94 + i * 29, 140, 26, inhSel === id));
-  const r = [20, 183, 140, 16], sel = inhSel === 'none';
+  const cap = upLv('inh2') ? 2 : 1;
+  txt(cap === 2 ? '带两个天赋去下一世' : '带一个天赋去下一世', 90, 84, 9, '#4a2c17', 'center', null);
+  inhList().forEach((id, i) => talentRow(id, 20, 94 + i * 29, 140, 26, inhSel.includes(id)));
+  const r = [20, 183, 140, 16], sel = !inhSel.length;
   g.fillStyle = OUT; g.fillRect(r[0], r[1], r[2], r[3]); g.fillStyle = sel ? '#ffe890' : '#e8dcc0'; g.fillRect(r[0] + 1, r[1] + 1, r[2] - 2, r[3] - 2);
   txt('什么都不带', 90, r[1] + 8, 7.5, '#6a5a4a', 'center', null);
   txt('继承的天赋一定会出现在下次的扭蛋里', 90, 211, 6, '#8a6a4a', 'center', null);
-  button(BTN.inhGo, '投胎去！', { dis: !inhSel, green: !!inhSel });
+  button(BTN.inhGo, '投胎去！', { green: 1 });
 }
 function drawAch() {
   drawVoid();
@@ -2373,6 +2413,32 @@ function drawAch() {
   });
   g.restore();
   button(BTN.achBack, '返回', { blue: 1 });
+}
+const shopBtn = i => [120, 44 + i * 48, 48, 18];
+function drawShop() {
+  drawVoid();
+  txt('轮回殿', 90, 13, 11, '#ffe14a');
+  panel(4, 24, 172, 266);
+  txt('轮回点：' + (META.rp || 0), 90, 34, 8, '#b8780a', 'center', null);
+  UPG.forEach((u, i) => {
+    const y = 44 + i * 48, lv = upLv(u.id), full = lv >= u.max, cost = u.cost[lv];
+    g.fillStyle = OUT; g.fillRect(10, y - 4, 160, 44); g.fillStyle = '#fff4d8'; g.fillRect(11, y - 3, 158, 42);
+    txt(u.n, 16, y + 4, 8.5, '#6a3a1a', 'left', null);
+    txt(u.d, 16, y + 16, 6.5, '#8a6a4a', 'left', null);
+    for (let k = 0; k < u.max; k++) { g.fillStyle = OUT; g.fillRect(16 + k * 9, y + 24, 7, 7); g.fillStyle = k < lv ? '#ffc62a' : '#d8c8a0'; g.fillRect(17 + k * 9, y + 25, 5, 5); }
+    button(shopBtn(i), full ? '已满' : cost + ' 点', { dis: full || (META.rp || 0) < cost, green: !full && (META.rp || 0) >= cost, size: 7.5 });
+  });
+  txt('每一世结束，按评价和新成就获得轮回点', 90, 283, 6.5, '#8a6a4a', 'center', null);
+  button(BTN.achBack, '返回', { blue: 1 });
+}
+function tapShop(p) {
+  if (inR(p, BTN.achBack)) { go('title'); SFX.click(); return; }
+  UPG.forEach((u, i) => {
+    if (!inR(p, shopBtn(i))) return;
+    const lv = upLv(u.id), cost = u.cost[lv];
+    if (lv >= u.max || (META.rp || 0) < cost) { SFX.no(); return; }
+    META.rp -= cost; META.up[u.id] = lv + 1; saveMeta(); SFX.big(); confetti(20, 44 + i * 48);
+  });
 }
 function drawMenu() {
   dim(.6); panel(30, 96, 120, 124);
@@ -2395,9 +2461,11 @@ function tapTitle(p) {
     if (inR(p, BTN.tCont)) return resumeLife();
     if (inR(p, BTN.tNew2)) { clearRun(); startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch2)) return openAch('title');
+    if (inR(p, BTN.tShop2)) { go('shop'); SFX.click(); return; }
   } else {
     if (inR(p, BTN.tNew)) { startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch)) return openAch('title');
+    if (inR(p, BTN.tShop)) { go('shop'); SFX.click(); return; }
   }
 }
 function tapGacha(p) {
@@ -2408,9 +2476,10 @@ function tapGacha(p) {
 }
 function tapTalent(p) {
   const G = gacha;
-  if (inR(p, BTN.tOK)) { if (G.sel.length === 2) { pickTal = [G.fate].concat(G.sel); alloc = { CHR: 5, INT: 5, STR: 5, MNY: 5 }; go('alloc'); SFX.select(); } else SFX.no(); return; }
+  if (G.rr > 0 && inR(p, RR_RECT)) { G.rr--; G.tal = drawTalents(); G.sel = []; SFX.crank(); return; }
+  if (inR(p, okRect())) { if (G.sel.length === 2) { pickTal = [G.fate].concat(G.sel); alloc = { CHR: 5, INT: 5, STR: 5, MNY: 5 }; go('alloc'); SFX.select(); } else SFX.no(); return; }
   for (let i = 0; i < G.tal.length; i++) {
-    if (!inR(p, [6, 58 + i * 23, 168, 21])) continue;
+    const tr = tRows(); if (!inR(p, [6, R(58 + i * tr.step), 168, tr.h])) continue;
     const id = G.tal[i], j = G.sel.indexOf(id);
     if (j >= 0) { G.sel.splice(j, 1); SFX.minus(); }
     else if (G.sel.length < 2) { G.sel.push(id); SFX.plus(); }
@@ -2448,12 +2517,13 @@ function tapLife(p) {
 }
 function tapEnd(p) {
   if (inR(p, BTN.review)) { go('review'); logScroll = 0; SFX.click(); return; }
-  if (inR(p, BTN.nextLife)) { inhSel = null; go('inherit'); SFX.click(); }
+  if (inR(p, BTN.nextLife)) { inhSel = []; go('inherit'); SFX.click(); }
 }
 function tapInherit(p) {
-  inhList().forEach((id, i) => { if (inR(p, [20, 94 + i * 29, 140, 26])) { inhSel = id; SFX.select(); } });
-  if (inR(p, [20, 183, 140, 16])) { inhSel = 'none'; SFX.click(); }
-  if (inR(p, BTN.inhGo) && inhSel) { META.inh = inhSel === 'none' ? null : inhSel; saveMeta(); startGacha(); SFX.start(); }
+  const cap = upLv('inh2') ? 2 : 1;
+  inhList().forEach((id, i) => { if (!inR(p, [20, 94 + i * 29, 140, 26])) return; const j = inhSel.indexOf(id); if (j >= 0) inhSel.splice(j, 1); else if (inhSel.length < cap) inhSel.push(id); else inhSel = [id]; SFX.select(); });
+  if (inR(p, [20, 183, 140, 16])) { inhSel = []; SFX.click(); }
+  if (inR(p, BTN.inhGo)) { META.inh = inhSel[0] || null; META.inh2 = inhSel[1] || null; saveMeta(); startGacha(); SFX.start(); }
 }
 function tapMenu(p) {
   if (inR(p, BTN.mResume)) { menuOpen = false; SFX.click(); }
@@ -2466,12 +2536,13 @@ function onTap(p) {
     case 'title': return tapTitle(p);
     case 'gacha': return tapGacha(p);
     case 'talent': return tapTalent(p);
-    case 'fate': if (st > .5) { go('talent'); SFX.reveal(Math.max(...gacha.tal.map(id => TAL[id].r))); } return;
+    case 'fate': if (gacha.fr > 0 && st > .3 && inR(p, FR_RECT)) { gacha.fr--; gacha.fate = drawFate(gacha.tal); st = 0; SFX.crank(); return; } if (st > .5) { go('talent'); SFX.reveal(Math.max(...gacha.tal.map(id => TAL[id].r))); } return;
     case 'alloc': return tapAlloc(p);
     case 'life': case 'review': return tapLife(p);
     case 'end': return tapEnd(p);
     case 'inherit': return tapInherit(p);
     case 'ach': if (inR(p, BTN.achBack)) { go(achFrom); SFX.click(); } return;
+    case 'shop': return tapShop(p);
   }
 }
 window.addEventListener('pointerdown', e => {
@@ -2529,7 +2600,7 @@ function update(dt) {
   for (const k in hudFlash) { hudFlash[k].t += dt; if (hudFlash[k].t > 1) delete hudFlash[k]; }
 }
 function wantedTrack() {
-  if (state === 'title' || state === 'ach') return 'title';
+  if (state === 'title' || state === 'ach' || state === 'shop') return 'title';
   if (state === 'gacha' || state === 'fate' || state === 'talent' || state === 'alloc') return 'setup';
   if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
   return 'end';
@@ -2548,6 +2619,7 @@ function render() {
     case 'end': drawEnd(); break;
     case 'inherit': drawEnd(); flush(); drawInherit(); break;
     case 'ach': drawAch(); break;
+    case 'shop': drawShop(); drawParts(); break;
   }
   flush();
   if (menuOpen) { drawMenu(); flush(); }
