@@ -121,6 +121,8 @@ const FITS = {
   athlete: { top: '#e8453c', bot: '#e8453c', shorts: 1, num: '#ffffff' },
   esports: { top: '#26263a', bot: '#26263a', band: '#4ae0e0', phones: 1 },
   robe: { top: '#eaf4ff', bot: '#eaf4ff', dress: 1, band: '#4a90d9', wide: 1 },
+  demon: { top: '#2e1e34', bot: '#2e1e34', dress: 1, band: '#d8283a', wide: 1 },
+  yao: { top: '#e8dcc0', bot: '#e8dcc0', dress: 1, band: '#e8943a', wide: 1 },
   armor: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#c8283a', band: '#8a5a34', metal: 1 },
   king: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#8a2ad0', band: '#ffd23f', metal: 1, hat: 'crown' },
   space: { top: '#f0f0f4', bot: '#f0f0f4', band: '#f07830', visor: 1 },
@@ -132,7 +134,7 @@ const FITS = {
 const PERS = new Map();
 // o: { st, g:'m'|'f', hair, style, fit, top, bot, skirt, gl, bald, mood:'n'|'h'|'s'|'z', blink, fr:0|1|2, cane, beard, shades }
 function person(o) {
-  const key = [o.st, o.g, o.hair, o.style, o.fit, o.top, o.bot, o.skirt, o.gl, o.bald, o.mood, o.blink, o.fr, o.cane, o.beard, o.shades].join('|');
+  const key = [o.st, o.g, o.hair, o.style, o.fit, o.top, o.bot, o.skirt, o.gl, o.bald, o.mood, o.blink, o.fr, o.cane, o.beard, o.shades, o.ears].join('|');
   let s = PERS.get(key); if (s) return s;
   if (PERS.size > 600) PERS.clear();
   const G = new Grid(20, 34), oy = 5, cx = 10, fit = FITS[o.fit] || FITS.casual;
@@ -159,6 +161,7 @@ function person(o) {
     const legTop = t0 + n, shoeY = legTop + m, old = o.st === 'old';
     const style = o.style || (o.g === 'f' ? (o.st === 'tod' || o.st === 'kid' ? 'pony' : old ? 'bun' : 'long') : 'short');
     // behind the body: cape, veil, long hair
+    if (o.ears) { G.ell(16.5, t0 + n - 1, 2.6, 4.2, '#e8943a'); G.ell(17.2, t0 + n - 4, 1.6, 1.6, '#fff4e8'); }
     if (fit.cape) { G.rect(tx0 - 2, t0, tx1 - tx0 + 5, n + m - 1, fit.cape); G.rect(tx0 - 3, t0 + 2, tx1 - tx0 + 7, n + m - 3, fit.cape); }
     if (fit.veil) { G.rect(3, oy + 2, 2, 13, fit.veil); G.rect(15, oy + 2, 2, 13, fit.veil); }
     if (!o.bald && style === 'long') { G.rect(3, oy + 4, 3, 11, hc[0]); G.rect(14, oy + 4, 3, 11, hc[0]); }
@@ -223,6 +226,7 @@ function person(o) {
       if (style === 'topknot') { G.ell(cx, oy - .3, 1.9, 1.9, hc[0]); G.rect(7, oy - 1, 6, 1, '#c8a040'); }
     }
     if (!o.bald) G.px([[7, oy + 2], [8, oy + 2], [6, oy + 3]], hc[1]);
+    if (o.ears) { const ec = '#e8943a'; G.px([[4, oy + 1], [5, oy + 1], [6, oy + 1], [4, oy], [5, oy], [4, oy - 1], [4, oy - 2], [13, oy + 1], [14, oy + 1], [15, oy + 1], [14, oy], [15, oy], [15, oy - 1], [15, oy - 2]], ec); G.px([[5, oy], [14, oy]], '#ffc0b0'); }
     face(oy + 7, [7, 12]);
     if (o.gl || fit.glasses) {
       for (const ex of [7, 12]) { G.px([[ex - 1, oy + 6], [ex, oy + 6], [ex + 1, oy + 6], [ex - 1, oy + 9], [ex, oy + 9], [ex + 1, oy + 9], [ex - 1, oy + 7], [ex - 1, oy + 8], [ex + 1, oy + 7], [ex + 1, oy + 8]], '#3a3a5a'); }
@@ -501,6 +505,32 @@ function buildScenes() {
     pine(x, 18, 78, 26); pine(x, 164, 78, 20, '#3a8a5a');
     for (let i = 0; i < 3; i++) { F(x, 40 + i * 22, 20 + i * 4, 5, 1, '#ffffff'); F(x, 42 + i * 22, 19 + i * 4, 1, 1, '#ffffff'); }
   });
+  // demon sect under a blood moon
+  scn('mo', (x) => {
+    grad(x, 0, 80, ['#240816', '#330c1e', '#441026', '#58142c']);
+    for (let i = 0; i < 14; i++) F(x, (i * 53) % 180, (i * 17) % 44, 1, 1, '#a86a7a');
+    dsc(x, 38, 22, 12, '#ff5a4a'); dsc(x, 38, 22, 10, '#d8203a'); F(x, 33, 17, 4, 2, '#ff8a7a'); F(x, 40, 26, 3, 2, '#b8182e');
+    x.fillStyle = '#1e0812'; for (let i = 0; i < 180; i++) { const h = 30 + Math.abs(Math.sin(i * .11)) * 20 + (i * 7) % 5; x.fillRect(i, 70 - h, 1, h); }
+    x.fillStyle = '#2c0c18'; for (let i = 0; i < 180; i++) { const h = 18 + Math.sin(i * .07 + 1) * 9 + Math.abs(Math.sin(i * .23)) * 5; x.fillRect(i, 76 - h, 1, h); }
+    x.globalAlpha = .22; F(x, 0, 58, 180, 10, '#e8283a'); F(x, 30, 52, 70, 4, '#e8283a'); x.globalAlpha = 1;
+    for (let k = 0; k < 3; k++) { const y = 10 + k * 11, w = 30 - k * 6; x.fillStyle = OUT; for (let i = 0; i < 5; i++) x.fillRect(140 - w / 2 - i, y + i, w + i * 2, 1); F(x, 140 - w / 2 - 4, y + 4, w + 8, 1, '#d8283a'); box(x, 140 - w / 2 + 3, y + 5, w - 6, 7, '#3a2030'); }
+    for (const a of [124, 156]) { F(x, a, 20, 1, 5, OUT); odsc(x, a, 27, 2, '#ff4a3a'); }
+    F(x, 0, 76, 180, 44, '#3a2830'); for (let y = 76; y < SH; y += 8) for (let i = ((y - 76) / 8 % 2) * 12; i < 180; i += 24) F(x, i, y, 23, 7, '#44323a'); F(x, 0, 76, 180, 2, '#1a0e12');
+    for (const a of [18, 162]) { box(x, a - 5, 62, 11, 16, '#4a3a44'); F(x, a - 3, 58, 7, 4, '#ff7a2a'); F(x, a - 2, 55, 5, 3, '#ffc83a'); F(x, a - 1, 53, 3, 2, '#fff0a0'); }
+    F(x, 60, 104, 5, 2, '#d8d0c0'); F(x, 64, 103, 2, 4, '#d8d0c0'); F(x, 128, 110, 4, 3, '#d8d0c0'); F(x, 129, 111, 1, 1, OUT); F(x, 131, 111, 1, 1, OUT);
+  });
+  // the demon-beast mountain: a moonlit forest
+  scn('yao', (x) => {
+    grad(x, 0, 80, ['#0c2436', '#10303e', '#153c46', '#1a4a4c']);
+    dsc(x, 148, 18, 10, '#fff8d8'); dsc(x, 151, 16, 7, '#fffbe8');
+    for (let i = 0; i < 16; i++) F(x, (i * 41) % 180, (i * 13) % 40, 1, 1, '#d8f0ff');
+    for (let i = 0; i < 190; i += 13) pine(x, i, 74, 22 + (i * 7) % 14, '#18423a');
+    box(x, 20, 4, 20, 74, '#4a3424', '#6a4a34'); F(x, 26, 20, 3, 8, '#3a2618'); F(x, 32, 44, 2, 10, '#3a2618');
+    odsc(x, 30, 8, 18, '#1e5a40'); dsc(x, 22, 4, 7, '#2a6e4c'); dsc(x, 40, 10, 6, '#2a6e4c');
+    F(x, 0, 76, 180, 44, '#2a5236'); for (let i = 0; i < 40; i++) F(x, (i * 37) % 180, 80 + (i * 11) % 38, 2, 1, i % 3 ? '#3a6a44' : '#1e3e2a'); F(x, 0, 76, 180, 2, '#183424');
+    for (const [a, b, c] of [[56, 84, '#5ae8e0'], [66, 88, '#ff8ad8'], [150, 82, '#5ae8e0'], [138, 96, '#ffe86a'], [100, 110, '#5ae8e0']]) { F(x, a, b - 3, 2, 4, '#f0f0e0'); F(x, a - 2, b - 5, 6, 2, OUT); F(x, a - 1, b - 5, 4, 1, c); F(x, a - 1, b - 6, 4, 1, c); }
+    box(x, 116, 50, 26, 28, '#6a7a78', '#8a9a98'); F(x, 122, 56, 14, 1, '#4a5a58'); F(x, 122, 62, 10, 1, '#4a5a58'); F(x, 122, 68, 12, 1, '#4a5a58');
+  });
   // isekai meadow
   scn('isekai', (x) => {
     grad(x, 0, 64, ['#8a78e0', '#a88ae8', '#c89ce8', '#e8b0e0']); dsc(x, 30, 16, 7, '#fff4d0'); dsc(x, 44, 10, 3, '#d0f4ff');
@@ -574,7 +604,7 @@ function buildScenes() {
   // setup screens: starry void
   scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
 }
-const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
 
 // ============================================================ talents
 const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
@@ -605,7 +635,7 @@ const TAL = {};
   ['yimijiu', '一米九', '颜值+1，体质+1', 1, { CHR: 1, STR: 1 }],
   ['jinli', '锦鲤体质', '好事更容易发生', 2], ['changshou', '长寿基因', '寿命更长', 2], ['yibing', '天赋异禀', '全属性+1', 2, { CHR: 1, INT: 1, STR: 1, MNY: 1, SPR: 1 }],
   ['fuerdai', '富二代', '家境+4', 2, { MNY: 4 }], ['shiba', '永远十八', '容颜不老，颜值+1', 2, { CHR: 1 }], ['yishijie', '异世界体质', '过马路时小心卡车', 2],
-  ['waixing', '外星信号', '外星人对你很感兴趣', 2], ['xingtan', '星探关注', '有机会成为明星，颜值+1', 2, { CHR: 1 }],
+  ['waixing', '外星信号', '外星人对你很感兴趣', 2], ['xingtan', '星探关注', '有机会成为明星，颜值+1', 2, { CHR: 1 }], ['yaoxue', '妖族血脉', '身上流着上古妖族的血', 2],
   ['tiancai', '天才头脑', '智力+4', 2, { INT: 4 }], ['jingang', '金刚之躯', '体质+4', 2, { STR: 4 }],
   ['xianyuan', '仙缘', '你与仙道有缘', 3], ['chongsheng', '重生者', '带着前世的记忆出生，智力+3', 3, { INT: 3 }], ['xitong', '人生系统', '每十年领一次系统奖励', 3],
   ['shoufu', '首富之子', '家境+7', 3, { MNY: 7 }], ['tianxuan', '天选之人', '全属性+3', 3, { CHR: 3, INT: 3, STR: 3, MNY: 3, SPR: 3 }], ['jiuming', '九命猫', '死亡时有一次复活的机会', 3],
@@ -1046,8 +1076,8 @@ E('oldfriend', 70, 110, '你的一位老朋友走了，你在葬礼上沉默了�
 E('mahjong', 55, 95, '你打麻将连胡了三把，高兴得血压都上来了。', { fx: { SPR: 1 }, em: 'note' });
 E('story', 60, 100, '你给{grand}辈讲你年轻时的故事，讲着讲着自己先笑了。', { c: () => L.f.grandkid, fx: { SPR: 1 }, em: 'note', sc: 'home' });
 E('goldwed', 70, 110, '你和{spouse}迎来了金婚纪念日，儿孙们为你们摆了一桌宴席。', { c: () => L.mar && L.age - L.marAge >= 50, w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'home', big: '金婚!' });
-E('century', 100, 100, '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!', p: '*' });
-E('oldest', 104, 140, '你成了全市最长寿的老人。记者问你长寿的秘诀，你说：“别想太多。”', { fx: { SPR: 1 }, em: 'star', p: '*' });
+E('century', 100, 100, '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!' });
+E('oldest', 104, 140, '你成了全市最长寿的老人。记者问你长寿的秘诀，你说：“别想太多。”', { fx: { SPR: 1 }, em: 'star' });
 E('fill_old', 60, 200, '你在平静中度过了一年。', { rep: 1, cd: 1, w: .12, em: 'zzz', p: '*' });
 // ---------------- more life
 E('tooth', 0, 1, '你长出了第一颗牙，见谁咬谁。', { em: 'note' });
@@ -1123,31 +1153,85 @@ E('catfire', 10, 100, '半夜你的猫疯狂挠门把你叫醒，原来厨房着
 E('dogthief', 10, 100, '你的狗抓住了一个入室小偷，登上了本地新闻。', { c: () => L.pet && L.pet.k === 'dog', w: .3, fx: { SPR: 1 }, em: 'star', p: '*' });
 E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
 // ---------------- the immortal path
-const XREALM = ['凡人', '练气', '筑基', '金丹', '元婴', '化神'], XCAP = [100, 150, 250, 500, 1000, 2500], XGAP = [0, 8, 25, 70, 160];
-E('xmeet', 6, 16, '你在山里迷了路，遇到一位白胡子老爷爷。他说你骨骼清奇，是万中无一的修仙奇才。', { c: () => tal('xianyuan') || L.a.INT >= 9, w: () => tal('xianyuan') ? 6 : .01, f: { xmeet: 1 }, em: 'bang', sc: 'xian', nx: ['xjoin', 1, 1] });
-E('xjoin', 0, 30, () => { L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; return '你告别了父母，跟着老爷爷拜入了青云宗，踏上了修仙之路。'; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star', sc: 'xian', big: '踏入仙途!' });
-const XUP = [null, null,
-  ['你修为大进，突破到了筑基期！', { STR: 2, SPR: 1 }, null],
-  ['你在丹田中凝结出一颗金丹，寿元大增！', { STR: 2, INT: 1 }, '结成金丹!'],
-  ['你碎丹成婴，修成了元婴，从此可以御剑飞行。', { STR: 3, INT: 1 }, '元婴大成!'],
-  ['你踏入化神境界，成为了名震天下的一代宗师。', { STR: 2, INT: 2 }, '化神!']];
-E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XUP[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= XGAP[L.xl], w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
+// Three ways to cultivate: the orthodox sect, the demon sect (faster, shorter-lived, a heart-demon trial)
+// and the demon beasts (needs the bloodline; slow, but they live the longest).
+const XSECT = {
+  zheng: { sect: '青云宗', sc: 'xian', fit: 'robe', song: 'xian', who: '修仙者', realm: ['凡人', '练气', '筑基', '金丹', '元婴', '化神'], gap: 1, cap: 1,
+    meet: '你在山里迷了路，遇到一位白胡子老爷爷。他说你骨骼清奇，是万中无一的修仙奇才。',
+    join: '你告别了父母，跟着老爷爷拜入了青云宗，踏上了修仙之路。', joinBig: '踏入仙途!',
+    up: [null, null, ['你修为大进，突破到了筑基期！', { STR: 2, SPR: 1 }, null], ['你在丹田中凝结出一颗金丹，寿元大增！', { STR: 2, INT: 1 }, '结成金丹!'],
+      ['你碎丹成婴，修成了元婴，从此可以御剑飞行。', { STR: 3, INT: 1 }, '元婴大成!'], ['你踏入化神境界，成为了名震天下的一代宗师。', { STR: 2, INT: 2 }, '化神!']],
+    trib: '九天之上雷云密布，你的天劫来了……', win: '你硬扛下九九八十一道天雷，羽化飞升，位列仙班！', winBig: '羽化飞升!', lose: '你没能扛过最后一道天雷，灰飞烟灭了。',
+    old: '你寿元耗尽，在洞府中安详地坐化了。', title: '羽化登仙', ep: '此人已飞升，墓中空无一人',
+    fill: ['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。'] },
+  mo: { sect: '血煞宗', sc: 'mo', fit: 'demon', song: 'mo', who: '魔修', realm: ['凡人', '炼血境', '凝煞境', '魔丹境', '魔婴境', '魔尊'], gap: .6, cap: .8,
+    meet: '一个黑袍人拦住了放学回家的你，说你心中有恨，是修魔的好苗子。',
+    join: '你瞒着父母，跟着黑袍人去了血煞宗，踏上了魔修之路。', joinBig: '堕入魔道!',
+    up: [null, null, ['你以精血淬体，踏入了凝煞境！', { STR: 3 }, null], ['你吞下万千煞气，凝成了一颗漆黑的魔丹！', { STR: 2, INT: 1 }, '魔丹大成!'],
+      ['你的魔丹化成魔婴，从此能化作一团黑雾来去无踪。', { STR: 3, INT: 1 }, '魔婴出世!'], ['你登上魔尊之位，正道各派闻风丧胆。', { STR: 3, INT: 1 }, '魔尊降世!']],
+    trib: '你的心魔劫来了，这一生的遗憾一幕幕在眼前闪过……', win: '你斩灭心魔，以魔证道，破碎虚空而去！', winBig: '以魔证道!', lose: '你没能斩灭心魔，走火入魔而亡。',
+    old: '你寿元耗尽，被自己修炼的魔功反噬而亡。', title: '魔道至尊', ep: '魔尊已破碎虚空，这里只剩一件黑袍',
+    fill: ['你在血池里闭关修炼。', '你在魔宫深处参悟魔功，心魔在耳边窃窃私语。', '你站在血月下，吐纳天地煞气。'] },
+  yao: { sect: '万妖山', sc: 'yao', fit: 'yao', song: 'yao', who: '妖修', realm: ['凡胎', '开灵', '化形', '妖丹', '妖王', '妖皇'], gap: 1.2, cap: 1.6,
+    meet: '你在山里迷了路，一只九尾狐拦住了你：“孩子，你身上流着我族的血。”',
+    join: '你跟着九尾狐走进了万妖山，头上冒出了一对毛茸茸的耳朵。', joinBig: '血脉觉醒!',
+    up: [null, null, ['你终于能随心所欲地化成人形了，只是尾巴总是藏不住。', { CHR: 1, STR: 2 }, null], ['你在月下吞吐月华，凝结出一颗妖丹！', { STR: 2, INT: 1 }, '妖丹大成!'],
+      ['你一声长啸，方圆百里的妖兽全都俯首称臣。', { STR: 3, INT: 1 }, '称霸一方!'], ['你的血脉返祖，成为了统领万妖的妖皇。', { STR: 3, INT: 2 }, '妖皇!']],
+    trib: '雷劫降临，你在漫天雷光中现出了原形……', win: '你渡过天劫，化身上古神兽，遨游九天！', winBig: '化身神兽!', lose: '你没能渡过雷劫，妖丹碎裂而亡。',
+    old: '你寿元耗尽，化作了一座狐狸形状的石像，守护着万妖山。', title: '妖族之皇', ep: '这里曾住着一只大妖，如今它已化身神兽',
+    fill: ['你趴在万妖山顶晒了一整年的月亮。', '你在林子里追着自己的尾巴转圈，悟出了一招新功法。', '你躺在树洞里冬眠，一觉睡到了开春。'] },
+};
+const XB = () => L.xs || 'zheng', XSD = () => XSECT[XB()];
+const XCAP = [100, 150, 250, 500, 1000, 2500], XGAP = [0, 8, 25, 70, 160];
+const xcap = () => XCAP[L.xl] * XSD().cap, xgap = () => XGAP[L.xl] * XSD().gap;
+function xMeet() {
+  L.f.xmeet = 1;
+  L.xs = tal('yaoxue') ? 'yao' : (L.a.SPR <= 3 || L.f.pdiv || chance(.22)) ? 'mo' : 'zheng';
+  YR.sc = XSD().sc; return XSD().meet;
+}
+E('xmeet', 6, 16, xMeet, { c: () => !tal('xianyuan') && !L.f.xmeet && L.a.INT >= 9, w: .01, em: 'bang', nx: ['xjoin', 1, 1] });
+E('xmeet2', 7, 16, xMeet, { m: 1, c: () => tal('xianyuan') && !L.f.xmeet && L.age >= (L.xage || 9), em: 'bang', nx: ['xjoin', 1, 1] });
+E('yaowake', 12, 17, () => { L.f.xmeet = 1; L.xs = 'yao'; YR.sc = 'yao'; return '月圆之夜，你头上冒出了一对毛茸茸的狐狸耳朵——你身上的妖族血脉觉醒了！'; }, { m: 1, c: () => tal('yaoxue') && !L.f.xmeet && L.age >= (L.yage || 14), em: 'bang', nx: ['xjoin', 1, 1] });
+E('moinvite', 16, 45, () => { L.f.xmeet = 1; L.xs = 'mo'; YR.sc = 'mo'; return '在你人生最失意的时候，一个黑袍人递给你一本魔功秘籍：“想报复这个世界吗？”'; }, { c: () => !L.f.xmeet && L.a.SPR <= 2, w: .03, em: 'bang', nx: ['xjoin', 1, 1] });
+E('xjoin', 0, 60, () => { L.xs = L.xs || 'zheng'; L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; L.job = null; YR.sc = XSD().sc; YR.big = XSD().joinBig; return L.age >= 18 && XB() === 'mo' ? '你抛下了过去的一切，投入了血煞宗，踏上了魔修之路。' : XSD().join; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star' });
+E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XSD().up[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= xgap(), w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
 E('xclose', 0, 9999, () => { const n = ri(5, 12) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
-E('xbook', 0, 9999, '你在藏经阁的角落里翻到一本落满灰的秘籍，修为大涨。', { p: 'xian', fx: { INT: 2 }, em: 'book' });
+E('xbook', 0, 9999, () => XB() === 'yao' ? '你在山洞深处找到一块刻满妖文的石碑，修为大涨。' : '你在藏经阁的角落里翻到一本落满灰的秘籍，修为大涨。', { p: 'xian', fx: { INT: 2 }, em: 'book' });
 E('xherb', 0, 9999, '你在秘境里找到一株千年灵芝，吃下去后浑身发烫。', { p: 'xian', fx: { STR: 2 }, em: 'spark' });
-E('xdisciple', 0, 9999, '你收了一个天资聪颖的徒弟，把毕生所学倾囊相授。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
-E('xdemon', 0, 9999, '魔教大举进攻青云宗，你一剑斩杀了魔教长老，名动天下。', { p: 'xian', c: () => L.xl >= 2, fx: { STR: 2 }, em: 'star' });
-E('xlove', 0, 9999, () => { startLove({ fit: 'robe' }); marry(); return '你和同门的{xiong}结为了道侣。'; }, { p: 'xian', c: () => canLove() && L.age >= 18, fx: { SPR: 2 }, em: 'heart' });
+E('xdisciple', 0, 9999, () => XB() === 'yao' ? '你收养了一窝失去父母的小狐狸，教它们修炼。' : '你收了一个天资聪颖的徒弟，把毕生所学倾囊相授。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
+E('xdemon', 0, 9999, () => ({ zheng: '魔教大举进攻青云宗，你一剑斩杀了魔教长老，名动天下。', mo: '你率领魔宗弟子攻上青云宗，打得正道弟子落荒而逃。', yao: '一群修士上山猎杀妖族，你一爪拍飞了他们的领头人。' })[XB()], { p: 'xian', c: () => L.xl >= 2, fx: { STR: 2 }, em: 'star' });
+E('xlove', 0, 9999, () => {
+  const b = XB();
+  startLove({ fit: XSD().fit, ears: b === 'yao' ? 1 : 0, hair: b === 'yao' ? pick(['silver', 'brown']) : pick(['black', 'brown']) }); marry();
+  return b === 'mo' ? '你和魔教的' + (L.g === 'm' ? '妖女' : '少主') + '不打不相识，结为了道侣。' : b === 'yao' ? '你和山里的一只' + (L.g === 'm' ? '白狐姑娘' : '狐妖少年') + '结为了道侣。' : '你和同门的{xiong}结为了道侣。';
+}, { p: 'xian', c: () => canLove() && L.age >= 18, fx: { SPR: 2 }, em: 'heart' });
 E('xdown', 120, 9999, '你下山游历，发现山下已经过了一百年，你认识的人都不在了。', { p: 'xian', fx: { SPR: -2 }, em: 'sad', sc: 'street' });
-E('xboom', 0, 9999, '你炼丹时炸了炉，眉毛被烧得一根不剩。', { p: 'xian', fx: { CHR: -1 }, em: 'sweat' });
-E('xsword', 0, 9999, '你御剑飞行时没看路，一头撞进了一群大雁里。', { p: 'xian', c: () => L.xl >= 4, em: 'sweat' });
-E('xhead', 0, 9999, '你被推举为青云宗掌门。', { p: 'xian', c: () => L.xl >= 4, fx: { SPR: 2, MNY: 2 }, em: 'star', big: '一派掌门!' });
+E('xboom', 0, 9999, '你炼丹时炸了炉，眉毛被烧得一根不剩。', { p: 'xian', c: () => XB() !== 'yao', fx: { CHR: -1 }, em: 'sweat' });
+E('xsword', 0, 9999, () => ({ zheng: '你御剑飞行时没看路，一头撞进了一群大雁里。', mo: '你化作黑雾赶路时迷了路，飘进了一户人家的烟囱里。', yao: '你现出原形在云上打盹，被山下的凡人当成了祥云，还有人对着你许愿。' })[XB()], { p: 'xian', c: () => L.xl >= 4, em: 'sweat' });
+E('xhead', 0, 9999, () => ({ zheng: '你被推举为青云宗掌门。', mo: '你杀了老宗主，坐上了血煞宗宗主的位子。', yao: '群妖推举你为万妖山之主。' })[XB()], { p: 'xian', c: () => L.xl >= 4, fx: { SPR: 2, MNY: 2 }, em: 'star', big: () => XB() === 'yao' ? '万妖之主!' : '一派之主!' });
 E('xtrib', 0, 9999, () => {
-  const p = clamp((L.a.STR + L.a.INT) / 32, .25, .92);
-  if (chance(p)) { L.end = true; L.asc = true; YR.big = '羽化飞升!'; return ['九天之上雷云密布，你的天劫来了……', '你硬扛下九九八十一道天雷，羽化飞升，位列仙班！']; }
-  die('你没能扛过最后一道天雷，灰飞烟灭了。'); return '九天之上雷云密布，你的天劫来了……';
-}, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 40, w: .6, em: 'bang' });
-E('xfill', 0, 9999, () => pick(['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。']), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
+  const b = XB(), d = XSD();
+  const p = b === 'mo' ? clamp((L.a.INT + L.a.SPR) / 36, .15, .75) : b === 'yao' ? clamp((L.a.STR * 1.3 + L.a.INT * .7) / 42, .2, .8) : clamp((L.a.STR + L.a.INT) / 42, .2, .8);
+  if (chance(p)) { L.end = true; L.asc = true; YR.big = d.winBig; return [d.trib, d.win]; }
+  die(d.lose); return d.trib;
+}, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 40 * XSD().gap, w: .6, em: 'bang' });
+E('xfill', 0, 9999, () => pick(XSD().fill), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
+// the demon sect
+const MO = () => XB() === 'mo', YAO = () => XB() === 'yao';
+E('mo_pool', 0, 9999, '你在血池里泡了七七四十九天，出来时浑身散发着一股铁锈味。', { p: 'xian', c: MO, fx: { STR: 2, CHR: -1 }, em: 'sweat' });
+E('mo_bounty', 0, 9999, '正道悬赏你的人头，赏金一万灵石。你看了看悬赏令，觉得画得一点都不像。', { p: 'xian', c: () => MO() && L.xl >= 2, em: 'anger', sc: 'street' });
+E('mo_heart', 0, 9999, '你的心魔常常在半夜和你说话，你已经习惯了跟它聊天解闷。', { p: 'xian', c: MO, em: 'q' });
+E('mo_save', 0, 9999, '你救下了一个被正道追杀的孩子，心里的魔气好像淡了一点。', { p: 'xian', c: MO, fx: { SPR: 2 }, em: 'heart' });
+E('mo_traitor', 0, 9999, '你的师兄背叛了宗门，你亲手清理了门户。', { p: 'xian', c: () => MO() && L.xl >= 2, fx: { STR: 1, SPR: -1 }, em: 'anger' });
+E('mo_turn', 0, 9999, '青云宗的掌门亲自来劝你回头是岸。你把他请进来喝了杯茶，又客客气气地送走了。', { p: 'xian', c: () => MO() && L.xl >= 3, fx: { SPR: 1 }, em: 'note' });
+// the demon beasts
+E('yao_tail', 0, 9999, '你长出了第二条尾巴，走路总是被自己绊倒。', { p: 'xian', c: YAO, fx: { STR: 1 }, em: 'sweat' });
+E('yao_moon', 0, 9999, '每逢月圆之夜，你都忍不住对着月亮嚎两嗓子，吵得全山都睡不着。', { p: 'xian', c: YAO, em: 'note' });
+E('yao_town', 0, 9999, '你化成人形去镇上买糖葫芦，尾巴从衣服底下露了出来，吓跑了半条街。', { p: 'xian', c: () => YAO() && L.xl >= 2, em: 'sweat', sc: 'street' });
+E('yao_hunter', 0, 9999, '一个猎妖师盯上了你，你们打了三天三夜，最后成了朋友。', { p: 'xian', c: YAO, fx: { SPR: 1 }, em: 'heart' });
+E('yao_fruit', 0, 9999, '你偷吃了山神供桌上的仙桃，被追着骂了三座山。', { p: 'xian', c: YAO, fx: { STR: 1 }, em: 'bang' });
+E('yao_human', 0, 9999, '你救了一个在山里迷路的小孩，把他送回了家。小孩说：“谢谢狐狸姐姐。”', { p: 'xian', c: () => YAO() && L.g === 'f', fx: { SPR: 2 }, em: 'heart' });
+E('yao_human2', 0, 9999, '你救了一个在山里迷路的小孩，把他送回了家。小孩说：“谢谢狐狸哥哥。”', { p: 'xian', c: () => YAO() && L.g === 'm', fx: { SPR: 2 }, em: 'heart' });
 // ---------------- isekai
 E('truck', 16, 45, () => { L.path = 'isekai'; L.isAge = L.age; L.job = null; endLove(); L.kids = []; L.pet = null; return ['你过马路时，一辆卡车朝你冲了过来……', '再睁开眼时，你发现自己转生到了剑与魔法的异世界！']; }, { w: () => tal('yishijie') ? 2.5 : .004, em: 'bang', sc: 'isekai', big: '异世界转生!' });
 E('is_skill', 0, 999, () => '你发现自己觉醒了外挂技能“' + pick(['无限鉴定', '时间暂停', '万物收纳', '究极治愈', '和史莱姆对话']) + '”。', { p: 'isekai', w: 3, fx: { INT: 2 }, em: 'spark' });
@@ -1165,9 +1249,9 @@ E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红�
 E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .015, em: 'q', sc: 'hosp' });
 E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。']), { p: 'isekai', rep: 1, cd: 1, w: .4, em: 'note' });
 E('is_peace', 0, 999, '在你的治理下，异世界迎来了和平。', { p: 'isekai', c: () => L.f.king, rep: 1, cd: 4, w: .4, fx: { SPR: 1 }, em: 'note' });
-E('xchores', 0, 9999, '你每天挑水劈柴，师父说这也是修炼。', { p: 'xian', c: () => L.xl === 1, fx: { STR: 1 }, em: 'sweat' });
+E('xchores', 0, 9999, '你每天挑水劈柴，师父说这也是修炼。', { p: 'xian', c: () => L.xl === 1 && XB() === 'zheng', fx: { STR: 1 }, em: 'sweat' });
 E('xpill', 0, 9999, '你偷吃了师父炼的丹药，睡了三天三夜。', { p: 'xian', fx: { INT: 1 }, em: 'zzz' });
-E('xfox', 0, 9999, '你收服了一只灵狐，从此它天天蹲在你的肩膀上。', { p: 'xian', c: () => L.xl >= 2, fx: { SPR: 1 }, em: 'heart' });
+E('xfox', 0, 9999, '你收服了一只灵狐，从此它天天蹲在你的肩膀上。', { p: 'xian', c: () => L.xl >= 2 && XB() !== 'yao', fx: { SPR: 1 }, em: 'heart' });
 E('xrival', 0, 9999, '同门的天才弟子处处和你作对，你在宗门大比中把他打下了擂台。', { p: 'xian', c: () => L.xl >= 2, fx: { STR: 1 }, em: 'anger' });
 E('xhome', 60, 9999, '你回到故乡，父母的坟前已经长满了青草。', { p: 'xian', fx: { SPR: -2 }, em: 'sad', sc: 'grave' });
 E('xstuck', 0, 9999, () => { YR.skip = 49; return '你卡在了瓶颈，整整五十年修为寸步不进。'; }, { p: 'xian', c: () => L.xl >= 3, fx: { SPR: -1 }, em: 'sad' });
@@ -1188,7 +1272,7 @@ function newLife(tids, pts) {
     v: 1, age: -1, g: chance(.5) ? 'm' : 'f',
     a: { CHR: pts.CHR, INT: pts.INT, STR: pts.STR, MNY: pts.MNY, SPR: 5 }, mx: {},
     t: {}, tl: tids.slice(), f: {}, used: {}, at: {}, q: [], log: [], newAch: 0,
-    job: null, oldJob: null, path: null, xl: 0,
+    job: null, oldJob: null, path: null, xl: 0, xs: null, xage: ri(7, 13), yage: ri(12, 17),
     love: 0, mar: 0, pt: null, kids: [], pet: null,
     par: { dad: Object.assign({ a0: ri(24, 34), alive: 1, g: 'm' }, look()), mom: Object.assign({ a0: ri(22, 32), alive: 1, g: 'f', skirt: chance(.5) }, look()) },
     look: Object.assign(look(), { skirt: chance(.5), elder: pick(ELDER_TOPS), beard: chance(.35) }),
@@ -1273,7 +1357,7 @@ function naturalDeath() {
 function deathCheck() {
   if (L.end) return;
   const a = L.age;
-  if (L.path === 'xian' && L.xl >= 1) { if (a > XCAP[L.xl]) die('你寿元耗尽，在洞府中安详地坐化了。'); return; }
+  if (L.path === 'xian' && L.xl >= 1) { if (a > xcap()) die(XSD().old); return; }
   if (L.a.STR <= 0) { die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你的身体终于撑不住了，在病床上离开了人世。'); return; }
   if (a < 50) return;
   const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (L.a.SPR <= 1 ? 1.25 : 1);
@@ -1317,13 +1401,13 @@ const LCOL = { SSS: '#ff5ab0', SS: '#ff9a2a', S: '#ffc62a', A: '#b060f0', B: '#4
 function letterOf(s) { return LETTERS.find(x => s >= x[0])[1]; }
 function lifeTitle() {
   const f = L.f;
-  if (L.asc) return '羽化登仙'; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
+  if (L.asc) return XSD().title; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
   if (f.moon) return '星辰大海'; if (f.richest) return '首富人生'; if (f.topstar) return '顶流人生'; if (f.champ || f.olygold) return '冠军人生';
   return { SSS: '传奇人生', SS: '精彩人生', S: '美满人生', A: '不错的一生', B: '平凡的一生', C: '坎坷的一生', D: '潦草的一生' }[L.grade];
 }
 function epitaph() {
   const f = L.f, j = L.oldJob || L.job;
-  if (L.asc) return '此人已飞升，墓中空无一人';
+  if (L.asc) return XSD().ep;
   if (L.path === 'isekai') return f.king ? '异世界之王，长眠于此' : '来自异世界的冒险者，长眠于此';
   if (f.nobel) return '诺贝尔奖得主，人类的骄傲';
   if (f.moon) return '曾在月亮上留下过脚印';
@@ -1366,8 +1450,12 @@ const ACH = [
   ['alien', '第三类接触', '被外星人绑架', () => L.f.alien, '据说和一道从天而降的光有关'],
   ['isekai', '异世界转生', '被卡车送进了异世界', () => L.path === 'isekai' || L.f.isback, '过马路时要看车'],
   ['hero', '勇者', '在异世界击败魔王', () => L.f.hero, '先得去一趟异世界'],
-  ['xian', '踏入仙途', '踏上修仙之路', () => L.path === 'xian', '山里好像住着一位白胡子老爷爷'],
-  ['asc', '羽化飞升', '渡劫成功，飞升成仙', () => L.asc, '修炼到化神之后……'],
+  ['xian', '踏入仙途', '拜入青云宗修仙', () => L.path === 'xian' && XB() === 'zheng', '山里好像住着一位白胡子老爷爷'],
+  ['asc', '羽化飞升', '渡劫成功，飞升成仙', () => L.asc && XB() === 'zheng', '修炼到化神之后……'],
+  ['mo', '堕入魔道', '加入血煞宗修魔', () => L.path === 'xian' && XB() === 'mo', '心中有恨的孩子，会被黑袍人盯上'],
+  ['moasc', '以魔证道', '斩灭心魔，破碎虚空', () => L.asc && XB() === 'mo', '魔尊也要渡劫'],
+  ['yao', '血脉觉醒', '觉醒妖族血脉', () => L.path === 'xian' && XB() === 'yao', '月圆之夜，会发生一些奇怪的事'],
+  ['yaoasc', '化身神兽', '妖皇渡劫成功，化身上古神兽', () => L.asc && XB() === 'yao', '妖族的尽头是什么？'],
   ['nine', '九死一生', '触发九命猫复活', () => L.f.revived, '需要一只猫的九条命'],
   ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
 ];
@@ -1505,6 +1593,16 @@ const SONGS = {
     chords: [[0, 'M'], [7, 'M'], [-3, 'm'], [5, 'M'], [0, 'M'], [7, 'M'], [5, 'M'], [7, 'M']],
     mel: [12, _, 12, 14, 16, _, 12, _, 19, _, _, _, 14, _, _, _, 16, _, 16, 17, 19, _, 16, _, 17, _, _, _, 12, _, _, _,
       12, _, 16, _, 19, _, 24, _, 23, _, 21, _, 19, _, _, _, 21, _, 19, _, 17, _, 16, _, 14, _, _, _, 19, _, _, _] },
+  // the demon sect: a brooding minor zither
+  mo: { bpm: 84, root: 57, lead: INST.zheng, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .45, drums: 'K...r...',
+    chords: [[0, 'm'], [-4, 'M'], [-2, 'M'], [0, 'm'], [5, 'm'], [-4, 'M'], [-5, 'M'], [0, 'm']],
+    mel: [12, _, 15, _, 17, _, 15, _, 12, _, _, _, 10, _, 7, _, 7, _, 10, _, 12, _, 10, _, 7, _, _, _, _, _, _, _,
+      17, _, 15, _, 12, _, 15, _, 17, _, 19, _, 17, _, 15, _, 12, _, 10, _, 7, _, 10, _, 12, _, _, _, _, _, _, _] },
+  // the demon-beast mountain: a skipping flute in the woods
+  yao: { bpm: 108, swing: .1, root: 64, lead: INST.flute, bass: 'walk', comp: 'off', drums: 'Kw.wKw.w',
+    chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [7, 'M'], [0, 'M'], [-3, 'm'], [2, 'm'], [7, 'M']],
+    mel: [12, _, 14, 16, _, 14, 12, _, 9, _, 12, _, 9, _, 7, _, 9, _, 12, _, 14, _, 16, _, 14, _, _, _, 11, _, 7, _,
+      12, _, 14, 16, _, 19, 16, _, 16, _, 14, _, 12, _, 9, _, 9, _, 12, _, 14, _, 12, _, 11, _, 14, _, 7, _, _, _] },
   // the ending: bittersweet music box in A minor
   end: { bpm: 72, root: 57, lead: INST.box, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .4, drums: '........',
     chords: [[0, 'm'], [-4, 'M'], [3, 'M'], [-2, 'M'], [0, 'm'], [-4, 'M'], [-2, 'M'], [0, 'm']],
@@ -1720,13 +1818,13 @@ function startLife() {
   go('life'); SFX.start(); nextYear();
 }
 function resumeLife() {
-  L = SAVED; L.at = L.at || {}; logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
+  L = SAVED; L.at = L.at || {}; if (L.xage === undefined) { L.xage = ri(7, 13); L.yage = ri(12, 17); } logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
   curScene = resolveScene(defaultScene()); setupCast(); go('life'); yearT = 9; SFX.click();
 }
 const resolveScene = s => s === 'home' ? homeSc() : s;
 function defaultScene() {
   const a = L.age;
-  if (L.path === 'xian') return L.xl >= 1 ? 'xian' : homeSc();
+  if (L.path === 'xian') return L.xl >= 1 ? XSD().sc : homeSc();
   if (L.path === 'isekai') return 'isekai';
   if (a === 0) return 'hosp';
   if (a < 3) return homeSc();
@@ -1758,7 +1856,7 @@ function nextYear() {
 }
 
 // ============================================================ the cast on stage
-const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian)$/;
+const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian|mo|yao)$/;
 function setupCast() {
   const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
   const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
@@ -1795,7 +1893,7 @@ function setupCast() {
 function greyed(age, hair) { return age >= 72 ? 'white' : age >= 56 ? 'grey' : hair; }
 function myFit() {
   const a = L.age, s = stageOf(a);
-  if (L.path === 'xian' && L.f.sect) return 'robe';
+  if (L.path === 'xian' && L.f.sect) return XSD().fit;
   if (L.path === 'isekai') return L.f.king ? 'king' : 'armor';
   if (curScene === 'wedding' && L.mar && L.marAge === a) return L.g === 'm' ? 'groom' : 'bride';
   if (curScene === 'space' && (L.job === 'astronaut' || L.job === 'ambassador')) return 'space';
@@ -1819,6 +1917,7 @@ function meLook(fr, blink) {
   const fitId = dead ? 'ghost' : myFit();
   return { st: s, g: L.g, hair, style, fit: fitId, top: fitId === 'elder' ? L.look.elder : L.look.top, bot: L.look.bot, skirt: L.g === 'f' && L.look.skirt ? 1 : 0,
     gl: L.f.glasses && a >= 6 && !xian ? 1 : 0, bald: L.f.bald && a >= 22 && !xian ? 1 : 0, mood: dead ? 'z' : lastG > 0 ? 'h' : lastG < 0 ? 's' : 'n', blink: blink ? 1 : 0, fr: dead ? 0 : fr,
+    ears: L.path === 'xian' && XB() === 'yao' ? 1 : 0,
     cane: L.f.cane && s === 'old' && !dead ? 1 : 0, beard: L.g === 'm' && ((xian && a > 300) || (L.look.beard && a >= 70 && !xian)) ? 1 : 0, shades: L.f.richest && !dead ? 1 : 0 };
 }
 function lookOf(a, fr, blink) {
@@ -1829,7 +1928,7 @@ function lookOf(a, fr, blink) {
     const p = L.pt, age = L.age, xian = L.path === 'xian';
     const s = xian || tal('shiba') ? 'adult' : stageOf(age);
     const fitId = curScene === 'wedding' && L.marAge === age ? (p.g === 'm' ? 'groom' : 'bride') : p.fit || (s === 'old' ? 'elder' : 'casual');
-    return Object.assign(base, { st: s, g: p.g, hair: xian ? p.hair : greyed(age, p.hair), fit: fitId, top: fitId === 'elder' ? '#7a8a9a' : p.top, bot: p.bot, skirt: p.g === 'f' && p.skirt ? 1 : 0, cane: s === 'old' && age >= 80 ? 1 : 0 });
+    return Object.assign(base, { ears: p.ears ? 1 : 0, st: s, g: p.g, hair: xian ? p.hair : greyed(age, p.hair), fit: fitId, top: fitId === 'elder' ? '#7a8a9a' : p.top, bot: p.bot, skirt: p.g === 'f' && p.skirt ? 1 : 0, cane: s === 'old' && age >= 80 ? 1 : 0 });
   }
   if (a.k === 'kid') {
     const k = L.kids[a.i], ka = L.age - k.born, s = stageOf(ka);
@@ -1885,6 +1984,8 @@ function drawScene(oy) {
   }
   if (curScene === 'stage' || curScene === 'arena') for (let i = 0; i < 12; i++) { const x = (i * 16 + 7) % 180, on = Math.floor(T * 4 + i * 1.7) % 3; if (curScene === 'stage' && on) { g.fillStyle = ['#ff4ae0', '#4ae0ff', '#ffe14a'][i % 3]; g.fillRect(x, oy + 104 - (i % 3) * 2, 1, 3); } }
   if (curScene === 'isekai') { const b = Math.abs(Math.sin(T * 3)) * 4; odsc(g, 150, oy + 98 - b, 5, '#5ac8ff'); g.fillStyle = '#b8ecff'; g.fillRect(147, oy + 95 - b, 2, 1); g.fillStyle = OUT; g.fillRect(148, oy + 97 - b, 1, 1); g.fillRect(152, oy + 97 - b, 1, 1); }
+  if (curScene === 'mo') for (let i = 0; i < 6; i++) { const y = oy + 110 - ((T * 12 + i * 23) % 90), xx = (i * 31 + Math.sin(T + i) * 6) % 180; g.fillStyle = i % 2 ? '#ff6a3a' : '#ffb03a'; g.fillRect(R(xx), R(y), 1, 1); }
+  if (curScene === 'yao') for (let i = 0; i < 8; i++) { const on = (Math.sin(T * 2 + i * 1.7) + 1) / 2; g.globalAlpha = on; g.fillStyle = '#e8ff8a'; g.fillRect(R((i * 29 + Math.sin(T * .5 + i) * 10 + 180) % 180), R(oy + 60 + (i * 13) % 45 + Math.cos(T * .7 + i) * 4), 1, 1); g.globalAlpha = 1; }
   if (curScene === 'xian') { g.fillStyle = '#ffffff'; for (let i = 0; i < 2; i++) { const x = (T * (8 + i * 3) + i * 90) % 220 - 20, y = oy + 30 + i * 12 + Math.sin(T + i) * 2; g.fillRect(R(x), R(y), 4, 1); g.fillRect(R(x) + 1 + (Math.floor(T * 4) % 2), R(y) - 1, 1, 1); } }
   const seated = cast.filter(a => a.seat), standing = cast.filter(a => !a.seat).sort((a, b) => a.y - b.y);
   for (const a of seated) drawActor(a, oy);
@@ -1918,7 +2019,7 @@ function drawBanner() {
   if (s >= 1) txt(banner.s, 90, cy - 1, 14, '#fff6c0', 'center', OUT, a);
 }
 function stageLabel() {
-  if (L.path === 'xian') return L.xl >= 1 ? '修仙者 · ' + XREALM[L.xl] + '期' : '凡人';
+  if (L.path === 'xian') return L.xl >= 1 ? XSD().who + ' · ' + XSD().realm[L.xl] + (XB() === 'zheng' ? '期' : '') : '凡人';
   if (L.path === 'isekai') return L.f.king ? '异世界 · 国王' : L.f.hero ? '异世界 · 勇者' : '异世界 · 冒险者';
   const a = L.age, s = a < 1 ? '婴儿' : a < 3 ? '幼儿' : a < 6 ? '幼童' : a < 12 ? '儿童' : a < 18 ? '少年' : a < 35 ? '青年' : a < 60 ? '中年' : '老年';
   let role = '';
@@ -2155,9 +2256,9 @@ function drawEnd() {
   const st = state === 'inherit' ? 9 : stNow();
   g.fillStyle = '#140c2a'; g.fillRect(0, 0, W, H);
   const oy = 16;
-  g.drawImage(L.asc ? SCN.xian.bg : SCN.grave.bg, 0, oy);
+  g.drawImage(L.asc ? SCN[XSD().sc].bg : SCN.grave.bg, 0, oy);
   txt(L.asc ? '飞升结算' : '人生总结', 90, 8, 9, '#ffe14a');
-  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? 'robe' : 'ghost', mood: 'z', cane: 0, fr: 0 }));
+  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? XSD().fit : 'ghost', mood: 'z', cane: 0, fr: 0 }));
   if (L.asc) {
     const y = oy + 70 - Math.min(40, st * 8) + Math.sin(T * 2) * 2;
     g.globalAlpha = .3 + .1 * Math.sin(T * 4); for (let r = 26; r > 8; r -= 6) dsc(g, 90, y + 14, r, '#fff3a0'); g.globalAlpha = 1;
@@ -2383,7 +2484,7 @@ function update(dt) {
 function wantedTrack() {
   if (state === 'title' || state === 'ach') return 'title';
   if (state === 'gacha' || state === 'talent' || state === 'alloc') return 'setup';
-  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return 'xian'; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
+  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
   return 'end';
 }
 function render() {
