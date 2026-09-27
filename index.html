@@ -840,7 +840,7 @@ E('mgrad', 25, 25, () => {
   if (L.a.INT >= 10 && chance(.5)) { L.f.phd = 1; return '你研究生毕业了，导师劝你继续读博。你答应了。'; }
   return ['你研究生毕业了。', assignJob('master')];
 }, { m: 1, c: () => L.f.master && !L.f.phd && !L.job, sc: 'campus', em: 'star' });
-E('dgrad', 29, 29, () => { if (!L.f.bald && chance(.5)) L.f.bald = 1; return ['你博士毕业了，发际线也跟着一起毕业了。', assignJob('phd')]; }, { m: 1, c: () => L.f.phd && !L.job, sc: 'campus', em: 'star' });
+E('dgrad', 29, 29, () => { if (L.g === 'm' && !L.f.bald && chance(.5)) L.f.bald = 1; return [L.g === 'm' ? '你博士毕业了，发际线也跟着一起毕业了。' : '你博士毕业了，头发掉了一大半，终于剪成了短发。', assignJob('phd')]; }, { m: 1, c: () => L.f.phd && !L.job, sc: 'campus', em: 'star' });
 E('fill_uni', 18, 24, '你在校园里度过了平平淡淡的一年。', { c: () => L.f.uni && !L.job, rep: 1, cd: 1, w: .15, em: 'note', sc: 'campus' });
 function assignJob(tier) {
   const a = L.a, o = [], add = (j, w) => { if (w > 0) o.push([j, w]); };
@@ -863,7 +863,7 @@ function assignJob(tier) {
 // ---------------- careers
 const J = j => () => L.job === j;
 E('c_crash', 22, 45, '你写的代码上线后把服务器搞崩了，被全公司通报批评。', { c: J('coder'), fx: { SPR: -1 }, em: 'sweat', sc: 'office' });
-E('c_bald', 22, 45, '你连续加了一个月的班，头发少了一半。', { c: () => L.job === 'coder' && !L.f.bald, w: 1.5, fx: { STR: -1 }, f: { bald: 1 }, em: 'sweat', sc: 'office' });
+E('c_bald', 22, 45, '你连续加了一个月的班，头发少了一半。', { c: () => L.job === 'coder' && !L.f.bald && L.g === 'm', w: 1.5, fx: { STR: -1 }, f: { bald: 1 }, em: 'sweat', sc: 'office' });
 E('c_jump', 24, 40, '你跳槽去了一家大厂，工资翻了一倍。', { c: J('coder'), fx: { MNY: 2 }, em: 'coin', sc: 'office' });
 E('c_996', 22, 40, '公司开始实行996，你已经很久没见过太阳了。', { c: J('coder'), fx: { STR: -1, SPR: -1 }, em: 'zzz', sc: 'office' });
 E('c_duck', 22, 50, '你对着桌上的小黄鸭讲解代码，终于找到了那个BUG。', { c: J('coder'), fx: { INT: 1 }, em: 'note', sc: 'office' });
@@ -948,7 +948,7 @@ E('sc_paper', 25, 70, '你在顶级期刊上发表了一篇论文。', { c: J('s
 E('sc_fail', 25, 70, '你的实验连续失败了三百次，你开始怀疑人生。', { c: J('scientist'), fx: { SPR: -2 }, em: 'sad', sc: 'lab' });
 E('sc_break', 28, 70, '你的研究取得了重大突破，上了新闻联播。', { c: () => L.job === 'scientist' && L.a.INT >= 10, fx: { INT: 1, MNY: 1 }, em: 'star', sc: 'lab' });
 E('sc_nobel', 38, 80, '你获得了诺贝尔奖！', { c: () => L.job === 'scientist' && L.a.INT >= 13 && used('sc_break'), w: 1.5, fx: { SPR: 3 }, f: { nobel: 1 }, em: 'star', sc: 'stage', big: '诺贝尔奖!' });
-E('sc_bald', 25, 60, '你熬夜做实验，发际线一退再退。', { c: () => L.job === 'scientist' && !L.f.bald, f: { bald: 1 }, em: 'sweat', sc: 'lab' });
+E('sc_bald', 25, 60, '你熬夜做实验，发际线一退再退。', { c: () => L.job === 'scientist' && !L.f.bald && L.g === 'm', f: { bald: 1 }, em: 'sweat', sc: 'lab' });
 E('ast_pick', 27, 42, () => { setJob('astronaut'); return '你通过了层层选拔，成为了一名航天员！'; }, { c: () => (L.job === 'scientist' || L.job === 'athlete' || L.job === 'coach') && L.a.STR >= 8 && L.a.INT >= 8, w: .6, em: 'star', sc: 'field', big: '入选航天员!' });
 E('ast_fly', 28, 50, '你乘坐飞船进入了太空，从舷窗里看到了蓝色的地球。', { c: J('astronaut'), w: 3, fx: { SPR: 2 }, f: { space: 1 }, em: 'spark', sc: 'space' });
 E('ast_moon', 29, 55, '你登上了月球，在月面上留下了自己的脚印。', { c: () => L.job === 'astronaut' && L.f.space, w: 2, fx: { SPR: 3 }, f: { moon: 1 }, em: 'star', sc: 'space', big: '登月成功!' });
@@ -971,7 +971,9 @@ E('travel', 22, 65, () => '你去' + pick(['云南', '西藏', '海南', '新疆
 E('lostway', 12, 70, '你出门旅游，拿着地图在同一个路口转了三个小时。', { c: () => tal('luchi'), w: 3, em: 'q', sc: 'street' });
 E('gym1', 20, 50, '你办了一张健身卡，一共去了三次。', { em: 'sweat' });
 E('gym2', 20, 50, '你坚持健身，练出了八块腹肌。', { c: () => L.a.STR >= 6, fx: { STR: 1, CHR: 1 }, em: 'spark' });
-E('baldgen', 26, 45, '你照镜子时突然发现，你的发际线已经退到了后脑勺。', { c: () => !L.f.bald, w: () => tal('tutou') ? 5 : .35, fx: { CHR: -1 }, f: { bald: 1 }, em: 'sweat' });
+E('baldgen', 26, 45, '你照镜子时突然发现，你的发际线已经退到了后脑勺。', { c: () => !L.f.bald && L.g === 'm', w: () => tal('tutou') ? 5 : .35, fx: { CHR: -1 }, f: { bald: 1 }, em: 'sweat' });
+E('hairloss', 26, 45, '你开始大把大把地掉头发，扎起马尾只剩细细的一小撮。', { c: () => L.g === 'f', w: () => tal('tutou') ? 5 : .3, fx: { CHR: -1 }, em: 'sweat' });
+E('c_hair', 22, 45, '你连续加了一个月的班，每天洗头都掉一大把头发。', { c: () => L.job === 'coder' && L.g === 'f', w: 1.2, fx: { STR: -1 }, em: 'sweat', sc: 'office' });
 E('viral', 15, 60, '你随手拍的一条搞笑视频在网上爆火了，播放量破亿。', { w: .5, fx: { CHR: 1, SPR: 2 }, em: 'star' });
 E('rescue', 16, 60, '你跳进河里救起了一个落水的小孩，被评为“见义勇为好市民”。', { c: () => L.a.STR >= 6, w: .5, fx: { SPR: 2 }, em: 'star', sc: 'park' });
 E('wallet', 16, 70, '你的钱包在地铁上被偷了。', { fx: { SPR: -1 }, em: 'anger', sc: 'street' });
@@ -982,7 +984,7 @@ E('fishdream', 30, 90, '你梦见自己变成了一只戴渔夫帽的猫，在�
 E('moving', 20, 60, '你搬了一次家，扔掉了一屋子“以后肯定用得上”的东西。', { em: 'sweat' });
 E('midlife', 38, 50, '你突然意识到人生已经过半，陷入了中年危机。', { fx: { SPR: -2 }, em: 'sad' });
 E('moto', 39, 55, '为了对抗中年危机，你买了一辆摩托车，在山路上狂飙。', { c: () => used('midlife'), fx: { SPR: 2 }, em: 'spark', sc: 'street' });
-E('belly', 35, 55, '你长出了啤酒肚，低头已经看不见自己的脚尖了。', { c: () => !tal('shiba'), fx: { CHR: -1, STR: -1 }, em: 'sweat' });
+E('belly', 35, 55, () => L.g === 'm' ? '你长出了啤酒肚，低头已经看不见自己的脚尖了。' : '你开始发福，年轻时的裙子一条也穿不下了。', { c: () => !tal('shiba'), fx: { CHR: -1, STR: -1 }, em: 'sweat' });
 E('checkup', 40, 60, '体检报告上，血压、血脂、血糖齐刷刷地亮起了红灯。', { fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
 E('health', 30, 65, '你开始养生，保温杯里泡上了枸杞。', { fx: { STR: 1 }, em: 'note' });
 E('wrinkle', 42, 60, '你的眼角爬上了鱼尾纹。', { c: () => !tal('shiba'), fx: { CHR: -1 }, em: 'sweat' });
@@ -1047,8 +1049,81 @@ E('goldwed', 70, 110, '你和{spouse}迎来了金婚纪念日，儿孙们为你�
 E('century', 100, 100, '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!', p: '*' });
 E('oldest', 104, 140, '你成了全市最长寿的老人。记者问你长寿的秘诀，你说：“别想太多。”', { fx: { SPR: 1 }, em: 'star', p: '*' });
 E('fill_old', 60, 200, '你在平静中度过了一年。', { rep: 1, cd: 1, w: .12, em: 'zzz', p: '*' });
+// ---------------- more life
+E('tooth', 0, 1, '你长出了第一颗牙，见谁咬谁。', { em: 'note' });
+E('ads', 2, 5, '你能把电视广告词一字不差地背出来，比背唐诗还熟。', { fx: { INT: 1 }, em: 'note' });
+E('mud', 3, 7, '你在泥坑里打了个滚，回家时妈妈差点没认出你。', { fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('nap', 3, 5, '午睡时你假装睡着，偷偷数了一中午天花板上的裂缝。', { c: () => L.f.kg, em: 'zzz', sc: 'kg' });
+E('firecracker', 4, 11, '过年放鞭炮，你把邻居家的信箱炸飞了。', { em: 'bang', sc: 'street' });
+E('tadpole', 5, 9, '你在河边捞了一瓶蝌蚪，过了几周，家里跳满了小青蛙。', { fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('ghoststory', 3, 8, '爷爷给你讲了一个鬼故事，你一个星期不敢自己上厕所。', { em: 'sweat' });
+E('hide', 4, 8, '捉迷藏时你躲进衣柜里睡着了，全家找了你一下午。', { em: 'zzz' });
+E('speech', 7, 12, '你参加演讲比赛，上台后脑子一片空白，只说了一句“谢谢大家”。', { fx: { SPR: -1 }, em: 'sweat', sc: 'stage' });
+E('spring', 6, 11, '春游那天，你的书包里塞满了零食，一本书都没带。', { fx: { SPR: 1 }, em: 'heart', sc: 'park' });
+E('penpal', 8, 13, '你交了一个外地的笔友，每周写一封信。', { fx: { INT: 1 }, em: 'book' });
+E('kite', 7, 12, '你和同学比谁的风筝飞得高，结果挂在了电线上。', { em: 'sweat', sc: 'park' });
+E('fakesign', 8, 13, '你模仿家长在试卷上签名，被老师一眼识破。', { fx: { SPR: -1 }, em: 'sweat', sc: 'class' });
+E('chick', 6, 10, '你在校门口花五块钱买了一只小鸡，它后来长成了每天五点打鸣的大公鸡。', { fx: { SPR: 1 }, em: 'note' });
+E('owl', 8, 12, '你一整个暑假都在等一封魔法学校的录取信。', { em: 'q' });
+E('signature', 12, 16, '你把聊天签名改成了“伤不起”，多年后想起来尴尬得脚趾抠地。', { em: 'sweat' });
+E('bikerace', 13, 17, '你放学时和同学骑车比赛，一头栽进了路边的花坛。', { fx: { STR: -1 }, em: 'sweat', sc: 'street' });
+E('physics', 13, 17, '你拿下了物理竞赛的省一等奖。', { c: () => L.a.INT >= 9, fx: { INT: 1 }, em: 'star', sc: 'class' });
+E('band', 14, 17, '你和同学组了一支乐队，排练了一学期，只会弹一首歌。', { fx: { SPR: 1 }, em: 'note', sc: 'stage' });
+E('confess', 14, 17, '你鼓起勇气向喜欢的人表白，对方说：“你是个好人。”', { c: () => !tal('danshen') && L.f.crush && !L.f.loved, fx: { SPR: -1 }, em: 'sad', sc: 'class', love: 1 });
+E('phone', 13, 17, '你上课玩手机被老师没收，直到毕业才还给你。', { fx: { SPR: -1 }, em: 'sad', sc: 'class' });
+E('insom17', 17, 17, '高考前一天晚上你失眠了，数羊数到了三千只。', { c: () => L.f.high, w: 2, em: 'zzz' });
+E('roommate', 19, 22, '你的室友每天凌晨三点打呼噜，你学会了戴着耳塞睡觉。', { c: () => L.f.uni && !L.f.grad, em: 'zzz', sc: 'campus' });
+E('hackathon', 19, 22, '你参加编程马拉松，熬了两个通宵，拿了一等奖。', { c: () => L.f.uni && !L.f.grad && L.a.INT >= 7, fx: { INT: 1 }, em: 'star', sc: 'office' });
+E('teachvol', 19, 22, '你报名去山区支教了一个暑假，孩子们哭着送你上车。', { c: () => L.f.uni && !L.f.grad, fx: { SPR: 1 }, em: 'heart', sc: 'class' });
+E('takeout', 19, 22, '你大学四年点的外卖盒，堆起来能绕操场一圈。', { c: () => L.f.uni && !L.f.grad, fx: { STR: -1 }, em: 'sweat' });
+E('cet', 19, 22, () => L.a.INT >= 8 ? '你一次就考过了英语六级。' : '你考了三次英语四级，终于过了。', { c: () => L.f.uni && !L.f.grad && !L.f.abroad, fx: { INT: 1 }, em: 'book', sc: 'class' });
+E('teashop', 25, 45, () => { setJob('boss'); return '你辞职开了一家奶茶店，头三个月亏得底朝天。'; }, { c: J('office'), w: .5, fx: { MNY: -1, SPR: 1 }, em: 'sweat', sc: 'shop' });
+E('weddings', 25, 40, '你一年参加了八场婚礼，份子钱比工资还多。', { fx: { MNY: -1 }, em: 'sweat', sc: 'wedding' });
+E('scroll', 18, 60, '你一天刷手机九个小时，颈椎开始抗议了。', { fx: { STR: -1 }, em: 'zzz' });
+E('pottery', 25, 60, '你报了陶艺课，捏出来的碗怎么看都像个烟灰缸。', { fx: { SPR: 1 }, em: 'note' });
+E('bbq', 18, 60, '你吃了路边摊的烧烤，拉了三天肚子。', { c: () => !tal('tiewei'), fx: { STR: -1 }, em: 'ill' });
+E('ironbelly', 18, 60, '朋友们吃完路边摊全都拉了肚子，只有你安然无恙。', { c: () => tal('tiewei'), w: 2, fx: { SPR: 1 }, em: 'note' });
+E('sleepearly', 20, 60, '你下定决心今晚早睡，结果刷手机刷到了凌晨三点。', { em: 'zzz' });
+E('hometown', 25, 60, '你回了一趟老家，发现小时候读的学校已经拆了。', { fx: { SPR: -1 }, em: 'sad', sc: 'street' });
+E('lend', 25, 55, '你借给朋友一笔钱，从此再也没见过这个朋友。', { fx: { MNY: -1, SPR: -1 }, em: 'anger' });
+E('dancevid', 18, 45, '你跟着短视频学跳舞，一个转身闪了腰。', { fx: { STR: -1 }, em: 'sweat' });
+E('cosplay', 18, 30, '你去漫展cos了一个动漫角色，被拍照的人围了一圈。', { c: () => L.a.CHR >= 6, fx: { CHR: 1, SPR: 1 }, em: 'star', sc: 'stage' });
+E('succulent', 22, 70, '你在阳台上养了一排多肉，一个月后全部阵亡。', { em: 'sad' });
+E('pothos', 25, 80, '经过无数次失败，你终于养活了一盆绿萝。', { c: () => used('succulent'), fx: { SPR: 1 }, em: 'note' });
+E('escape', 18, 35, '你玩密室逃脱时尖叫得太大声，把扮鬼的工作人员吓跑了。', { em: 'bang' });
+E('blindbox', 18, 40, '你迷上了抽盲盒，为了一个隐藏款花光了一个月的工资。', { fx: { MNY: -1, SPR: 1 }, em: 'coin', sc: 'street' });
+E('camping', 22, 55, '你去野外露营，帐篷半夜被一阵大风吹走了。', { em: 'sweat', sc: 'park' });
+E('license', 18, 30, '你考驾照，科目二挂了三次，教练看见你就叹气。', { fx: { SPR: -1 }, em: 'sweat', sc: 'street' });
+E('kiddraw', 27, 55, '你的{kid0}画了一幅全家福，把你画成了一颗土豆。', { c: () => kidAge(0) >= 4 && kidAge(0) <= 8, w: 1.5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
+E('kidfever', 24, 55, '你的{kid0}半夜发高烧，你抱着孩子冲进了急诊室。', { c: () => kidAge(0) >= 1 && kidAge(0) <= 9, fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
+E('kidprize', 30, 60, '你的{kid0}在钢琴比赛中拿了第一名，你比孩子还激动。', { c: () => kidAge(0) >= 7 && kidAge(0) <= 15, fx: { SPR: 1 }, em: 'star', sc: 'stage' });
+E('kidemoji', 33, 65, '你的{kid0}嫌你发的表情包太土，把你设成了“消息免打扰”。', { c: () => kidAge(0) >= 11 && kidAge(0) <= 17, em: 'sweat' });
+E('kidabroad', 45, 80, '你的{kid0}去外地工作了，你学会了每天晚上视频通话。', { c: () => kidAge(0) >= 23, fx: { SPR: -1 }, em: 'sad' });
+E('ptcook', 25, 80, '{spouse}做了一桌菜，你假装很好吃，全部吃光了。', { c: () => L.mar, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
+E('ptphoto', 30, 70, '你和{spouse}去海边补拍了一套婚纱照。', { c: () => L.mar && L.a.MNY >= 5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
+E('ptsnore', 40, 80, '你嫌{spouse}打呼噜，{ta}嫌你磨牙，你们分房睡了。', { c: () => L.mar, em: 'anger', sc: 'home' });
+E('nagmarry', 27, 40, '过年回家，七大姑八大姨轮番上阵催你结婚。', { c: () => !L.mar && !L.love, w: 1.5, fx: { SPR: -1 }, em: 'anger', sc: 'home' });
+E('solo', 30, 70, '你一个人旅行、一个人吃火锅，活得自由自在。', { c: () => !L.mar && !L.love, fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('readglass', 45, 60, '你开始看不清手机上的小字，配了一副老花镜。', { em: 'sweat' });
+E('dyeblack', 50, 65, '你偷偷去理发店把白头发染黑了，假装自己还年轻。', { c: () => !L.f.bald && !tal('shiba'), fx: { CHR: 1 }, em: 'spark' });
+E('dancecup', 60, 82, '你带领广场舞队拿下了全市比赛的冠军。', { c: () => used('dance'), fx: { SPR: 2 }, em: 'star', sc: 'park' });
+E('grandhw', 60, 90, '你帮{grand}辈辅导作业，发现自己一道题都不会做了。', { c: () => L.f.grandkid, em: 'sweat', sc: 'home' });
+E('oldorder', 65, 90, '你第一次用手机点外卖，手一抖点了十份。', { em: 'bang' });
+E('bird', 60, 90, '你每天提着鸟笼去公园遛鸟，和鸟聊得比和人还多。', { fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('oldclass', 70, 90, '毕业五十年的同学聚会，只来了三个人。', { fx: { SPR: -1 }, em: 'sad', sc: 'shop' });
+E('oldvlog', 65, 90, '你开了个账号分享家常菜，意外收获了十万粉丝。', { fx: { SPR: 2 }, em: 'star' });
+E('oldlove', 62, 90, () => { startLove(); marry(); return '你在老年大学遇到了一位老伴，黄昏恋也可以很甜。'; }, { c: canLove, w: .5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
+E('teeth', 70, 110, '你的牙掉得差不多了，吃什么都要打成糊。', { fx: { STR: -1 }, em: 'sad' });
+E('tvnap', 75, 120, '你看着电视就睡着了，一关电视，你又醒了。', { em: 'zzz' });
+E('timetravel', 15, 60, '你一觉醒来穿越到了古代，三天后又穿了回来，只带回一身虱子。', { w: .06, em: 'q' });
+E('doppel', 15, 60, '你在街上遇到了一个和你长得一模一样的人，你们互相吓了一跳。', { w: .1, em: 'bang', sc: 'street' });
+E('meteor', 10, 80, '一颗陨石落在了你家门口，你把它卖给了博物馆。', { w: .08, fx: { MNY: 2 }, em: 'star' });
+E('noise', 18, 50, '你租的房子半夜总有怪声，你吓得不敢睡，后来发现是楼上在装修。', { w: .3, em: 'sweat' });
+E('catfire', 10, 100, '半夜你的猫疯狂挠门把你叫醒，原来厨房着火了，它救了全家。', { c: () => L.pet && L.pet.k === 'cat', w: .3, fx: { SPR: 2 }, em: 'heart', p: '*' });
+E('dogthief', 10, 100, '你的狗抓住了一个入室小偷，登上了本地新闻。', { c: () => L.pet && L.pet.k === 'dog', w: .3, fx: { SPR: 1 }, em: 'star', p: '*' });
+E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
 // ---------------- the immortal path
-const XREALM = ['凡人', '练气', '筑基', '金丹', '元婴', '化神'], XCAP = [100, 150, 250, 500, 1000, 2500];
+const XREALM = ['凡人', '练气', '筑基', '金丹', '元婴', '化神'], XCAP = [100, 150, 250, 500, 1000, 2500], XGAP = [0, 8, 25, 70, 160];
 E('xmeet', 6, 16, '你在山里迷了路，遇到一位白胡子老爷爷。他说你骨骼清奇，是万中无一的修仙奇才。', { c: () => tal('xianyuan') || L.a.INT >= 9, w: () => tal('xianyuan') ? 6 : .01, f: { xmeet: 1 }, em: 'bang', sc: 'xian', nx: ['xjoin', 1, 1] });
 E('xjoin', 0, 30, () => { L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; return '你告别了父母，跟着老爷爷拜入了青云宗，踏上了修仙之路。'; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star', sc: 'xian', big: '踏入仙途!' });
 const XUP = [null, null,
@@ -1056,8 +1131,8 @@ const XUP = [null, null,
   ['你在丹田中凝结出一颗金丹，寿元大增！', { STR: 2, INT: 1 }, '结成金丹!'],
   ['你碎丹成婴，修成了元婴，从此可以御剑飞行。', { STR: 3, INT: 1 }, '元婴大成!'],
   ['你踏入化神境界，成为了名震天下的一代宗师。', { STR: 2, INT: 2 }, '化神!']];
-E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XUP[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= 3, w: () => .2 + L.a.INT * .035 + L.a.STR * .02, em: 'spark' });
-E('xclose', 0, 9999, () => { const n = ri(8, 20) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
+E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XUP[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= XGAP[L.xl], w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
+E('xclose', 0, 9999, () => { const n = ri(5, 12) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
 E('xbook', 0, 9999, '你在藏经阁的角落里翻到一本落满灰的秘籍，修为大涨。', { p: 'xian', fx: { INT: 2 }, em: 'book' });
 E('xherb', 0, 9999, '你在秘境里找到一株千年灵芝，吃下去后浑身发烫。', { p: 'xian', fx: { STR: 2 }, em: 'spark' });
 E('xdisciple', 0, 9999, '你收了一个天资聪颖的徒弟，把毕生所学倾囊相授。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
@@ -1071,7 +1146,7 @@ E('xtrib', 0, 9999, () => {
   const p = clamp((L.a.STR + L.a.INT) / 32, .25, .92);
   if (chance(p)) { L.end = true; L.asc = true; YR.big = '羽化飞升!'; return ['九天之上雷云密布，你的天劫来了……', '你硬扛下九九八十一道天雷，羽化飞升，位列仙班！']; }
   die('你没能扛过最后一道天雷，灰飞烟灭了。'); return '九天之上雷云密布，你的天劫来了……';
-}, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 5, w: 1.2, em: 'bang' });
+}, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 40, w: .6, em: 'bang' });
 E('xfill', 0, 9999, () => pick(['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。']), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
 // ---------------- isekai
 E('truck', 16, 45, () => { L.path = 'isekai'; L.isAge = L.age; L.job = null; endLove(); L.kids = []; L.pet = null; return ['你过马路时，一辆卡车朝你冲了过来……', '再睁开眼时，你发现自己转生到了剑与魔法的异世界！']; }, { w: () => tal('yishijie') ? 2.5 : .004, em: 'bang', sc: 'isekai', big: '异世界转生!' });
@@ -1090,6 +1165,17 @@ E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红�
 E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .015, em: 'q', sc: 'hosp' });
 E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。']), { p: 'isekai', rep: 1, cd: 1, w: .4, em: 'note' });
 E('is_peace', 0, 999, '在你的治理下，异世界迎来了和平。', { p: 'isekai', c: () => L.f.king, rep: 1, cd: 4, w: .4, fx: { SPR: 1 }, em: 'note' });
+E('xchores', 0, 9999, '你每天挑水劈柴，师父说这也是修炼。', { p: 'xian', c: () => L.xl === 1, fx: { STR: 1 }, em: 'sweat' });
+E('xpill', 0, 9999, '你偷吃了师父炼的丹药，睡了三天三夜。', { p: 'xian', fx: { INT: 1 }, em: 'zzz' });
+E('xfox', 0, 9999, '你收服了一只灵狐，从此它天天蹲在你的肩膀上。', { p: 'xian', c: () => L.xl >= 2, fx: { SPR: 1 }, em: 'heart' });
+E('xrival', 0, 9999, '同门的天才弟子处处和你作对，你在宗门大比中把他打下了擂台。', { p: 'xian', c: () => L.xl >= 2, fx: { STR: 1 }, em: 'anger' });
+E('xhome', 60, 9999, '你回到故乡，父母的坟前已经长满了青草。', { p: 'xian', fx: { SPR: -2 }, em: 'sad', sc: 'grave' });
+E('xstuck', 0, 9999, () => { YR.skip = 49; return '你卡在了瓶颈，整整五十年修为寸步不进。'; }, { p: 'xian', c: () => L.xl >= 3, fx: { SPR: -1 }, em: 'sad' });
+E('xnoodle', 0, 9999, '你辟谷三年，出关后第一件事就是下山吃了三碗牛肉面。', { p: 'xian', fx: { SPR: 1 }, em: 'heart', sc: 'shop' });
+E('is_ramen', 0, 999, '你在异世界开了一家拉面馆，精灵们天天排长队。', { p: 'isekai', fx: { MNY: 2 }, em: 'coin', sc: 'shop' });
+E('is_lv99', 0, 999, '你的等级升到了99级，系统提示：“已满级，请勿继续刷怪。”', { p: 'isekai', c: () => L.f.guild, fx: { STR: 2 }, em: 'star' });
+E('is_goddess', 0, 999, '女神托梦给你，说当初其实是她把你送错世界了。', { p: 'isekai', em: 'q' });
+E('is_slimepet', 0, 999, '你养了一只史莱姆当宠物，它把你的剑吃掉了。', { p: 'isekai', fx: { SPR: 1 }, em: 'sweat' });
 // ---------------- aliens
 E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
 E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
