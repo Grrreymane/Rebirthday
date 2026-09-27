@@ -35,6 +35,23 @@
 <body>
 <div id="wrap"><canvas id="c" aria-label="人生重开物语游戏画面"></canvas></div>
 <script>
+// If the game script fails to start or keeps crashing, show what went wrong instead of a blank screen.
+window.__rlErr = function (msg) {
+  try {
+    var d = document.getElementById('rl-err');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'rl-err';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:20;background:#3a0a1a;color:#ffd6d6;font:12px/1.4 monospace;padding:10px;border:2px solid #ff6a6a;border-radius:4px;white-space:pre-wrap;word-break:break-all;-webkit-user-select:text;user-select:text';
+      d.onclick = function () { location.reload(); };
+      document.body.appendChild(d);
+    }
+    d.textContent = '游戏出错了。截图发给开发者，点这里重新加载。' + String.fromCharCode(10) + msg + String.fromCharCode(10) + navigator.userAgent;
+  } catch (e) {}
+};
+window.addEventListener('error', function (e) { window.__rlErr((e.message || 'error') + ' @' + (e.lineno || '?') + ':' + (e.colno || '?')); });
+setTimeout(function () { if (!window.__rlBooted) window.__rlErr('启动超时：8 秒内游戏没有开始运行'); }, 8000);
+</script>
+<script>
 (() => {
 'use strict';
 const SCRIPT_TEXT = document.currentScript ? document.currentScript.textContent : '';
@@ -2144,7 +2161,7 @@ function talentRow(id, x, y, w, h, sel, tag) {
 let state = 'title', st = 0, T = 0, menuOpen = false, ptr = null;
 let gacha = null, alloc = null, pickTal = [], inhSel = null, achScroll = 0, achMax = 0, achFrom = 'title', logScroll = 0, logMax = 0;
 let curScene = 'hosp', cast = [], yearT = 99, lastG = 0, emote = null, POPS = [], banner = null, P = [], auto = 0, hudFlash = {}, endT = 0;
-let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = -1, sparkT = 0;
+let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = null, sparkT = 0;
 function go(s) { state = s; st = 0; ptr = null; }
 const stNow = () => st;
 function toggleMute() { META.muted = !META.muted; saveMeta(); if (!META.muted) SFX.click(); }
@@ -3034,12 +3051,14 @@ const ALLTEXT = [...new Set((SCRIPT_TEXT.match(/[^\x00-\x7f]/g) || []))].join(''
 try { if (document.fonts && document.fonts.load) document.fonts.load('12px "ZCOOL QingKe HuangYou"', ALLTEXT).catch(() => {}); } catch (e) {}
 let last = performance.now();
 let frameErr = 0;
+window.__rlBooted = true;
 function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const dt = clamp((now - last) / 1000, 0, .05); last = now; // a frame's timestamp can predate the boot time
   // one bad frame must not freeze the game on a blank screen: log it, and bail out to the title if it keeps happening
   try { update(dt); render(); musicUpdate(wantedTrack()); frameErr = 0; }
   catch (e) {
     console.error(e);
+    if (frameErr === 0 && window.__rlErr) window.__rlErr(String(e && e.stack || e).slice(0, 600));
     if (++frameErr === 20 && state !== 'title') { menuOpen = false; go('title'); }
     if (frameErr === 60) { clearRun(); frameErr = 0; }
   }
