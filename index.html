@@ -715,6 +715,10 @@ function fmt(s) {
       case 'pn': return L.pet ? L.pet.n : '';
       case 'job': return L.job ? JOBS[L.job].n : '打工人';
       case 'xiong': return L.g === 'm' ? '师妹' : '师兄';
+      case 'qm': return L.qm ? L.qm.n : '';
+      case 'qmsay': return L.qm && L.qm.g === 'f' ? '嫁给你' : '娶你';
+      case 'bro': return L.bro ? L.bro.n : '';
+      case 'bm': return L.g === 'm' ? '伴郎' : '伴娘';
       default: return m;
     }
   });
@@ -725,13 +729,33 @@ function fmt(s) {
 // do extra effect (may return extra lines), sc scene, em emote, big banner, m milestone (forced when eligible),
 // rep repeatable, x exclusive group, p path ('xian'|'isekai'|'*'; default normal life only), nx [id, d0, d1] follow-up,
 // sched only via follow-up, love romance weighting, g goodness override, die death text.
-const EV = [], EVI = {}, MILES = [];
+const EV = [], EVI = {}, MILES = [], CH = {};
 function E(id, a0, a1, t, o) {
   const e = Object.assign({ id, a0, a1, t, w: 1 }, o || {});
   if (e.g === undefined && e.fx) { const s = Object.values(e.fx).reduce((a, b) => a + b, 0); e._g = s > 0 ? 1 : s < 0 ? -1 : 0; } else e._g = e.g || 0;
   EV.push(e); EVI[id] = e; if (e.m) MILES.push(e);
 }
 const used = id => !!L.used[id];
+// ---------------------------------------------------------------- choices: CH[id] = { o: [[label, effect], [label, effect]] }
+CH.gk = { o: [['复读一年', () => { L.f.fudu = 1; return '你咬咬牙，决定复读一年，再拼一次。'; }], ['去闯社会', () => { L.f.nouni = 1; return '你收拾好行李，去城里闯荡了。'; }]] };
+CH.scout = { o: [['签约出道', () => { L.f.scout = 1; if (L.age >= 18 && (!L.job || L.job === 'office' || L.job === 'none')) { setJob('star'); YR.big = '出道!'; return JOBS.star.t; } return '你签了经纪公司，一边上学一边当练习生。'; }], ['婉拒', () => { addFx({ SPR: 1 }); return '你笑着摆摆手：“我还是想过普通人的生活。”'; }]] };
+CH.confess = { o: [['鼓起勇气表白', () => { if (L.a.CHR + rand(0, 7) >= 9) { L.f.loved = 1; addFx({ SPR: 2 }); YR.em = 'heart'; return '对方红着脸点了点头。那是你这辈子心跳最快的一天。'; } addFx({ SPR: -1 }); YR.em = 'sad'; return '对方说：“你是个好人。”'; }], ['把喜欢藏在心里', () => '很多年以后，你偶尔还会想起那个{opp}。']] };
+CH.layoff = { o: [['去送外卖', () => { setJob('rider'); return '你骑上电动车，成了一名外卖骑手。'; }], ['拿赔偿金创业', () => { setJob('boss'); if (chance(.5)) return '你一咬牙，拿着赔偿金开了一家自己的公司。'; addFx({ MNY: -2 }); return '你一咬牙开了家公司，结果头三个月就把赔偿金亏光了。'; }]] };
+CH.marry = { o: [['结婚！', () => { marry(); addFx({ SPR: 2 }); YR.big = '喜结连理!'; YR.sc = 'wedding'; YR.em = 'heart'; return ['你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }], ['再等等', () => { addFx({ SPR: -1 }); return '你说还没准备好，{ta}有些失落。'; }]] };
+CH.kid = { o: [['要一个', () => { L.f.wantkid = 1; return '你们开始认真备孕。'; }], ['过二人世界', () => { L.f.dink = 1; addFx({ SPR: 1 }); return '你们决定好好享受二人世界，养了一阳台的花。'; }]] };
+CH.lotto = { o: [['辞职环游世界', () => { if (L.job && L.job !== 'retired') { L.oldJob = L.job; setJob('none'); } addFx({ SPR: 3 }); return '你辞掉了工作，花了三年走遍了全世界。'; }], ['低调存起来', () => { addFx({ MNY: 1 }); return '你谁也没告诉，照常上班，只是偷偷换了个好一点的保温杯。'; }]] };
+CH.house = { o: [['贷款买房', () => { L.f.house = 1; addFx({ SPR: -1 }); return '你咬咬牙买下了它，背上了三十年的房贷。'; }], ['继续租房', () => { addFx({ SPR: 1, MNY: 1 }); return '你决定继续租房，把首付拿去旅游了。'; }]] };
+CH.midlife = { o: [['买辆摩托车', () => { addFx({ SPR: 2 }); return '你买了一辆摩托车，在山路上狂飙，找回了年轻时的感觉。'; }], ['报个画画班', () => { addFx({ SPR: 1, INT: 1 }); return '你报了个油画班，画的第一幅画被家人挂在了客厅正中间。'; }]] };
+CH.moinv = { o: [['接过秘籍', () => { L.f.xmeet = 1; L.xs = 'mo'; L.q.push({ a: L.age + 1, id: 'xjoin' }); return '你接过了秘籍，黑袍人满意地笑了。'; }], ['一把扔掉', () => { addFx({ SPR: 1 }); return '你把秘籍扔进了垃圾桶。日子再难，也要堂堂正正地过。'; }]] };
+CH.trib = { o: [['迎接天劫', () => {
+  const b = XB(), d = XSD();
+  const p = b === 'mo' ? clamp((L.a.INT + L.a.SPR) / 36, .15, .75) : b === 'yao' ? clamp((L.a.STR * 1.3 + L.a.INT * .7) / 42, .2, .8) : clamp((L.a.STR + L.a.INT) / 42, .2, .8);
+  if (chance(p)) { L.end = true; L.asc = true; YR.big = d.winBig; return d.win; }
+  die(d.lose); return null;
+}], ['再闭关一百年', () => { YR.skip = 99; L.xlAge = L.age; addFx({ STR: 2, INT: 1 }); return '你决定再闭关一百年，把根基打得更牢一些。'; }]] };
+CH.demon = { o: [['拔剑战斗', () => { L.f.hero = 1; addFx({ SPR: 3, STR: 1 }); YR.big = '讨伐魔王!'; YR.em = 'star'; return '你们激战了三天三夜，你终于击败了魔王！'; }], ['握住他的手', () => { L.f.dark = 1; addFx({ MNY: 3 }); YR.big = '黑化!'; YR.em = 'anger'; return '你成为了魔王军的四天王之一，队友们哭着离开了你。'; }]] };
+CH.qm = { o: [['约{qm}出来', () => { startLove({ g: L.qm.g, hair: L.qm.hair, top: L.qm.top, bot: L.qm.bot, skirt: L.qm.skirt }); L.f.qmlove = 1; addFx({ SPR: 2 }); YR.em = 'heart'; return '你们聊到了深夜，好像从来没有分开过。'; }], ['只叙叙旧', () => '你们互相加了联系方式，却再也没有聊过天。']] };
+CH.bro = { o: [['借！', () => { addFx({ MNY: -2 }); L.f.lent = 1; return '你二话不说，把积蓄都借给了{bro}。'; }], ['婉拒', () => { L.f.nolend = 1; return '{bro}说能理解，但你们之间好像多了点什么。'; }]] };
 // ---------------- 0-2
 E('walk', 1, 2, '你学会了走路，摇摇晃晃地扑进了妈妈怀里。', { fx: { STR: 1 }, em: 'heart', w: 2 });
 E('talk1', 1, 2, '你第一次开口说话，叫的是“爸爸”。爸爸激动得哭了。', { fx: { SPR: 1 }, em: 'note', x: 'talk' });
@@ -836,7 +860,7 @@ E('factory', 16, 19, '你在流水线上一站就是十二个小时，下了班�
 E('espkid', 13, 17, '你在游戏天梯上打到了全服第一，一支职业战队私信联系了你。', { c: () => tal('youxi') && !L.job, w: 4, f: { espoffer: 1 }, em: 'bang', sc: 'arena' });
 E('espjoin', 16, 19, () => { setJob('esports'); return '你说服了爸妈，退学加入了职业电竞战队。'; }, { c: () => L.f.espoffer && !L.job, w: 3, em: 'star', sc: 'arena', big: '职业出道!' });
 E('singkid', 12, 17, '你在学校晚会上唱了一首歌，台下的尖叫声差点掀翻了屋顶。', { c: () => tal('haosang'), w: 4, fx: { CHR: 1, SPR: 1 }, f: { singoffer: 1 }, em: 'note', sc: 'stage' });
-E('scout', 14, 24, '你在街上被星探拦住，问你有没有兴趣出道。', { c: () => (L.a.CHR >= 9 || tal('xingtan')) && !L.f.scout && (!L.job || L.job === 'office' || L.job === 'none'), w: () => tal('xingtan') ? 4 : 1, f: { scout: 1 }, em: 'bang', sc: 'street' });
+E('scout', 14, 24, () => { YR.ch = 'scout'; return '你在街上被星探拦住，问你有没有兴趣出道。'; }, { c: () => (L.a.CHR >= 9 || tal('xingtan')) && !L.f.scout && (!L.job || L.job === 'office' || L.job === 'none'), w: () => tal('xingtan') ? 4 : 1, em: 'bang', sc: 'street' });
 E('fill_teen', 12, 17, '你每天两点一线：上学、放学、写作业。', { rep: 1, cd: 1, w: .15, em: 'book', sc: 'class' });
 // ---------------- 18-22 gaokao & university
 function gaokao(second) {
@@ -849,7 +873,7 @@ function gaokao(second) {
   if (s >= 480) { L.f.ben = L.f.uni = 1; return t + '考上了一所普通本科。'; }
   if (s >= 380) { L.f.zhuan = L.f.uni = 1; return t + '上了一所大专。'; }
   if (L.a.MNY >= 8) { L.f.abroad = L.f.uni = 1; return [t + '落榜了。', '家里托关系，把你送出国留学了。']; }
-  if (!second && chance(.5)) { L.f.fudu = 1; return [t + '落榜了。', '你决定复读一年，再拼一次。']; }
+  if (!second) { YR.ch = 'gk'; return t + '落榜了。复读，还是去社会上闯一闯？'; }
   L.f.nouni = 1; return [t + '落榜了。', '你决定不再读书，直接去社会上闯荡。'];
 }
 E('gaokao', 18, 18, () => gaokao(false), { m: 1, c: () => L.f.high && !L.job, sc: 'class', em: 'book' });
@@ -904,12 +928,7 @@ E('c_996', 22, 40, '公司开始实行996，你已经很久没见过太阳了。
 E('c_duck', 22, 50, '你对着桌上的小黄鸭讲解代码，终于找到了那个BUG。', { c: J('coder'), fx: { INT: 1 }, em: 'note', sc: 'office' });
 E('c_promo', 28, 50, '你升职成了技术总监。', { c: () => L.job === 'coder' && L.a.INT >= 7, fx: { MNY: 1 }, em: 'star', sc: 'office' });
 E('c_app', 24, 50, '你业余时间开发的一款App突然爆火，被大公司高价收购了。', { c: () => L.job === 'coder' && L.a.INT >= 8, w: .4, fx: { MNY: 4, SPR: 2 }, em: 'coin', big: '财富自由!' });
-E('c_layoff', 35, 45, () => {
-  const r = Math.random();
-  if (r < .45) { setJob('rider'); return ['你35岁那年，被公司“优化”了。', '你骑上电动车，成了一名外卖骑手。']; }
-  if (r < .75) { setJob('boss'); return ['你35岁那年，被公司“优化”了。', '你一咬牙，拿着赔偿金自己开了一家公司。']; }
-  setJob('none'); return ['你35岁那年，被公司“优化”了。', '你每天假装去上班，其实是在公园里坐一整天。'];
-}, { c: J('coder'), w: 1.2, fx: { SPR: -2 }, em: 'sad', sc: 'street' });
+E('c_layoff', 35, 45, () => { YR.ch = 'layoff'; return '你35岁那年，被公司“优化”了。'; }, { c: J('coder'), w: 1.2, fx: { SPR: -2 }, em: 'sad', sc: 'street' });
 E('v_tea', 23, 59, '你每天泡一杯茶，看一上午报纸，日子过得安安稳稳。', { c: J('civil'), fx: { SPR: 1 }, em: 'note', sc: 'office' });
 E('v_promo', 28, 50, '你升职成了科长。', { c: J('civil'), fx: { MNY: 1 }, em: 'star', sc: 'office' });
 E('v_promo2', 35, 58, '你升职成了处长，办公室换成了带沙发的单间。', { c: () => L.job === 'civil' && used('v_promo'), fx: { MNY: 1, SPR: 1 }, em: 'star', sc: 'office' });
@@ -996,7 +1015,7 @@ E('retire', 60, 60, () => {
 }, { m: 1, c: () => L.job && !['none', 'retired', 'heir', 'boss', 'star', 'singer', 'writer', 'farmer', 'ambassador'].includes(L.job), fx: { SPR: 2 }, em: 'note', sc: 'park' });
 E('fill_work', 22, 64, () => '你在' + JOBS[L.job].n + '的岗位上忙忙碌碌地过了一年。', { c: () => L.job && L.job !== 'retired' && L.job !== 'none', rep: 1, cd: 1, w: .12, em: 'sweat' });
 // ---------------- adult life
-E('lotto', 18, 85, '你随手买了一张彩票，中了五百万！', { w: () => tal('caipiao') ? .6 : .004, fx: { MNY: 4, SPR: 2 }, f: { lotto: 1 }, em: 'coin', big: '中大奖!' });
+E('lotto', 18, 85, () => { if (L.age < 60) YR.ch = 'lotto'; return '你随手买了一张彩票，中了五百万！'; }, { w: () => tal('caipiao') ? .6 : .004, fx: { MNY: 4, SPR: 2 }, f: { lotto: 1 }, em: 'coin', big: '中大奖!' });
 E('lotto5', 18, 80, '你买彩票中了五块钱，开心了一整天。', { fx: { SPR: 1 }, em: 'coin' });
 E('stocklose', 25, 60, '你听信了“内部消息”去炒股，亏光了积蓄。', { fx: { MNY: -2, SPR: -2 }, em: 'sad' });
 E('stockwin', 25, 60, '你炒股赚了一笔，请全家吃了顿大餐。', { c: () => L.a.INT >= 8, fx: { MNY: 1 }, em: 'coin' });
@@ -1017,15 +1036,15 @@ E('guitar', 18, 40, '你学会了弹吉他，在楼下弹唱时被邻居投诉�
 E('fishing', 28, 85, '你迷上了钓鱼，一坐就是一整天，一条鱼都没钓上来。', { w: .35, fx: { SPR: 1 }, f: { fish: 1 }, em: 'note', sc: 'park' });
 E('fishdream', 30, 90, '你梦见自己变成了一只戴渔夫帽的猫，在大海上和一只海怪拔河。', { c: () => L.f.fish, w: .6, fx: { SPR: 1 }, em: 'zzz' });
 E('moving', 20, 60, '你搬了一次家，扔掉了一屋子“以后肯定用得上”的东西。', { em: 'sweat' });
-E('midlife', 38, 50, '你突然意识到人生已经过半，陷入了中年危机。', { fx: { SPR: -2 }, em: 'sad' });
-E('moto', 39, 55, '为了对抗中年危机，你买了一辆摩托车，在山路上狂飙。', { c: () => used('midlife'), fx: { SPR: 2 }, em: 'spark', sc: 'street' });
+E('midlife', 38, 50, () => { YR.ch = 'midlife'; return '你突然意识到人生已经过半，陷入了中年危机。'; }, { fx: { SPR: -2 }, em: 'sad' });
+E('moto', 39, 55, '你骑着摩托车带全家去兜风，风把你的头发吹成了鸟窝。', { c: () => used('midlife') && L.mar, fx: { SPR: 2 }, em: 'spark', sc: 'street' });
 E('belly', 35, 55, () => L.g === 'm' ? '你长出了啤酒肚，低头已经看不见自己的脚尖了。' : '你开始发福，年轻时的裙子一条也穿不下了。', { c: () => !tal('shiba'), fx: { CHR: -1, STR: -1 }, em: 'sweat' });
 E('checkup', 40, 60, '体检报告上，血压、血脂、血糖齐刷刷地亮起了红灯。', { fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
 E('health', 30, 65, '你开始养生，保温杯里泡上了枸杞。', { fx: { STR: 1 }, em: 'note' });
 E('wrinkle', 42, 60, '你的眼角爬上了鱼尾纹。', { c: () => !tal('shiba'), fx: { CHR: -1 }, em: 'sweat' });
 E('whitehair', 40, 55, '你在镜子前拔下了自己的第一根白头发，愣了很久。', { c: () => !tal('shiba'), em: 'q' });
 E('forever', 40, 70, '同学聚会上，大家都老了，只有你看起来还像二十岁。', { c: () => tal('shiba'), w: 2, fx: { CHR: 1, SPR: 1 }, em: 'spark' });
-E('house', 25, 45, '你咬咬牙买了一套房，背上了三十年的房贷。', { c: () => !L.f.house && L.a.MNY >= 3 && L.a.MNY <= 8, w: 1.5, f: { house: 1 }, fx: { SPR: -1 }, em: 'coin', sc: 'home1' });
+E('house', 25, 45, () => { YR.ch = 'house'; return '你看中了一套房子，首付要掏空全家的积蓄。'; }, { c: () => !L.f.house && L.a.MNY >= 3 && L.a.MNY <= 8, w: 1.5, em: 'coin', sc: 'home1' });
 E('house2', 25, 50, '你全款买下了一套江景大平层。', { c: () => !L.f.house && L.a.MNY >= 9, f: { house: 1 }, fx: { SPR: 2 }, em: 'star', sc: 'home2' });
 E('car', 24, 50, '你买了一辆车，周末终于可以带家人出去兜风了。', { c: () => !L.f.car && L.a.MNY >= 4, f: { car: 1 }, fx: { SPR: 1 }, em: 'note', sc: 'street' });
 E('debt', 28, 55, '房价跌了，你的房子成了负资产，房贷却一分没少。', { c: () => L.f.house && L.a.MNY <= 7, fx: { SPR: -2 }, em: 'sad' });
@@ -1039,12 +1058,13 @@ E('cook', 18, 40, '你学着做饭，第一道菜就差点把厨房点着了。'
 E('marathon', 25, 55, '你跑完了人生中第一个全程马拉松。', { c: () => L.a.STR >= 7, fx: { STR: 1 }, em: 'star', sc: 'street' });
 E('fill_adult', 18, 59, '平淡的一年过去了。', { rep: 1, cd: 1, w: .1, em: 'note' });
 // ---------------- love & family
-E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地铁上', '朋友的婚礼上', '健身房', '图书馆', '公司楼下']) + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => L.a.CHR / 6 + .3, fx: { SPR: 2 }, em: 'heart', sc: 'park', love: 1 });
+E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地铁上', '朋友的婚礼上', '健身房', '图书馆', '公司楼下']) + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => (L.a.CHR / 4 + .6) * (L.age >= 22 && L.age <= 36 ? 2 : 1), fx: { SPR: 2 }, em: 'heart', sc: 'park', love: 1 });
 E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被爸妈安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被爸妈安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
-E('marry', 22, 55, () => { marry(); return ['你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: 2, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'wedding', big: '喜结连理!' });
-E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 1.5 : tal('duozi') ? 1.2 : .35, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
-E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3, w: .5, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
+E('marry', 22, 55, () => { YR.ch = 'marry'; return '你和{ta}交往很久了，两家父母都在催婚。'; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
+E('c_kid', 23, 44, () => { L.f.kidq = 1; YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 6, em: 'q', sc: 'home' });
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 5 : tal('duozi') ? 1.2 : .35, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && (L.kids.length || L.f.wantkid), w: .5, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
 E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
 E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
 E('divorce', 28, 65, () => { const t = '你和{spouse}因为性格不合，离婚了。'; return t; }, { c: () => L.mar, w: () => L.a.SPR <= 3 ? .6 : .07, fx: { SPR: -2 }, do: () => { endLove(); L.f.divorced = 1; }, em: 'sad', sc: 'street' });
@@ -1104,7 +1124,8 @@ E('signature', 12, 16, '你把聊天签名改成了“伤不起”，多年后�
 E('bikerace', 13, 17, '你放学时和同学骑车比赛，一头栽进了路边的花坛。', { fx: { STR: -1 }, em: 'sweat', sc: 'street' });
 E('physics', 13, 17, '你拿下了物理竞赛的省一等奖。', { c: () => L.a.INT >= 9, fx: { INT: 1 }, em: 'star', sc: 'class' });
 E('band', 14, 17, '你和同学组了一支乐队，排练了一学期，只会弹一首歌。', { fx: { SPR: 1 }, em: 'note', sc: 'stage' });
-E('confess', 14, 17, '你鼓起勇气向喜欢的人表白，对方说：“你是个好人。”', { c: () => !tal('danshen') && L.f.crush && !L.f.loved, fx: { SPR: -1 }, em: 'sad', sc: 'class', love: 1 });
+E('confess', 14, 17, '你鼓起勇气向喜欢的人表白，对方说：“你是个好人。”', { c: () => !tal('danshen') && L.f.crush && !L.f.loved && !used('c_crush'), w: .3, fx: { SPR: -1 }, em: 'sad', sc: 'class', love: 1 });
+E('c_crush', 14, 17, () => { YR.ch = 'confess'; return '你喜欢隔壁班的那个{opp}很久了。毕业前，要不要表白？'; }, { c: () => !tal('danshen') && L.f.crush && !L.f.loved && !used('confess'), w: 1.5, em: 'heart', sc: 'class', love: 1 });
 E('phone', 13, 17, '你上课玩手机被老师没收，直到毕业才还给你。', { fx: { SPR: -1 }, em: 'sad', sc: 'class' });
 E('insom17', 17, 17, '高考前一天晚上你失眠了，数羊数到了三千只。', { c: () => L.f.high, w: 2, em: 'zzz' });
 E('roommate', 19, 22, '你的室友每天凌晨三点打呼噜，你学会了戴着耳塞睡觉。', { c: () => L.f.uni && !L.f.grad, em: 'zzz', sc: 'campus' });
@@ -1177,6 +1198,27 @@ E('k_rich', 8, 20, '你从小就对钱有一种莫名的自信，好像上辈子
 E('k_asc', 6, 12, '你梦见自己在云端飞翔，醒来时枕边多了一片仙鹤的羽毛。', { c: () => KL().asc, w: 3, fx: { INT: 1 }, em: 'spark' });
 E('k_grave', 20, 70, () => '你路过一座陌生的墓碑，上面刻着「' + L.kl.ep + '」。你莫名其妙地红了眼眶。', { c: () => KL().ep, w: .6, em: 'sad', sc: 'grave' });
 E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
+// ---------------- story arcs: a childhood sweetheart, a best friend, a pet's life
+const QM_N = { m: ['阿杰', '小宇', '浩浩', '阿哲', '小北'], f: ['小雨', '小满', '甜甜', '阿晴', '小鹿'] };
+const BRO_N = { m: ['胖子', '猴子', '大壮', '阿飞', '小黑'], f: ['圆圆', '阿琳', '佳佳', '小美', '朵朵'] };
+E('qm1', 3, 6, () => { const g_ = L.g === 'm' ? 'f' : 'm'; L.qm = { n: pick(QM_N[g_]), g: g_, hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; return '邻居家的{qm}和你同一年出生，你们成了形影不离的小伙伴。'; }, { c: () => !L.qm, w: 2.5, em: 'heart', sc: 'park' });
+E('qm2', 7, 11, '你和{qm}一起偷摘邻居家的枣，被追了半条街。', { c: () => L.qm, w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('qm3', 8, 13, '{qm}拉着你的手说，长大以后要{qmsay}。你红着脸跑开了。', { c: () => L.qm && !tal('danshen'), w: 1.2, em: 'heart', sc: 'park' });
+E('qm4', 12, 16, '{qm}跟着爸妈搬去了外地。临走前，你们约好要一直写信。', { c: () => L.qm && used('qm2'), w: 1.5, fx: { SPR: -2 }, f: { qmgone: 1 }, em: 'sad', sc: 'street' });
+E('qm5', 17, 23, '你和{qm}的信越来越少，后来就断了联系。', { c: () => L.f.qmgone, w: 1.5, em: 'sad' });
+E('qm6', 21, 40, () => { YR.ch = 'qm'; return '你在同学聚会上，又见到了{qm}。对方笑着说：“好久不见。”'; }, { c: () => used('qm5') && canLove() && L.qm.g !== L.g, w: 5, em: 'heart', sc: 'shop', love: 1 });
+E('qm7', 55, 95, '你和{qm}从穿开裆裤就认识，到现在已经过了大半个世纪。', { c: () => L.f.qmlove && L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
+E('bro1', 7, 10, () => { L.bro = { n: pick(BRO_N[L.g]) }; return '同桌{bro}成了你最好的朋友，你们一起分享了人生中第一包辣条。'; }, { c: () => !L.bro, w: 2.5, fx: { SPR: 1 }, em: 'note', sc: 'class' });
+E('bro2', 12, 16, '你和{bro}一起逃课去网吧，被班主任抓了个正着。', { c: () => L.bro, w: 1.2, em: 'sweat', sc: 'arena' });
+E('bro3', 18, 24, '{bro}失恋了，拉着你在路边摊喝到了凌晨三点。', { c: () => L.bro, em: 'sad', sc: 'street' });
+E('bro4', 24, 36, '{bro}结婚了，你当了{bm}，在婚礼上哭得比新人还凶。', { c: () => L.bro, fx: { SPR: 1 }, em: 'heart', sc: 'wedding' });
+E('bro5', 28, 45, () => { YR.ch = 'bro'; return '{bro}要创业，找你借一大笔钱。'; }, { c: () => L.bro && L.a.MNY >= 3, em: 'q' });
+E('bro6', 32, 60, () => { if (chance(.5)) { addFx({ MNY: 4 }); return '{bro}的公司上市了，连本带利还了你十倍的钱！'; } addFx({ SPR: 2 }); return '{bro}的公司倒闭了。但{bro}打了十年工，一分不少地把钱还给了你。'; }, { c: () => L.f.lent && L.age - L.at.bro5 >= 3, w: 2, em: 'star' });
+E('bro7', 55, 85, '{bro}来看你，你们喝得烂醉，聊起了小时候的那包辣条。', { c: () => L.bro && !L.f.brogone, fx: { SPR: 1 }, em: 'note', sc: 'home' });
+E('bro8', 68, 95, '{bro}走了。你在葬礼上念悼词，念到一半就哭了。', { c: () => L.bro && used('bro7'), fx: { SPR: -2 }, f: { brogone: 1 }, em: 'sad', sc: 'grave' });
+E('pet_trick', 4, 100, '{pn}学会了握手，还会自己开门溜出去玩。', { c: () => L.pet && L.age - L.pet.born >= 1, fx: { SPR: 1 }, em: 'note', p: '*' });
+E('pet_babies', 4, 100, '{pn}生了一窝小{pet}，你把它们送给了街坊邻居。', { c: () => L.pet && L.age - L.pet.born >= 2 && L.age - L.pet.born <= 7, w: .4, fx: { SPR: 1 }, em: 'heart', p: '*' });
+E('pet_elder', 10, 110, '{pn}老了，走不动路了。你每天抱着它晒太阳。', { c: () => L.pet && L.age - L.pet.born >= 10, w: 1.5, em: 'sad', p: '*' });
 // ---------------- the immortal path
 // Three ways to cultivate: the orthodox sect, the demon sect (faster, shorter-lived, a heart-demon trial)
 // and the demon beasts (needs the bloodline; slow, but they live the longest).
@@ -1217,7 +1259,7 @@ function xMeet() {
 E('xmeet', 6, 16, xMeet, { c: () => !tal('xianyuan') && !L.f.xmeet && L.a.INT >= 9, w: .01, em: 'bang', nx: ['xjoin', 1, 1] });
 E('xmeet2', 7, 16, xMeet, { m: 1, c: () => tal('xianyuan') && !L.f.xmeet && L.age >= (L.xage || 9), em: 'bang', nx: ['xjoin', 1, 1] });
 E('yaowake', 12, 17, () => { L.f.xmeet = 1; L.xs = 'yao'; YR.sc = 'yao'; return '月圆之夜，你头上冒出了一对毛茸茸的狐狸耳朵——你身上的妖族血脉觉醒了！'; }, { m: 1, c: () => tal('yaoxue') && !L.f.xmeet && L.age >= (L.yage || 14), em: 'bang', nx: ['xjoin', 1, 1] });
-E('moinvite', 16, 45, () => { L.f.xmeet = 1; L.xs = 'mo'; YR.sc = 'mo'; return '在你人生最失意的时候，一个黑袍人递给你一本魔功秘籍：“想报复这个世界吗？”'; }, { c: () => !L.f.xmeet && L.a.SPR <= 2, w: .03, em: 'bang', nx: ['xjoin', 1, 1] });
+E('moinvite', 16, 45, () => { YR.ch = 'moinv'; return '在你人生最失意的时候，一个黑袍人递给你一本魔功秘籍：“想报复这个世界吗？”'; }, { c: () => !L.f.xmeet && L.a.SPR <= 2, w: .03, em: 'bang' });
 E('xjoin', 0, 60, () => { L.xs = L.xs || 'zheng'; L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; L.job = null; YR.sc = XSD().sc; YR.big = XSD().joinBig; return L.age >= 18 && XB() === 'mo' ? '你抛下了过去的一切，投入了血煞宗，踏上了魔修之路。' : XSD().join; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star' });
 E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XSD().up[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= xgap(), w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
 E('xclose', 0, 9999, () => { const n = ri(5, 12) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
@@ -1234,11 +1276,7 @@ E('xdown', 120, 9999, '你下山游历，发现山下已经过了一百年，你
 E('xboom', 0, 9999, '你炼丹时炸了炉，眉毛被烧得一根不剩。', { p: 'xian', c: () => XB() !== 'yao', fx: { CHR: -1 }, em: 'sweat' });
 E('xsword', 0, 9999, () => ({ zheng: '你御剑飞行时没看路，一头撞进了一群大雁里。', mo: '你化作黑雾赶路时迷了路，飘进了一户人家的烟囱里。', yao: '你现出原形在云上打盹，被山下的凡人当成了祥云，还有人对着你许愿。' })[XB()], { p: 'xian', c: () => L.xl >= 4, em: 'sweat' });
 E('xhead', 0, 9999, () => ({ zheng: '你被推举为青云宗掌门。', mo: '你杀了老宗主，坐上了血煞宗宗主的位子。', yao: '群妖推举你为万妖山之主。' })[XB()], { p: 'xian', c: () => L.xl >= 4, fx: { SPR: 2, MNY: 2 }, em: 'star', big: () => XB() === 'yao' ? '万妖之主!' : '一派之主!' });
-E('xtrib', 0, 9999, () => {
-  const b = XB(), d = XSD();
-  const p = b === 'mo' ? clamp((L.a.INT + L.a.SPR) / 36, .15, .75) : b === 'yao' ? clamp((L.a.STR * 1.3 + L.a.INT * .7) / 42, .2, .8) : clamp((L.a.STR + L.a.INT) / 42, .2, .8);
-  if (chance(p)) { L.end = true; L.asc = true; YR.big = d.winBig; return [d.trib, d.win]; }
-  die(d.lose); return d.trib;
+E('xtrib', 0, 9999, () => { YR.ch = 'trib'; return XSD().trib;
 }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 40 * XSD().gap, w: .6, em: 'bang' });
 E('xfill', 0, 9999, () => pick(XSD().fill), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
 // the demon sect
@@ -1268,8 +1306,11 @@ E('is_dragon', 0, 999, '你单挑了一头巨龙，然后把它收成了坐骑�
 E('is_elf', 0, 999, () => { startLove({ hair: 'silver', fit: 'robe' }); return '你和精灵族的' + (L.g === 'm' ? '公主' : '王子') + '坠入了爱河。'; }, { p: 'isekai', c: canLove, fx: { SPR: 2 }, em: 'heart' });
 E('is_wed', 0, 999, () => { marry(); return '你和{ta}在世界树下举行了婚礼。'; }, { p: 'isekai', c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' });
 E('is_kid', 0, 999, () => { addKid(); return '你们有了一个{kid}，长着一对尖尖的耳朵。'; }, { p: 'isekai', c: () => L.mar && L.kids.length < 2 && !tal('dingke'), rep: 1, fx: { SPR: 2 }, em: 'heart' });
-E('is_demon', 0, 999, '你带领小队攻入魔王城，激战了三天三夜，终于击败了魔王！', { p: 'isekai', c: () => L.f.guild && L.age - L.isAge >= 4, w: .8, fx: { SPR: 3, STR: 1 }, f: { hero: 1 }, em: 'star', big: '讨伐魔王!' });
-E('is_king', 0, 999, '国王把王位传给了你，你成为了异世界的新国王。', { p: 'isekai', c: () => L.f.hero, fx: { MNY: 5 }, f: { king: 1 }, em: 'star', big: '登基!' });
+E('is_demon', 0, 999, () => { YR.ch = 'demon'; return '你带领小队攻入魔王城。魔王却向你伸出了手：“和我一起统治这个世界吧！”'; }, { p: 'isekai', c: () => L.f.guild && L.age - L.isAge >= 4, w: .8, em: 'bang' });
+E('is_darklord', 0, 999, '老魔王退休了，把王座传给了你。你成为了新一代魔王。', { p: 'isekai', c: () => L.f.dark && !L.f.darkking, fx: { MNY: 3, STR: 2 }, f: { darkking: 1 }, em: 'star', big: '新魔王!' });
+E('is_darkramen', 0, 999, '你带着魔王军去勇者的家乡吃拉面，吃完还乖乖付了钱。', { p: 'isekai', c: () => L.f.dark, fx: { SPR: 1 }, em: 'note', sc: 'shop' });
+E('is_darkhero', 0, 999, '一个新的勇者来讨伐你，你看着他，想起了当年的自己。', { p: 'isekai', c: () => L.f.darkking, fx: { SPR: -1 }, em: 'q' });
+E('is_king', 0, 999, '国王把王位传给了你，你成为了异世界的新国王。', { p: 'isekai', c: () => L.f.hero && !L.f.dark, fx: { MNY: 5 }, f: { king: 1 }, em: 'star', big: '登基!' });
 E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红烧肉。', { p: 'isekai', fx: { SPR: -1 }, em: 'sad' });
 E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .015, em: 'q', sc: 'hosp' });
 E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。']), { p: 'isekai', rep: 1, cd: 1, w: .4, em: 'note' });
@@ -1397,13 +1438,28 @@ function runYear() {
   L.age++;
   if (L.age === 0) birth();
   else { const e = pickEvent(); if (e) doEvent(e); else YR.lines.push('平淡的一年过去了。'); }
+  L.log.push({ a: L.age, l: YR.lines, g: 0 });
+  if (YR.ch && !L.end) { L.pend = YR.ch; return YR; }
+  return finishYear();
+}
+// The second half of a year: bonuses, the death check and grading the entry. Runs after a choice too.
+function finishYear() {
+  const entry = L.log[L.log.length - 1];
   if (tal('xitong') && L.age > 0 && L.age % 10 === 0 && !L.end) { const k = pick(STATS); addFx({ [k]: 2 }, true); YR.lines.push('【叮！人生系统到账：' + SNAME[k] + '+2】'); }
   deathCheck();
   if (!YR.g) { let s = 0; for (const k in YR.d) s += YR.d[k]; YR.g = s > 0 ? 1 : s < 0 ? -1 : 0; }
   if (L.end) YR.g = L.asc ? 2 : -2;
-  L.log.push({ a: L.age, l: YR.lines, g: YR.g });
+  entry.g = YR.g;
   if (YR.skip && !L.end) L.age += YR.skip;
   return YR;
+}
+function resolveChoice(i) {
+  const entry = L.log[L.log.length - 1], c = CH[L.pend]; L.pend = null;
+  YR = { lines: entry.l, sc: null, em: null, big: null, d: {}, g: 0, dead: false };
+  const o = c.o[i]; entry.l.push('▶ ' + fmt(o[0]));
+  [].concat(o[1]()).forEach(t => { if (t) entry.l.push(fmt(t)); });
+  LAY.delete(entry);
+  return finishYear();
 }
 
 // ============================================================ grading & achievements
@@ -1430,14 +1486,14 @@ const LCOL = { SSS: '#ff5ab0', SS: '#ff9a2a', S: '#ffc62a', A: '#b060f0', B: '#4
 function letterOf(s) { return LETTERS.find(x => s >= x[0])[1]; }
 function lifeTitle() {
   const f = L.f;
-  if (L.asc) return XSD().title; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
+  if (L.asc) return XSD().title; if (f.darkking) return '异世界魔王'; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
   if (f.moon) return '星辰大海'; if (f.richest) return '首富人生'; if (f.topstar) return '顶流人生'; if (f.champ || f.olygold) return '冠军人生';
   return { SSS: '传奇人生', SS: '精彩人生', S: '美满人生', A: '不错的一生', B: '平凡的一生', C: '坎坷的一生', D: '潦草的一生' }[L.grade];
 }
 function epitaph() {
   const f = L.f, j = L.oldJob || L.job;
   if (L.asc) return XSD().ep;
-  if (L.path === 'isekai') return f.king ? '异世界之王，长眠于此' : '来自异世界的冒险者，长眠于此';
+  if (L.path === 'isekai') return f.darkking ? '一代魔王，其实人还不错' : f.king ? '异世界之王，长眠于此' : '来自异世界的冒险者，长眠于此';
   if (f.nobel) return '诺贝尔奖得主，人类的骄傲';
   if (f.moon) return '曾在月亮上留下过脚印';
   if (f.richest) return '首富长眠于此，钱一分没带走';
@@ -1489,6 +1545,9 @@ const ACH = [
   ['curse', '天命难违', '带着诅咒天赋拿到S及以上评价', () => ['S', 'SS', 'SSS'].includes(L.grade) && L.tl.some(id => TAL[id].r === 4)],
   ['kpet', '猫的报恩', '前世的宠物转世来找你', () => L.f.karmaPet, '上辈子的毛孩子，会记得你'],
   ['klove', '再续前缘', '与前世的伴侣重逢', () => L.f.karmaLove, '有些人，下辈子还会遇见'],
+  ['dark', '魔王', '在异世界成为了魔王', () => L.f.darkking, '魔王向你伸出手的时候……'],
+  ['qm', '青梅竹马', '和青梅竹马走到了一起', () => L.f.qmlove && L.mar, '有些人，从小就在你身边'],
+  ['bro', '一辈子的朋友', '和死党一起走到了老', () => used('bro7')],
   ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
 ];
 // ============================================================ persistence
@@ -1898,10 +1957,22 @@ function defaultScene() {
   return pick([homeSc(), 'street', 'park']);
 }
 function nextYear() {
-  if (!L || L.end) return;
-  const yr = runYear();
+  if (!L || L.end || L.pend) return;
+  afterYear(runYear());
+}
+function choose(i) {
+  if (!L || !L.pend) return;
+  SFX.select(); afterYear(resolveChoice(i), true);
+}
+function afterYear(yr, chosen) {
+  if (L.pend) { // paused on a choice: show the event, wait for the player
+    yearT = 0; lastG = 0; auto = auto ? 1 : 0;
+    curScene = resolveScene(yr.sc || defaultScene()); setupCast(); emote = 'q';
+    let i = 0; for (const k of STATS) { const v = yr.d[k]; if (!v) continue; POPS.push({ s: SNAME[k] + (v > 0 ? '+' : '') + v, col: v > 0 ? '#8aff96' : '#ff8a8a', t: -i * .22 }); hudFlash[k] = { t: 0, up: v > 0 }; i++; }
+    SFX.tick(); if (logScroll < 14) logScroll = 0; saveRun(); return;
+  }
   yearT = 0; lastG = yr.g;
-  let sc = yr.sc;
+  let sc = yr.sc || (chosen ? curScene : null);
   if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? 'isekai' : homeSc(); // the family gathers at the end
   curScene = resolveScene(sc || defaultScene()); setupCast();
   emote = yr.em || (yr.g > 0 ? 'note' : yr.g < 0 ? 'sweat' : null);
@@ -1954,7 +2025,7 @@ function greyed(age, hair) { return age >= 72 ? 'white' : age >= 56 ? 'grey' : h
 function myFit() {
   const a = L.age, s = stageOf(a);
   if (L.path === 'xian' && L.f.sect) return XSD().fit;
-  if (L.path === 'isekai') return L.f.king ? 'king' : 'armor';
+  if (L.path === 'isekai') return L.f.dark ? 'demon' : L.f.king ? 'king' : 'armor';
   if (curScene === 'wedding' && L.mar && L.marAge === a) return L.g === 'm' ? 'groom' : 'bride';
   if (curScene === 'space' && (L.job === 'astronaut' || L.job === 'ambassador')) return 'space';
   if (s === 'baby') return 'casual';
@@ -2080,7 +2151,7 @@ function drawBanner() {
 }
 function stageLabel() {
   if (L.path === 'xian') return L.xl >= 1 ? XSD().who + ' · ' + XSD().realm[L.xl] + (XB() === 'zheng' ? '期' : '') : '凡人';
-  if (L.path === 'isekai') return L.f.king ? '异世界 · 国王' : L.f.hero ? '异世界 · 勇者' : '异世界 · 冒险者';
+  if (L.path === 'isekai') return L.f.darkking ? '异世界 · 魔王' : L.f.dark ? '异世界 · 四天王' : L.f.king ? '异世界 · 国王' : L.f.hero ? '异世界 · 勇者' : '异世界 · 冒险者';
   const a = L.age, s = a < 1 ? '婴儿' : a < 3 ? '幼儿' : a < 6 ? '幼童' : a < 12 ? '儿童' : a < 18 ? '少年' : a < 35 ? '青年' : a < 60 ? '中年' : '老年';
   let role = '';
   if (L.job) role = JOBS[L.job].n;
@@ -2319,6 +2390,7 @@ function drawAlloc() {
   button(BTN.aRand, '随机', { blue: 1 }); button(BTN.aGo, '开始新人生！', { dis: left !== 0, green: left === 0 });
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
 }
+const CH_RECT = [[4, 299, 84, 18], [92, 299, 84, 18]];
 function drawLife() {
   g.fillStyle = '#140c2a'; g.fillRect(0, 0, W, H);
   drawScene(SY);
@@ -2328,6 +2400,13 @@ function drawLife() {
   if (state === 'review') button(BTN.toEnd, '返回结局');
   else if (L.end) { if (endT > .9) button(BTN.seeEnd, L.asc ? '飞升结算' : '查看这一生', { green: 1 }); }
   else {
+    if (L.pend) {
+      const c = CH[L.pend];
+      g.fillStyle = OUT; g.fillRect(0, 286, W, 11); g.fillStyle = '#5a2a8a'; g.fillRect(0, 287, W, 9);
+      txt('人生抉择', 90, 291.5, 6.5, '#ffe890', 'center', null);
+      button(CH_RECT[0], fmt(c.o[0][0]), { green: 1, size: 7 }); button(CH_RECT[1], fmt(c.o[1][0]), { blue: 1, size: 7 });
+      drawPops(); return;
+    }
     button(BTN.auto, ['自动播放', '加速 ×2', '停止'][auto], { blue: auto > 0, size: 7 });
     button(BTN.next, '下一年 ▶');
     if (!auto && Math.floor(T * 1.6) % 2 === 0) txt('点击屏幕继续', 89, 307, 6.5, '#b8b0d8');
@@ -2511,6 +2590,7 @@ function tapLife(p) {
   if (state === 'review') { if (inR(p, BTN.toEnd)) { go('end'); st = 5; SFX.click(); } return; }
   if (logScroll > 30 && inR(p, BTN.jump)) { logScroll = 0; return; }
   if (L.end) { if (endT > .9 && inR(p, BTN.seeEnd)) { go('end'); SFX.click(); } return; }
+  if (L.pend) { if (inR(p, CH_RECT[0])) choose(0); else if (inR(p, CH_RECT[1])) choose(1); return; }
   if (inR(p, BTN.auto)) { auto = (auto + 1) % 3; SFX.click(); return; }
   if (banner && banner.t < 1.4) { banner.t = 1.4; return; }
   if (p.y > SY) nextYear();
@@ -2563,7 +2643,8 @@ window.addEventListener('pointercancel', () => { ptr = null; });
 window.addEventListener('wheel', e => { if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
 window.addEventListener('keydown', e => {
   if (e.repeat) return;
-  if ((e.key === ' ' || e.key === 'Enter') && state === 'life' && !menuOpen && L && !L.end) { e.preventDefault(); initAudio(); if (banner && banner.t < 1.4) banner.t = 1.4; else nextYear(); }
+  if ((e.key === '1' || e.key === '2') && state === 'life' && L && L.pend && !menuOpen) { choose(+e.key - 1); return; }
+  if ((e.key === ' ' || e.key === 'Enter') && state === 'life' && !menuOpen && L && !L.end && !L.pend) { e.preventDefault(); initAudio(); if (banner && banner.t < 1.4) banner.t = 1.4; else nextYear(); }
   if (e.key === 'Escape' && state === 'life') menuOpen = !menuOpen;
 });
 window.addEventListener('contextmenu', e => e.preventDefault());
@@ -2588,7 +2669,7 @@ function update(dt) {
       if (Math.abs(d) < 1) { a.wait = rand(1.2, 3.5); a.tx = clamp(a.x + rand(-45, 45), sc.walk[0], sc.walk[1]); a.mv = false; }
       else { a.x += Math.sign(d) * Math.min(Math.abs(d), sp * dt); a.mv = true; }
     }
-    if (state === 'life' && auto && !L.end && !menuOpen && !banner && yearT >= (auto === 1 ? 1.25 : .55)) nextYear();
+    if (state === 'life' && auto && !L.end && !L.pend && !menuOpen && !banner && yearT >= (auto === 1 ? 1.25 : .55)) nextYear();
     if (L.end) endT += dt;
   }
   if (state === 'end' && st > 1 && st - dt <= 1) { tone(180, .18, 'square', .08, 90); noise(.15, .12, 800); shake = 2; if (L.grade === 'SSS' || L.grade === 'SS') { confetti(50, 170); SFX.big(); } }
