@@ -754,7 +754,7 @@ CH.trib = { o: [['迎接天劫', () => {
   die(d.lose); return null;
 }], ['再闭关一百年', () => { YR.skip = 99; L.xlAge = L.age; addFx({ STR: 2, INT: 1 }); return '你决定再闭关一百年，把根基打得更牢一些。'; }]] };
 CH.demon = { o: [['拔剑战斗', () => { L.f.hero = 1; addFx({ SPR: 3, STR: 1 }); YR.big = '讨伐魔王!'; YR.em = 'star'; return '你们激战了三天三夜，你终于击败了魔王！'; }], ['握住他的手', () => { L.f.dark = 1; addFx({ MNY: 3 }); YR.big = '黑化!'; YR.em = 'anger'; return '你成为了魔王军的四天王之一，队友们哭着离开了你。'; }]] };
-CH.qm = { o: [['约{qm}出来', () => { startLove({ g: L.qm.g, hair: L.qm.hair, top: L.qm.top, bot: L.qm.bot, skirt: L.qm.skirt }); L.f.qmlove = 1; addFx({ SPR: 2 }); YR.em = 'heart'; return '你们聊到了深夜，好像从来没有分开过。'; }], ['只叙叙旧', () => '你们互相加了联系方式，却再也没有聊过天。']] };
+CH.qm = { o: [['约{qm}出来', () => { if (L.love) endLove(); startLove({ g: L.qm.g, hair: L.qm.hair, top: L.qm.top, bot: L.qm.bot, skirt: L.qm.skirt }); L.f.qmlove = 1; addFx({ SPR: 2 }); YR.em = 'heart'; return '你们聊到了深夜，好像从来没有分开过。'; }], ['只叙叙旧', () => '你们互相加了联系方式，却再也没有聊过天。']] };
 CH.bro = { o: [['借！', () => { addFx({ MNY: -2 }); L.f.lent = 1; return '你二话不说，把积蓄都借给了{bro}。'; }], ['婉拒', () => { L.f.nolend = 1; return '{bro}说能理解，但你们之间好像多了点什么。'; }]] };
 // ---------------- 0-2
 E('walk', 1, 2, '你学会了走路，摇摇晃晃地扑进了妈妈怀里。', { fx: { STR: 1 }, em: 'heart', w: 2 });
@@ -912,6 +912,8 @@ function assignJob(tier) {
   add('chef', hi <= .6 ? 1.2 : 0); add('rider', hi <= .6 ? 1.2 : .1); add('worker', hi <= .6 ? 1.5 : 0);
   add('farmer', hi <= .3 && a.MNY <= 3 ? 1 : 0); add('streamer', a.CHR >= 7 ? .8 : .25); add('writer', a.INT >= 7 ? .4 : 0);
   add('none', a.MNY >= 7 && a.SPR >= 6 ? .6 : a.MNY >= 5 ? .15 : 0);
+  if (L.bp === 'county') { add('civil', 1); add('teacher', .6); }
+  if (L.bp === 'village') add('farmer', .5);
   if (a.MNY >= 9) add('heir', 3);
   if (L.f.scout || a.CHR >= 10) add('star', L.f.scout ? 3 : 1.5);
   if (L.f.singoffer) add('singer', 4);
@@ -1198,24 +1200,66 @@ E('k_rich', 8, 20, '你从小就对钱有一种莫名的自信，好像上辈子
 E('k_asc', 6, 12, '你梦见自己在云端飞翔，醒来时枕边多了一片仙鹤的羽毛。', { c: () => KL().asc, w: 3, fx: { INT: 1 }, em: 'spark' });
 E('k_grave', 20, 70, () => '你路过一座陌生的墓碑，上面刻着「' + L.kl.ep + '」。你莫名其妙地红了眼眶。', { c: () => KL().ep, w: .6, em: 'sad', sc: 'grave' });
 E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
+// ---------------- birthplace
+const BP = k => () => L.bp === k;
+E('v_cow', 4, 10, '你每天放学后去山坡上放牛，还给牛取了个名字叫“大黄”。', { c: BP('village'), w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'farm' });
+E('v_river', 6, 12, '暑假你天天泡在河里摸鱼，晒得像块黑炭。', { c: BP('village'), w: 1.5, fx: { STR: 1 }, em: 'note', sc: 'park' });
+E('v_tree', 5, 10, '你爬树掏鸟窝，被鸟妈妈追着啄了一路。', { c: BP('village'), em: 'sweat', sc: 'park' });
+E('v_market', 4, 9, '奶奶带你去镇上赶集，给你买了一根糖葫芦。', { c: BP('village'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('v_left', 5, 12, '爸妈去城里打工了，你跟着爷爷奶奶生活，一年只能见他们一次。', { c: () => L.bp === 'village' && L.a.MNY <= 4, w: 1.5, fx: { SPR: -2 }, f: { leftbehind: 1 }, em: 'sad', sc: 'farm' });
+E('v_stars', 6, 14, '夏天的夜里，你躺在稻草堆上数星星，数着数着就睡着了。', { c: BP('village'), fx: { SPR: 1 }, em: 'zzz', sc: 'farm' });
+E('v_first', 19, 19, '你成了村里第一个大学生，全村人放鞭炮送你出山。', { c: () => L.bp === 'village' && L.f.uni, w: 5, fx: { SPR: 2 }, em: 'star', sc: 'farm' });
+E('v_home', 25, 60, '你回了一趟老家，村口的路修成了柏油路，儿时的伙伴都去城里了。', { c: BP('village'), fx: { SPR: -1 }, em: 'sad', sc: 'farm' });
+E('cn_shop', 6, 12, '楼下小卖部的老板认识全县所有的小孩，也知道每个小孩的考试成绩。', { c: BP('county'), em: 'sweat', sc: 'street' });
+E('cn_board', 15, 17, '整座县城的希望都压在高考上，县一中门口的红榜贴满了一整面墙。', { c: () => L.bp === 'county' && L.f.high, w: 1.5, em: 'book', sc: 'class' });
+E('cn_newyear', 25, 40, '过年回县城，同学聚会上大家都在比谁开的车更好。', { c: BP('county'), em: 'sweat', sc: 'street' });
+E('cn_stay', 22, 40, '你留在了县城，下班就回家吃饭，日子过得悠闲自在。', { c: () => L.bp === 'county' && L.job && ['civil', 'teacher', 'office', 'chef'].includes(L.job), w: 1.5, fx: { SPR: 2 }, em: 'note', sc: 'home' });
+E('ct_classes', 5, 12, '爸妈给你报了奥数、钢琴、英语、编程、游泳五个兴趣班。', { c: BP('city'), w: 1.5, fx: { INT: 1, SPR: -1 }, em: 'sweat', sc: 'class' });
+E('ct_zoo', 3, 8, () => '周末爸妈带你逛了' + (L.city || '城市') + '的动物园和科技馆。', { c: BP('city'), fx: { INT: 1 }, em: 'note', sc: 'park' });
+E('ct_commute', 22, 60, '你每天通勤三个小时，人生有一半的时间都在地铁上。', { c: BP('city'), w: 1.2, fx: { SPR: -1 }, em: 'zzz', sc: 'street' });
+E('ct_rent', 22, 35, '你租的房子只有十平米，一转身就能碰到墙。', { c: () => L.bp === 'city' && !L.f.house, em: 'sweat', sc: 'home0' });
+E('ct_school', 30, 46, '为了孩子上学，你咬牙换了一套老破小的学区房。', { c: () => L.bp === 'city' && L.kids.length, w: 1.5, fx: { MNY: -2 }, em: 'coin', sc: 'home1' });
+E('ab_chinese', 6, 12, '每个周末你都被送去中文学校，学写毛笔字，背《三字经》。', { c: BP('abroad'), w: 1.5, fx: { INT: 1 }, em: 'book', sc: 'class' });
+E('ab_kungfu', 8, 16, '同学问你会不会功夫，你只好现场表演了一套广播体操。', { c: BP('abroad'), w: 1.5, em: 'sweat', sc: 'class' });
+E('ab_newyear', 10, 60, '过年的时候，你和国内的亲戚视频拜年，画面卡成了幻灯片。', { c: BP('abroad'), em: 'note', sc: 'home' });
+E('ab_hotpot', 15, 40, () => '你走遍了整个' + (L.city || '城市') + '，只为找一家正宗的火锅店。', { c: BP('abroad'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('ab_return', 22, 35, '你决定回国发展，爸妈又高兴又舍不得。', { c: BP('abroad'), em: 'heart', sc: 'street' });
+// ---------------- the calendar: events tied to the year you're living in
+const YEAR = () => L.by + L.age, INY = (a, b) => () => L.by && YEAR() >= a && YEAR() <= b;
+E('e_tv', 3, 30, '家里买了第一台彩色电视机，整栋楼的邻居都挤到你家来看。', { c: INY(1980, 1992), w: 2, fx: { SPR: 1 }, em: 'star', sc: 'home' });
+E('e_nes', 5, 15, '你收到了一台红白机，和小伙伴们轮流玩到半夜。', { c: INY(1988, 2000), w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'home' });
+E('e_bp', 18, 40, '你腰上别着一个BP机，走路都带风。', { c: INY(1992, 1999), w: 1.5, fx: { CHR: 1 }, em: 'spark', sc: 'street' });
+E('e_2000', 1, 90, '千禧年到了，全世界都担心电脑会崩溃，结果什么都没发生。', { c: () => L.by && YEAR() === 2000, w: 6, em: 'q' });
+E('e_qq', 10, 35, '你申请了一个QQ号，在聊天室里认识了一群网友。', { c: INY(2000, 2007), w: 1.5, fx: { SPR: 1 }, em: 'note' });
+E('e_olympic', 3, 90, '北京奥运会开幕了，你守在电视机前看完了整场开幕式。', { c: () => L.by && YEAR() === 2008, w: 8, fx: { SPR: 1 }, em: 'star', sc: 'home' });
+E('e_expo', 6, 90, '上海世博会开幕，你排了五个小时的队才进了一个场馆。', { c: () => L.by && YEAR() === 2010, w: 4, em: 'sweat', sc: 'street' });
+E('e_phone', 10, 70, '你用上了人生中第一部智能手机，从此再也放不下了。', { c: INY(2010, 2014), w: 2, fx: { SPR: 1 }, em: 'spark' });
+E('e_2012', 5, 90, '传说2012年是世界末日，你认真地囤了一箱泡面。', { c: () => L.by && YEAR() === 2012, w: 5, em: 'sweat' });
+E('e_scan', 15, 90, '买菜都能扫码付款了，你已经很久没摸过现金。', { c: INY(2015, 2018), w: 1.5, em: 'coin', sc: 'street' });
+E('e_ai', 12, 90, () => '你第一次和AI聊天，它帮你写完了' + (L.age < 22 ? '作业' : '周报') + '。', { c: INY(2023, 2027), w: 2.5, fx: { INT: 1 }, em: 'q' });
+E('e_car', 20, 100, '自动驾驶汽车普及了，你在上班路上睡了一整路。', { c: INY(2035, 2045), w: 1.5, fx: { SPR: 1 }, em: 'zzz', sc: 'street' });
+E('e_mars', 20, 90, '你报名了火星旅游团，在红色的沙丘上拍了一张剪刀手。', { c: () => INY(2045, 2065)() && L.a.MNY >= 7, w: 1.5, fx: { SPR: 2 }, em: 'star', sc: 'space' });
+E('e_robot', 55, 120, '家里来了一个机器人保姆，做的饭比你做的还好吃。', { c: INY(2050, 2090), w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'home' });
+E('e_holo', 60, 120, '孙辈戴着全息眼镜给你拜年，你伸手去摸，摸了个空。', { c: () => INY(2060, 2110)() && L.f.grandkid, w: 2, em: 'q', sc: 'home' });
+E('e_150', 70, 130, '科学家宣布人类的寿命可以延长到150岁。你觉得自己还能再活一次。', { c: INY(2080, 2120), w: 1.5, fx: { STR: 1 }, em: 'spark' });
 // ---------------- story arcs: a childhood sweetheart, a best friend, a pet's life
 const QM_N = { m: ['阿杰', '小宇', '浩浩', '阿哲', '小北'], f: ['小雨', '小满', '甜甜', '阿晴', '小鹿'] };
 const BRO_N = { m: ['胖子', '猴子', '大壮', '阿飞', '小黑'], f: ['圆圆', '阿琳', '佳佳', '小美', '朵朵'] };
-E('qm1', 3, 6, () => { const g_ = L.g === 'm' ? 'f' : 'm'; L.qm = { n: pick(QM_N[g_]), g: g_, hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; return '邻居家的{qm}和你同一年出生，你们成了形影不离的小伙伴。'; }, { c: () => !L.qm, w: 2.5, em: 'heart', sc: 'park' });
-E('qm2', 7, 11, '你和{qm}一起偷摘邻居家的枣，被追了半条街。', { c: () => L.qm, w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'street' });
-E('qm3', 8, 13, '{qm}拉着你的手说，长大以后要{qmsay}。你红着脸跑开了。', { c: () => L.qm && !tal('danshen'), w: 1.2, em: 'heart', sc: 'park' });
-E('qm4', 12, 16, '{qm}跟着爸妈搬去了外地。临走前，你们约好要一直写信。', { c: () => L.qm && used('qm2'), w: 1.5, fx: { SPR: -2 }, f: { qmgone: 1 }, em: 'sad', sc: 'street' });
-E('qm5', 17, 23, '你和{qm}的信越来越少，后来就断了联系。', { c: () => L.f.qmgone, w: 1.5, em: 'sad' });
-E('qm6', 21, 40, () => { YR.ch = 'qm'; return '你在同学聚会上，又见到了{qm}。对方笑着说：“好久不见。”'; }, { c: () => used('qm5') && canLove() && L.qm.g !== L.g, w: 5, em: 'heart', sc: 'shop', love: 1 });
-E('qm7', 55, 95, '你和{qm}从穿开裆裤就认识，到现在已经过了大半个世纪。', { c: () => L.f.qmlove && L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
+E('qm1', 3, 6, () => { const g_ = L.g === 'm' ? 'f' : 'm'; L.qm = { n: pick(QM_N[g_]), g: g_, hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; return '邻居家的{qm}和你同一年出生，你们成了形影不离的小伙伴。'; }, { c: () => !L.qm, w: 3.5, em: 'heart', sc: 'park' });
+E('qm2', 7, 11, '你和{qm}一起偷摘邻居家的枣，被追了半条街。', { c: () => L.qm, w: 7, fx: { SPR: 1 }, em: 'note', sc: 'street' });
+E('qm3', 8, 13, '{qm}拉着你的手说，长大以后要{qmsay}。你红着脸跑开了。', { c: () => L.qm && !tal('danshen'), w: 6, em: 'heart', sc: 'park' });
+E('qm4', 12, 16, '{qm}跟着爸妈搬去了外地。临走前，你们约好要一直写信。', { c: () => L.qm && used('qm2'), w: 7, fx: { SPR: -2 }, f: { qmgone: 1 }, em: 'sad', sc: 'street' });
+E('qm5', 15, 22, '你和{qm}的信越来越少，后来就断了联系。', { c: () => L.f.qmgone, w: 9, em: 'sad' });
+E('qm6', 21, 40, () => { YR.ch = 'qm'; return '你在同学聚会上，又见到了{qm}。对方笑着说：“好久不见。”'; }, { c: () => used('qm5') && !L.mar && !tal('danshen') && L.qm.g !== L.g, w: 12, em: 'heart', sc: 'shop', love: 1 });
+E('qm7', 55, 95, '你和{qm}从穿开裆裤就认识，到现在已经过了大半个世纪。', { c: () => L.f.qmlove && L.mar, w: 4, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
 E('bro1', 7, 10, () => { L.bro = { n: pick(BRO_N[L.g]) }; return '同桌{bro}成了你最好的朋友，你们一起分享了人生中第一包辣条。'; }, { c: () => !L.bro, w: 2.5, fx: { SPR: 1 }, em: 'note', sc: 'class' });
-E('bro2', 12, 16, '你和{bro}一起逃课去网吧，被班主任抓了个正着。', { c: () => L.bro, w: 1.2, em: 'sweat', sc: 'arena' });
-E('bro3', 18, 24, '{bro}失恋了，拉着你在路边摊喝到了凌晨三点。', { c: () => L.bro, em: 'sad', sc: 'street' });
-E('bro4', 24, 36, '{bro}结婚了，你当了{bm}，在婚礼上哭得比新人还凶。', { c: () => L.bro, fx: { SPR: 1 }, em: 'heart', sc: 'wedding' });
-E('bro5', 28, 45, () => { YR.ch = 'bro'; return '{bro}要创业，找你借一大笔钱。'; }, { c: () => L.bro && L.a.MNY >= 3, em: 'q' });
+E('bro2', 12, 16, '你和{bro}一起逃课去网吧，被班主任抓了个正着。', { c: () => L.bro, w: 5, em: 'sweat', sc: 'arena' });
+E('bro3', 18, 24, '{bro}失恋了，拉着你在路边摊喝到了凌晨三点。', { w: 4, c: () => L.bro, em: 'sad', sc: 'street' });
+E('bro4', 24, 36, '{bro}结婚了，你当了{bm}，在婚礼上哭得比新人还凶。', { w: 4, c: () => L.bro, fx: { SPR: 1 }, em: 'heart', sc: 'wedding' });
+E('bro5', 28, 45, () => { YR.ch = 'bro'; return '{bro}要创业，找你借一大笔钱。'; }, { w: 4, c: () => L.bro && L.a.MNY >= 3, em: 'q' });
 E('bro6', 32, 60, () => { if (chance(.5)) { addFx({ MNY: 4 }); return '{bro}的公司上市了，连本带利还了你十倍的钱！'; } addFx({ SPR: 2 }); return '{bro}的公司倒闭了。但{bro}打了十年工，一分不少地把钱还给了你。'; }, { c: () => L.f.lent && L.age - L.at.bro5 >= 3, w: 2, em: 'star' });
-E('bro7', 55, 85, '{bro}来看你，你们喝得烂醉，聊起了小时候的那包辣条。', { c: () => L.bro && !L.f.brogone, fx: { SPR: 1 }, em: 'note', sc: 'home' });
-E('bro8', 68, 95, '{bro}走了。你在葬礼上念悼词，念到一半就哭了。', { c: () => L.bro && used('bro7'), fx: { SPR: -2 }, f: { brogone: 1 }, em: 'sad', sc: 'grave' });
+E('bro7', 55, 85, '{bro}来看你，你们喝得烂醉，聊起了小时候的那包辣条。', { w: 4, c: () => L.bro && !L.f.brogone, fx: { SPR: 1 }, em: 'note', sc: 'home' });
+E('bro8', 68, 95, '{bro}走了。你在葬礼上念悼词，念到一半就哭了。', { w: 4, c: () => L.bro && used('bro7'), fx: { SPR: -2 }, f: { brogone: 1 }, em: 'sad', sc: 'grave' });
 E('pet_trick', 4, 100, '{pn}学会了握手，还会自己开门溜出去玩。', { c: () => L.pet && L.age - L.pet.born >= 1, fx: { SPR: 1 }, em: 'note', p: '*' });
 E('pet_babies', 4, 100, '{pn}生了一窝小{pet}，你把它们送给了街坊邻居。', { c: () => L.pet && L.age - L.pet.born >= 2 && L.age - L.pet.born <= 7, w: .4, fx: { SPR: 1 }, em: 'heart', p: '*' });
 E('pet_elder', 10, 110, '{pn}老了，走不动路了。你每天抱着它晒太阳。', { c: () => L.pet && L.age - L.pet.born >= 10, w: 1.5, em: 'sad', p: '*' });
@@ -1345,18 +1389,25 @@ function newLife(tids, pts) {
     end: false, asc: false, grade: null,
   };
   L.kl = META.last ? JSON.parse(JSON.stringify(META.last)) : null;
+  L.by = ri(1975, 2012);
+  { const m = L.a.MNY + (TAL.shoufu && tids.includes('shoufu') ? 9 : 0), w = m <= 2 ? [.7, .3, 0, 0] : m <= 5 ? [.25, .45, .3, 0] : m <= 8 ? [0, .25, .7, .05] : [0, 0, .7, .3];
+    let r = Math.random(), i = 0; for (; i < 3; i++) { if (r < w[i]) break; r -= w[i]; } L.bp = ['village', 'county', 'city', 'abroad'][i]; }
   for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
   if (tal('jinshi')) L.f.glasses = 1;
   for (const k of STATS) L.mx[k] = L.a[k];
 }
+const CITIES = ['北京', '上海', '广州', '深圳', '成都', '杭州', '武汉', '西安'], ABROAD = ['纽约', '伦敦', '东京', '温哥华', '悉尼', '巴黎'];
 function birth() {
   const m = L.a.MNY, ln = YR.lines;
-  if (tal('shoufu')) ln.push('你出生了，是个{sex}。你的父亲是全国首富，产房外站满了保镖。');
-  else if (m >= 10) ln.push('你出生在一个显赫的豪门，是个{sex}，还没睁眼就有了自己的保姆和管家。');
-  else if (m >= 7) ln.push('你出生在一个富裕的家庭，是个{sex}。');
-  else if (m >= 4) ln.push('你出生在一个普通的城市家庭，是个{sex}。');
-  else if (m >= 2) ln.push('你出生在一个小县城，是个{sex}，家里的日子紧巴巴的。');
-  else ln.push('你出生在一个贫困的小山村，是个{sex}，家里只有一头老黄牛。');
+  L.city = L.bp === 'city' ? pick(CITIES) : L.bp === 'abroad' ? pick(ABROAD) : null;
+  const place = { village: '一个小山村', county: '一座小县城', city: L.city, abroad: L.city + '的一个华人家庭' }[L.bp || 'city'] || '一座城市';
+  ln.push((L.by ? L.by + '年，' : '') + '你出生在' + place + '，是个{sex}。');
+  if (tal('shoufu')) ln.push('你的父亲是全国首富，产房外站满了保镖。');
+  else if (m >= 10) ln.push('家里是当地的豪门，你还没睁眼就有了自己的保姆和管家。');
+  else if (m >= 7) ln.push('家里很有钱。');
+  else if (m >= 4) ln.push('家里不算富裕，但也衣食无忧。');
+  else if (m >= 2) ln.push('家里的日子紧巴巴的。');
+  else ln.push('家里穷得只剩一头老黄牛。');
   if (L.a.CHR >= 9) ln.push('护士们都说，从没见过这么好看的宝宝。');
   else if (L.a.CHR <= 1) ln.push('护士看了你一眼，沉默了。');
   if (L.a.INT >= 10) ln.push('你出生时没有哭，而是若有所思地盯着天花板。');
@@ -2167,6 +2218,7 @@ function drawHUD() {
   box(g, 3, 2 - bump, 38, 14, '#ffd23f', '#fff08a', '#c89a10');
   txt(L.age + '岁', 22, 8.5 - bump, L.age >= 1000 ? 7 : 9, '#4a2c17', 'center', null);
   txt(stageLabel(), 46, 9, 7, '#dfe6ff', 'left');
+  if (L.by && L.path !== 'isekai') txt((L.by + L.age) + '年', 146, 9, 6, '#a8a0d8', 'right');
   g.drawImage(I.menu, 151, 4); g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
   STATS.forEach((k, i) => {
     const x = 3 + i * 35, y = 17;
