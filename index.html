@@ -683,6 +683,65 @@ function buildScenes() {
     for (const a of [14, 26]) { box(x, a, 64, 12, 14, '#8a5a2a', '#a8743a'); F(x, a + 1, 68, 10, 1, '#4a3a2a'); F(x, a + 1, 73, 10, 1, '#4a3a2a'); }
     box(x, 140, 70, 24, 8, '#3a3a4a', '#5a5a6a'); odsc(x, 146, 80, 4, '#6a4424'); odsc(x, 158, 80, 4, '#6a4424'); F(x, 162, 72, 8, 3, '#26263a');
   });
+  // an ancient Chinese market street
+  const eave = (x, a, w, y, c) => { // curved tiled roof whose eave line sits at y
+    for (let i = 0; i < 8; i++) F(x, a + 7 - i, y - 8 + i, w - 14 + i * 2, 1, OUT);
+    for (let i = 1; i < 8; i++) F(x, a + 8 - i, y - 8 + i, w - 16 + i * 2, 1, i < 3 ? shade(c, .15) : c);
+    for (let i = a + 4; i < a + w - 4; i += 3) F(x, i, y - 5, 1, 4, shade(c, -.25));
+    F(x, a - 2, y - 2, 3, 2, OUT); F(x, a + w - 1, y - 2, 3, 2, OUT); F(x, a - 3, y - 3, 1, 1, OUT); F(x, a + w + 2, y - 3, 1, 1, OUT);
+    F(x, a, y, w, 1, OUT);
+  };
+  const guShop = (x, a, w, top, bot, wall) => {
+    F(x, a + 2, top, w - 4, bot - top, wall); F(x, a + 2, top, w - 4, 2, shade(wall, -.2));
+    for (const px of [a + 3, a + w - 6]) box(x, px, top, 3, bot - top, '#b8283a', '#d8485a');
+  };
+  scn('gustreet', (x) => {
+    grad(x, 0, 50, ['#9ad0f0', '#a8d8f4', '#bce2f8', '#d4ecf8']); cloud(x, 24, 10); cloud(x, 140, 6);
+    // a pagoda on the far hill
+    odsc(x, 150, 58, 26, '#8ab89a'); for (let k = 0; k < 4; k++) { const w = 16 - k * 3, y = 40 - k * 7; F(x, 150 - w / 2, y - 5, w, 5, '#c8b898'); F(x, 150 - w / 2 - 2, y - 6, w + 4, 2, '#4a4e5a'); } F(x, 149, 12, 2, 4, '#4a4e5a');
+    guShop(x, 2, 52, 34, 70, '#eadcc0'); eave(x, 2, 52, 34, '#4a4e5a');
+    box(x, 12, 42, 30, 18, '#c89858'); for (let i = 15; i < 40; i += 4) F(x, i, 43, 1, 16, '#8a5a34'); for (let y = 46; y < 58; y += 4) F(x, 13, y, 28, 1, '#8a5a34');
+    box(x, 22, 26, 10, 14, '#2a2a3a'); F(x, 24, 28, 6, 1, '#ffd23f'); F(x, 24, 31, 6, 1, '#ffd23f'); F(x, 24, 34, 6, 1, '#ffd23f');
+    // two-storey teahouse
+    guShop(x, 66, 44, 18, 36, '#eadcc0'); eave(x, 66, 44, 18, '#3e5a4a');
+    for (let i = 74; i < 104; i += 6) box(x, i, 22, 5, 10, '#c89858', '#e0b070');
+    F(x, 62, 36, 52, 3, '#8a5a34'); for (let i = 64; i < 112; i += 4) F(x, i, 39, 1, 3, '#8a5a34'); F(x, 62, 41, 52, 1, '#6a4020');
+    guShop(x, 60, 56, 44, 70, '#eadcc0'); eave(x, 60, 56, 44, '#3e5a4a');
+    box(x, 78, 52, 20, 18, '#5a3a24'); F(x, 87, 52, 1, 18, OUT); box(x, 76, 45, 24, 6, '#1f2a3a'); F(x, 79, 47, 18, 2, '#ffd23f');
+    guShop(x, 124, 54, 36, 70, '#e4d4b4'); eave(x, 124, 54, 36, '#4a4e5a');
+    for (let i = 134; i < 168; i += 7) box(x, i, 46, 5, 14, '#c89858');
+    // wine-shop flag
+    F(x, 120, 14, 1, 56, '#6a4a2a'); box(x, 121, 16, 12, 18, '#f4ecd8'); F(x, 121, 16, 12, 2, '#c8283a'); F(x, 121, 32, 12, 2, '#c8283a'); F(x, 125, 21, 4, 1, OUT); F(x, 126, 20, 2, 8, OUT); F(x, 124, 25, 6, 1, OUT);
+    // a string of lanterns across the street
+    for (let i = 0; i < 180; i++) F(x, i, 9 + R(Math.sin(i / 180 * Math.PI) * 5), 1, 1, '#3a2a24');
+    for (const lx of [18, 48, 98, 132, 164]) { const ly = 11 + R(Math.sin(lx / 180 * Math.PI) * 5); odsc(x, lx, ly + 3, 3, '#e8343a'); F(x, lx - 3, ly + 2, 7, 1, '#ffd23f'); F(x, lx, ly + 6, 1, 3, '#ffd23f'); }
+    for (const [lx, ly] of [[10, 38], [58, 48], [118, 40]]) { F(x, lx, ly - 4, 1, 3, OUT); odsc(x, lx, ly, 3, '#e8343a'); F(x, lx - 2, ly - 1, 5, 1, '#ffd23f'); }
+    F(x, 0, 70, 180, 50, '#b8b0a0'); for (let y = 70; y < 120; y += 8) { F(x, 0, y, 180, 1, '#a49c8c'); for (let i = ((y - 70) / 8 % 2) * 9; i < 180; i += 18) F(x, i, y, 1, 8, '#a49c8c'); } F(x, 0, 70, 180, 2, OUT);
+    box(x, 150, 74, 20, 8, '#8a5a34', '#a8744a'); odsc(x, 153, 84, 3, '#5a3a24'); odsc(x, 167, 84, 3, '#5a3a24'); for (const [a, c] of [[152, '#ff8a3a'], [157, '#6ab86a'], [162, '#ffd23f']]) dsc(x, a + 1, 72, 2.2, c);
+  }); SCN.gustreet.fy = [86, 106];
+  // a fantasy market town
+  const tudor = (x, a, w, top, roof, wall) => {
+    box(x, a, top, w, 70 - top, wall); for (const bx of [a + 1, a + w - 3]) F(x, bx, top + 1, 2, 69 - top, '#7a4a2a'); F(x, a + 1, top + 12, w - 2, 2, '#7a4a2a');
+    for (let i = 0; i < 10; i++) { F(x, a + 3 + i, top + 2 + i, 1, 1, '#7a4a2a'); F(x, a + w - 4 - i, top + 2 + i, 1, 1, '#7a4a2a'); }
+    const h = R(w / 2) + 2; for (let i = 0; i < h; i++) { const hw = R(i * (w / 2 + 2) / h); F(x, a + w / 2 - hw - 1, top - h + i, hw * 2 + 2, 1, OUT); if (i) F(x, a + w / 2 - hw, top - h + i, hw * 2, 1, i % 3 ? roof : shade(roof, -.2)); }
+    F(x, a - 2, top - 1, w + 4, 2, OUT);
+  };
+  scn('istown', (x) => {
+    grad(x, 0, 60, ['#8ab4f0', '#a0c0f4', '#bcc8f4', '#dcd0f0']); dsc(x, 150, 12, 6, '#fff4d0'); dsc(x, 162, 8, 2.5, '#d0f4ff'); cloud(x, 40, 14);
+    // the royal castle on the hill
+    odsc(x, 92, 70, 36, '#7ac07a'); F(x, 78, 22, 28, 24, '#b8b4c8'); for (const [a, h] of [[74, 34], [102, 34], [88, 42]]) { F(x, a, 46 - h, 8, h, '#a8a4bc'); for (let i = 0; i < 6; i++) F(x, a + 4 - i, 46 - h - 7 + i, i * 2, 1, '#c8283a'); } F(x, 91, 32, 3, 6, '#4a4058'); F(x, 92, -2, 1, 6, OUT); F(x, 93, -2, 4, 3, '#ffd23f');
+    tudor(x, 2, 34, 34, '#c8483a', '#f4ecd8'); box(x, 12, 52, 12, 18, '#6a4a2a'); F(x, 17, 52, 1, 18, OUT); box(x, 6, 38, 8, 8, '#8ad8ff', '#d0f4ff');
+    // tavern sign: a mug of ale
+    F(x, 36, 40, 10, 1, '#6a4a2a'); F(x, 44, 40, 1, 3, OUT); box(x, 38, 43, 12, 10, '#c89858'); box(x, 41, 45, 5, 6, '#ffd23f'); F(x, 41, 45, 5, 1, '#ffffff'); F(x, 46, 46, 2, 3, '#ffd23f');
+    tudor(x, 52, 30, 44, '#4a6ac8', '#f0e4cc'); box(x, 60, 56, 10, 14, '#6a4a2a'); box(x, 72, 48, 6, 6, '#8ad8ff');
+    // the adventurers' guild
+    tudor(x, 124, 54, 30, '#4a9a5a', '#f4ecd8'); box(x, 142, 50, 18, 20, '#5a3a24'); F(x, 150, 50, 2, 20, OUT); box(x, 130, 36, 8, 8, '#8ad8ff', '#d0f4ff'); box(x, 164, 36, 8, 8, '#8ad8ff', '#d0f4ff');
+    box(x, 144, 20, 14, 18, '#c8283a', '#e8485a'); F(x, 150, 23, 2, 12, '#e8e8f0'); F(x, 147, 31, 8, 2, '#ffd23f');
+    F(x, 0, 70, 180, 50, '#bca88a'); for (let y = 72; y < 120; y += 6) for (let i = ((y / 6) % 2) * 5; i < 180; i += 10) { F(x, i, y, 9, 5, '#c8b496'); F(x, i, y + 5, 9, 1, '#a08a6a'); } F(x, 0, 70, 180, 2, OUT);
+    // fountain
+    for (let dy = -4; dy <= 4; dy++) { const hw = R(Math.sqrt(1 - (dy / 4.5) ** 2) * 22); F(x, 104 - hw - 1, 84 + dy, hw * 2 + 2, 1, OUT); F(x, 104 - hw, 84 + dy, hw * 2, 1, dy < 0 ? '#5ab8f0' : '#c8c4d0'); }
+    F(x, 102, 70, 4, 12, '#c8c4d0'); F(x, 101, 69, 6, 2, OUT); dsc(x, 104, 68, 2, '#8ad8ff'); F(x, 98, 76, 1, 4, '#8ad8ff'); F(x, 110, 76, 1, 4, '#8ad8ff');
+  }); SCN.istown.fy = [90, 108];
   // throne rooms for the isekai king and the dark lord
   const castle = (id, banner, wall, glow, gold) => scn(id, (x) => {
     F(x, 0, 0, 180, FY, wall); for (let y = 4; y < FY; y += 8) for (let i = ((y - 4) / 8 % 2) * 10; i < 180; i += 20) F(x, i, y, 19, 7, shade(wall, .08));
@@ -777,7 +836,7 @@ function buildScenes() {
   // setup screens: starry void
   scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
 }
-const SCENE_NAME = { hosp: '医院', home0: '出租屋', home0v: '农家小院', home1: '家', home1b: '家', home1c: '家', home2: '豪宅', home3: '庄园', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', castle: '王宫', darkcastle: '魔王城', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+const SCENE_NAME = { hosp: '医院', home0: '出租屋', home0v: '农家小院', home1: '家', home1b: '家', home1c: '家', home2: '豪宅', home3: '庄园', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', gustreet: '古代街市', istown: '异世界城镇', castle: '王宫', darkcastle: '魔王城', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
 
 // ============================================================ talents
 const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
@@ -1223,7 +1282,7 @@ E('wallet', 16, 70, '你的钱包在地铁上被偷了。', { fx: { SPR: -1 }, e
 E('lowtide', 12, 100, '你陷入了一段低谷，很长一段时间，做什么都提不起兴趣。', { p: '*', c: () => L.a.SPR <= 2 && !L.f.blue, w: 1.5, fx: { STR: -1 }, f: { blue: 1 }, em: 'sad' });
 E('uptide', 12, 100, () => L.mar || L.kids.length ? '在家人的陪伴下，你慢慢走出了低谷。' : '你养了一盆花，每天看着它长大，慢慢走出了低谷。', { p: '*', c: () => L.f.blue, rep: 1, cd: 2, w: 2, fx: { SPR: 3 }, u: ['blue'], em: 'heart' });
 E('sunny', 16, 90, '你每天都乐呵呵的，身边的人都说，和你待在一起很开心。', { p: '*', c: () => L.a.SPR >= 12, w: 1.5, fx: { CHR: 1 }, em: 'note' });
-E('sunny2', 45, 100, '你心态好，体检报告比同龄人年轻了十岁。', { p: '*', c: () => L.a.SPR >= 12, w: 1.5, fx: { STR: 1 }, em: 'heart', sc: 'hosp' });
+E('sunny2', 45, 100, '你心态好，体检报告比同龄人年轻了十岁。', { c: () => L.a.SPR >= 12, w: 1.5, fx: { STR: 1 }, em: 'heart', sc: 'hosp' });
 E('insomnia', 18, 70, '你开始失眠，每天夜里盯着天花板数羊。', { c: () => L.a.SPR <= 3, fx: { STR: -1 }, em: 'zzz' });
 E('guitar', 18, 40, '你学会了弹吉他，在楼下弹唱时被邻居投诉了。', { fx: { SPR: 1 }, em: 'note', sc: 'street' });
 E('fishing', 28, 85, '你迷上了钓鱼，一坐就是一整天，一条鱼都没钓上来。', { w: .35, fx: { SPR: 1 }, f: { fish: 1 }, em: 'note', sc: 'park' });
@@ -1275,7 +1334,7 @@ E('parill', 30, 65, () => '你的' + (L.par.dad.alive ? '父亲' : '母亲') + '
 E('partrip', 25, 55, '你带爸妈出去旅游，他们像孩子一样开心。', { c: () => L.par.dad.alive && L.par.mom.alive && L.a.MNY >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
 E('pet_old', 12, 120, () => '你的{pet}“{pn}”老了，在一个安静的午后永远地睡着了。', { c: () => L.pet && L.age - L.pet.born >= 12, w: () => (L.age - L.pet.born - 11) * .5, rep: 1, fx: { SPR: -2 }, do: () => { L.pet = null; L.f.petgone = 1; }, em: 'sad', p: '*' });
 E('pet_new', 16, 90, () => { getPet(chance(.5) ? 'cat' : 'dog'); return '你又养了一只小{pet}，叫“{pn}”，家里重新热闹了起来。'; }, { c: () => !L.pet && L.f.petgone, w: .5, rep: 1, em: 'heart' });
-E('cat_fun', 5, 100, '你的猫在键盘上睡了一觉，替你发出了一封全是“gggggg”的邮件。', { c: () => L.pet && L.pet.k === 'cat', fx: { SPR: 1 }, em: 'note', p: '*' });
+E('cat_fun', 5, 100, '你的猫在键盘上睡了一觉，替你发出了一封全是“gggggg”的邮件。', { c: () => L.pet && L.pet.k === 'cat' && (!L.path || L.path === 'cy' || L.path === 'xian'), fx: { SPR: 1 }, em: 'note', p: '*' });
 E('cat_fun2', 5, 100, '你的猫把桌上的杯子一个一个推到地上，然后看着你。', { c: () => L.pet && L.pet.k === 'cat', em: 'anger', p: '*' });
 E('dog_fun', 5, 100, '你的狗把你的新拖鞋咬成了碎片，然后用无辜的眼神看着你。', { c: () => L.pet && L.pet.k === 'dog', em: 'anger', p: '*' });
 E('dog_fun2', 5, 100, '你的狗每天准时在门口等你回家，尾巴摇得像螺旋桨。', { c: () => L.pet && L.pet.k === 'dog', fx: { SPR: 1 }, em: 'heart', p: '*' });
@@ -1364,7 +1423,7 @@ E('oldclass', 70, 90, '毕业五十年的同学聚会，只来了三个人。', 
 E('oldvlog', 65, 90, '你开了个账号分享家常菜，意外收获了十万粉丝。', { fx: { SPR: 2 }, em: 'star' });
 E('pt_die', 55, 130, () => (YR.sc = ROUTES[L.path] ? ROUTES[L.path].sc : 'hosp', { gu: '你的{spouse}走了。你在{ta}的坟前种了一棵梅树。', zb: '你的{spouse}没能熬过这个冬天。你把{ta}葬在了基地楼顶的菜园旁边。', cy: '你的{spouse}的义体停止了运转。你留着{ta}最后一段语音，每晚都要听一遍。', pi: '你的{spouse}走了。你把{ta}葬进了大海，那天的海面格外平静。' })[L.path] || '你的{spouse}走了。你把{ta}的照片放在床头，每天都和{ta}说说话。',
   { p: '*', c: () => L.mar && L.pt && L.path !== 'xian' && L.path !== 'isekai', w: () => Math.pow(Math.max(0, L.age - 58) / 14, 2) * .8, fx: { SPR: -3 }, do: losePartner, em: 'sad' });
-E('widow1', 56, 130, '你一个人去了你们年轻时常去的公园，坐了一整个下午。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', fx: { SPR: -1 }, em: 'sad', sc: 'park' });
+E('widow1', 56, 130, () => L.path ? '你一个人去了你们年轻时常去的地方，坐了一整个下午。' : '你一个人去了你们年轻时常去的公园，坐了一整个下午。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', fx: { SPR: -1 }, em: 'sad', sc: 'park' });
 E('widow2', 56, 130, '你学会了一个人吃饭，只是总会习惯性地多摆一副碗筷。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', em: 'sad', sc: 'home' });
 E('oldlove', 62, 90, () => { const w = L.f.widowed, d = L.f.divorced, first = !L.f.mar1; startLove(); marry(); YR.big = first ? '黄昏恋!' : '再婚!';
   return w ? '你在老年大学遇到了一位同样丧偶的老人。两个人互相照顾，最后领证再婚了。' : d ? '你在老年大学遇到了一位老伴，两个人决定领证再婚。' : '你在老年大学遇到了一位老伴，六十多岁，第一次结了婚。'; }, { c: canLove, w: .5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
@@ -1375,7 +1434,7 @@ E('doppel', 15, 60, '你在街上遇到了一个和你长得一模一样的人�
 E('meteor', 10, 80, '一颗陨石落在了你家门口，你把它卖给了博物馆。', { w: .08, fx: { MNY: 2 }, em: 'star' });
 E('noise', 18, 50, '你租的房子半夜总有怪声，你吓得不敢睡，后来发现是楼上在装修。', { w: .3, em: 'sweat' });
 E('catfire', 10, 100, '半夜你的猫疯狂挠门把你叫醒，原来厨房着火了，它救了全家。', { c: () => L.pet && L.pet.k === 'cat', w: .3, fx: { SPR: 2 }, em: 'heart', p: '*' });
-E('dogthief', 10, 100, '你的狗抓住了一个入室小偷，登上了本地新闻。', { c: () => L.pet && L.pet.k === 'dog', w: .3, fx: { SPR: 1 }, em: 'star', p: '*' });
+E('dogthief', 10, 100, '你的狗抓住了一个入室小偷，登上了本地新闻。', { c: () => L.pet && L.pet.k === 'dog' && (!L.path || L.path === 'cy' || L.path === 'xian'), w: .3, fx: { SPR: 1 }, em: 'star', p: '*' });
 E('mosquito', 3, 90, '夏天一到，方圆十里的蚊子都赶来找你。', { c: () => tal('zhaowen'), w: 3, em: 'anger' });
 E('mosquito2', 20, 90, '你参加露营，所有人都睡得很香，只有你被咬了八十个包。', { c: () => tal('zhaowen'), w: 2, em: 'anger', sc: 'park' });
 E('shesi1', 8, 60, '你在全校（全公司）面前平地摔了个大马趴。', { c: () => tal('shesi'), w: 2, fx: { SPR: -1 }, em: 'sweat', sc: 'stage' });
@@ -2502,11 +2561,23 @@ function resumeLife() {
   L = SAVED; L.at = L.at || {}; if (L.xage === undefined) { L.xage = ri(7, 13); L.yage = ri(12, 17); } logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
   curScene = resolveScene(defaultScene()); setupCast(); go('life'); yearT = 9; SFX.click();
 }
-const resolveScene = s => s === 'home' ? homeSc() : s;
+// Hidden routes stay in their own world: a modern scene asked for there falls back to the route's scene.
+const ROUTE_SCENES = { gu: ['gu', 'gustreet'], zb: ['ruins'], cy: ['neon'], pi: ['ship'], isekai: ['isekai', 'istown', 'castle', 'darkcastle'] };
+const OUTDOOR_SC = /^(street|shop|park|campus|stage|arena|field|farm)$/;
+const resolveScene = s => {
+  const ok = ROUTE_SCENES[L.path];
+  if (ok && s && !ok.includes(s)) {
+    if (L.path === 'gu') return OUTDOOR_SC.test(s) ? 'gustreet' : 'gu';
+    if (L.path === 'isekai') return OUTDOOR_SC.test(s) ? 'istown' : L.f.darkking ? 'darkcastle' : L.f.king ? 'castle' : 'isekai';
+    return ok[0];
+  }
+  return s === 'home' ? homeSc() : s;
+};
 function defaultScene() {
   const a = L.age;
   if (L.path === 'xian') return L.xl >= 1 ? XSD().sc : homeSc();
-  if (L.path === 'isekai') return (L.f.king || L.f.darkking) && chance(.5) ? (L.f.darkking ? 'darkcastle' : 'castle') : 'isekai';
+  if (L.path === 'isekai') return (L.f.king || L.f.darkking) && chance(.5) ? (L.f.darkking ? 'darkcastle' : 'castle') : chance(.35) ? 'istown' : 'isekai';
+  if (L.path === 'gu') return chance(.4) ? 'gustreet' : 'gu';
   if (ROUTES[L.path]) return ROUTES[L.path].sc;
   if (a === 0) return 'hosp';
   if (a < 3) return homeSc();
@@ -2550,7 +2621,7 @@ function afterYear(yr, chosen) {
 }
 
 // ============================================================ the cast on stage
-const FAMILY_SC = /^(home\w*|castle|darkcastle|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
+const FAMILY_SC = /^(home\w*|gustreet|istown|castle|darkcastle|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
 function setupCast() {
   const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
   const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
