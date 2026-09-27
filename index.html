@@ -1501,6 +1501,7 @@ function finishYear() {
   if (!YR.g) { let s = 0; for (const k in YR.d) s += YR.d[k]; YR.g = s > 0 ? 1 : s < 0 ? -1 : 0; }
   if (L.end) YR.g = L.asc ? 2 : -2;
   entry.g = YR.g;
+  if (YR.big) (L.hl = L.hl || []).push({ a: L.age, s: YR.big.replace(/!$/, '') });
   if (YR.skip && !L.end) L.age += YR.skip;
   return YR;
 }
@@ -1634,6 +1635,8 @@ function finishLife() {
   const j = L.oldJob || L.job;
   META.last = { pet: L.lastPet || null, pt: L.pt && L.mar ? { g: L.pt.g, hair: L.pt.hair, top: L.pt.top, bot: L.pt.bot, skirt: L.pt.skirt, fit: L.pt.fit, ears: L.pt.ears } : null,
     age: L.age, job: j && JOBS[j] && j !== 'retired' && j !== 'none' ? JOBS[j].n : null, ep: L.ep || (L.ep = epitaph()), young: L.age < 30 && !L.asc, rich: !!(L.f.richest || L.f.lotto || L.a.MNY >= 12), asc: L.asc };
+  const e0 = L.end; L.end = false; const lk = meLook(0, 0); L.end = e0; Object.assign(lk, { mood: 'h', blink: 0, fr: 0 });
+  META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : META.last.job, by: L.by, bp: L.city || { village: '山村', county: '县城' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
   saveMeta(); clearRun();
 }
 function rarityOdds() {
@@ -2260,11 +2263,11 @@ function drawLog() {
 }
 const BTN = {
   menu: [146, 0, 17, 17], mute: [163, 0, 17, 17],
-  tNew: [30, 252, 120, 22], tAch: [30, 280, 58, 16], tCont: [30, 248, 120, 22], tNew2: [30, 274, 38, 17], tAch2: [71, 274, 38, 17], tShop2: [112, 274, 38, 17], tShop: [92, 280, 58, 16],
+  tNew: [30, 248, 120, 22], tAch: [30, 276, 38, 16], tShop: [71, 276, 38, 16], tBook: [112, 276, 38, 16], tCont: [30, 242, 120, 22], tNew2: [30, 268, 120, 15], tAch2: [30, 287, 38, 15], tShop2: [71, 287, 38, 15], tBook2: [112, 287, 38, 15],
   back: [4, 4, 34, 15], pull: [45, 250, 90, 22], tOK: [40, 293, 100, 20],
   aRand: [10, 270, 60, 20], aGo: [76, 270, 94, 20],
   auto: [4, 299, 56, 18], next: [118, 299, 58, 18], seeEnd: [40, 299, 100, 18], toEnd: [40, 299, 100, 18],
-  review: [8, 297, 78, 18], nextLife: [94, 297, 78, 18], inhGo: [40, 224, 100, 20],
+  review: [6, 297, 54, 18], share: [63, 297, 54, 18], nextLife: [120, 297, 54, 18], inhGo: [40, 224, 100, 20],
   achBack: [50, 296, 80, 18], mResume: [45, 124, 90, 20], mMusic: [45, 150, 90, 20], mHome: [45, 176, 90, 20], jump: [154, 278, 20, 16],
 };
 const ALLOC_K = ['CHR', 'INT', 'STR', 'MNY'];
@@ -2320,12 +2323,12 @@ function drawTitle() {
   txt('抽天赋 · 分属性 · 过一生', 90, 116, 7.5, '#ffffff', 'center', '#2a4a8a');
   if (SAVED) {
     button(BTN.tCont, '继续人生 · ' + SAVED.age + '岁', { green: 1 });
-    button(BTN.tNew2, '重开', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 });
+    button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 }); button(BTN.tBook2, '轮回簿', { size: 7 });
   } else {
     button(BTN.tNew, '开始新人生');
-    button(BTN.tAch, '成就 ' + Object.keys(META.ach).length + '/' + ACH.length, { blue: 1, size: 7 }); button(BTN.tShop, '轮回殿', { red: 1, size: 7 });
+    button(BTN.tAch, '成就', { blue: 1, size: 7 }); button(BTN.tShop, '轮回殿', { red: 1, size: 7 }); button(BTN.tBook, '轮回簿', { size: 7 });
   }
-  if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长 ' + META.best + ' 岁 · 轮回点 ' + (META.rp || 0), 90, 306, 6.5, '#ffffff', 'center', '#2a5a2a');
+  if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长 ' + META.best + ' 岁 · 轮回点 ' + (META.rp || 0), 90, 311, 6, '#ffffff', 'center', '#2a5a2a');
   g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
 }
 function drawCapsule(cx, cy, col, open) {
@@ -2469,9 +2472,14 @@ function drawLife() {
 function drawEnd() {
   const st = state === 'inherit' ? 9 : stNow();
   g.fillStyle = '#140c2a'; g.fillRect(0, 0, W, H);
-  const oy = 16;
-  g.drawImage(L.asc ? SCN[XSD().sc].bg : SCN.grave.bg, 0, oy);
   txt(L.asc ? '飞升结算' : '人生总结', 90, 8, 9, '#ffe14a');
+  drawTomb(16, st);
+  endPanel(st);
+  button(BTN.review, '回顾', { blue: 1, size: 7.5 }); button(BTN.share, '分享', { red: 1, size: 7.5 }); button(BTN.nextLife, '再来！', { green: 1, size: 7.5 });
+  drawParts();
+}
+function drawTomb(oy, st) {
+  g.drawImage(L.asc ? SCN[XSD().sc].bg : SCN.grave.bg, 0, oy);
   const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? XSD().fit : 'ghost', mood: 'z', cane: 0, fr: 0 }));
   if (L.asc) {
     const y = oy + 70 - Math.min(40, st * 8) + Math.sin(T * 2) * 2;
@@ -2491,6 +2499,8 @@ function drawEnd() {
     g.globalAlpha = .85; g.drawImage(ghost.img, 124, R(y)); g.globalAlpha = 1; g.drawImage(I.halo, 130, R(y + 1));
   }
   txt('「' + (L.ep || (L.ep = epitaph())) + '」', 90, oy + 127, 7, '#ffe8c0', 'center', OUT);
+}
+function endPanel(st) {
   panel(4, 150, 172, 144);
   const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])]]);
   const ag = ageGrade(L.age); rows_.push(['享年', L.age, L.asc ? '飞升成仙' : ag[1], GCOL[L.asc ? 5 : ag[0]]]);
@@ -2512,8 +2522,54 @@ function drawEnd() {
   txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 270, 6.5, '#6a4a2a', 'center', null);
   if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 60, 256, 6.5, '#b8780a', 'center', null);
   if (st > 1 && L.rpGain) txt('轮回点 +' + L.rpGain, 143, 232, 7.5, '#b8780a', 'center', null);
-  button(BTN.review, '回顾一生', { blue: 1 }); button(BTN.nextLife, '再来一次！', { green: 1 });
-  drawParts();
+}
+// A tall pixel postcard of the life: tomb, grades, highlights and a link, rendered at 4x.
+function makeShare() {
+  TQ = []; g.clearRect(0, 0, W, H);
+  drawVoid();
+  txt('人生重开物语 · 第' + META.lives + '世', 90, 9, 8, '#ffe14a');
+  drawTomb(18, 9);
+  panel(4, 152, 172, 132);
+  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])]]);
+  const ag = ageGrade(L.age); rows_.push(['享年', L.age, L.asc ? '飞升成仙' : ag[1], GCOL[L.asc ? 5 : ag[0]]]);
+  rows_.forEach((r, i) => { const y = 163 + i * 14; txt(r[0], 12, y, 7, '#6a4a2a', 'left', null); txt(String(r[1]), 46, y, 8, '#3a2a1a', 'center', null); txt(r[2], 58, y, 7, r[3], 'left', OUT); });
+  box(g, 116, 158, 54, 62, '#fff8e0', '#ffffff');
+  txt('总评', 143, 165, 7, '#8a6a4a', 'center', null); txt(L.grade, 143, 184, L.grade.length > 2 ? 17 : 23, LCOL[L.grade], 'center', OUT); txt(lifeTitle(), 143, 210, 7, '#6a3a1a', 'center', null);
+  const hl = (L.hl || []).slice(0, 5).map(h => h.a + '岁' + h.s);
+  const lines = wrap('高光：' + (hl.length ? hl.join(' · ') : '平平淡淡才是真'), 6.5, 160).slice(0, 3);
+  lines.forEach((t, i) => txt(t, 10, 250 + i * 9, 6.5, '#b8780a', 'left', null));
+  txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 278, 6.5, '#6a4a2a', 'center', null);
+  txt('你也来重开一次吧', 90, 296, 8, '#ffffff');
+  txt('grrreymane.github.io/Rebirthday', 90, 309, 6.5, '#9fe8ff');
+  const S2 = 4, out = mk(W * S2, H * S2), o = out.getContext('2d'), k0 = K;
+  o.imageSmoothingEnabled = false; o.drawImage(low, 0, 0, W * S2, H * S2);
+  K = S2;
+  for (const t of TQ) { const c = textSprite(t), w_ = c.w - 2 * c.pad; o.globalAlpha = t.alpha; o.drawImage(c.cv, R(t.x * K - c.pad - (t.align === 'center' ? w_ / 2 : t.align === 'right' ? w_ : 0)), R(t.y * K - c.h / 2)); }
+  o.globalAlpha = 1; K = k0; TQ = []; g.clearRect(0, 0, W, H);
+  showShare(out);
+}
+let shareEl = null;
+function showShare(cvs) {
+  const url = cvs.toDataURL('image/png'), name = 'rebirthday-' + META.lives + '.png';
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:10;background:rgba(10,6,24,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;box-sizing:border-box;touch-action:auto;color:#fff;font:15px ' + FONT;
+  const img = document.createElement('img');
+  img.src = url; img.alt = '人生重开物语分享卡';
+  img.style.cssText = 'max-width:100%;max-height:70vh;image-rendering:pixelated;border:3px solid #1b1b2f;border-radius:4px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto';
+  const tip = document.createElement('div'); tip.textContent = '手机上可以长按图片保存'; tip.style.opacity = '.8';
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
+  const btn = (label, bg, fn) => { const b = document.createElement('button'); b.textContent = label; b.style.cssText = 'font:16px ' + FONT + ';color:#fff;background:' + bg + ';border:2px solid #1b1b2f;border-radius:4px;padding:8px 18px;cursor:pointer'; b.onclick = fn; row.appendChild(b); };
+  btn('保存图片', '#48b858', () => { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); });
+  try {
+    cvs.toBlob(blob => {
+      if (!blob || !navigator.canShare) return;
+      const file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) btn('分享给朋友', '#4a88e0', () => { navigator.share({ files: [file], title: '人生重开物语', text: '我这辈子活成了这样，你也来重开一次吧：https://grrreymane.github.io/Rebirthday/' }).catch(() => {}); });
+    });
+  } catch (e) {}
+  btn('关闭', '#8a8a9a', () => { el.remove(); shareEl = null; });
+  el.appendChild(img); el.appendChild(tip); el.appendChild(row);
+  document.body.appendChild(el); shareEl = el;
 }
 const inhList = () => L.tl.filter(id => TAL[id].r !== 4);
 function drawInherit() {
@@ -2571,6 +2627,28 @@ function tapShop(p) {
     META.rp -= cost; META.up[u.id] = lv + 1; saveMeta(); SFX.big(); confetti(20, 44 + i * 48);
   });
 }
+let bookScroll = 0, bookMax = 0;
+function drawBook() {
+  drawVoid();
+  txt('轮回簿', 90, 13, 11, '#ffe14a');
+  panel(4, 24, 172, 268);
+  const clip = [8, 28, 164, 260], rh = 44, list = META.book || [];
+  bookMax = Math.max(0, list.length * rh + 4 - clip[3]); bookScroll = clamp(bookScroll, 0, bookMax);
+  if (!list.length) txt('还没有过往的人生，先去活一次吧', 90, 150, 7.5, '#8a6a4a', 'center', null);
+  g.save(); g.beginPath(); g.rect(clip[0], clip[1], clip[2], clip[3]); g.clip();
+  list.forEach((b, i) => {
+    const y = clip[1] + 2 + i * rh - bookScroll; if (y + rh < clip[1] || y > clip[1] + clip[3]) return;
+    g.fillStyle = OUT; g.fillRect(10, y, 160, rh - 2); g.fillStyle = '#fff4d8'; g.fillRect(11, y + 1, 158, rh - 4);
+    try { const sp = person(b.lk); g.drawImage(sp.img, 11, y + rh - 3 - sp.ay); } catch (e) {}
+    txt('第' + b.n + '世 · 享年' + b.age + '岁', 33, y + 8, 7.5, '#6a3a1a', 'left', null, 1, clip);
+    txt([b.by ? b.by + '年生' : '', b.bp, b.job].filter(Boolean).join(' · '), 33, y + 19, 6.5, '#8a6a4a', 'left', null, 1, clip);
+    txt('「' + b.ep + '」', 33, y + 31, 6, '#a0785a', 'left', null, 1, clip);
+    txt(b.grade, 158, y + 11, b.grade.length > 2 ? 9 : 12, LCOL[b.grade], 'center', OUT, 1, clip);
+    txt(b.title, 167, y + 22, 6, '#6a3a1a', 'right', null, 1, clip);
+  });
+  g.restore();
+  button(BTN.achBack, '返回', { blue: 1 });
+}
 function drawMenu() {
   dim(.6); panel(30, 96, 120, 124);
   txt('暂停', 90, 111, 11, '#4a2c17', 'center', null);
@@ -2593,10 +2671,12 @@ function tapTitle(p) {
     if (inR(p, BTN.tNew2)) { clearRun(); startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch2)) return openAch('title');
     if (inR(p, BTN.tShop2)) { go('shop'); SFX.click(); return; }
+    if (inR(p, BTN.tBook2)) { bookScroll = 0; go('book'); SFX.click(); return; }
   } else {
     if (inR(p, BTN.tNew)) { startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch)) return openAch('title');
     if (inR(p, BTN.tShop)) { go('shop'); SFX.click(); return; }
+    if (inR(p, BTN.tBook)) { bookScroll = 0; go('book'); SFX.click(); return; }
   }
 }
 function tapGacha(p) {
@@ -2648,6 +2728,7 @@ function tapLife(p) {
   if (p.y > SY) nextYear();
 }
 function tapEnd(p) {
+  if (inR(p, BTN.share)) { SFX.select(); makeShare(); return; }
   if (inR(p, BTN.review)) { go('review'); logScroll = 0; SFX.click(); return; }
   if (inR(p, BTN.nextLife)) { inhSel = []; go('inherit'); SFX.click(); }
 }
@@ -2675,13 +2756,15 @@ function onTap(p) {
     case 'inherit': return tapInherit(p);
     case 'ach': if (inR(p, BTN.achBack)) { go(achFrom); SFX.click(); } return;
     case 'shop': return tapShop(p);
+    case 'book': if (inR(p, BTN.achBack)) { go('title'); SFX.click(); } return;
   }
 }
 window.addEventListener('pointerdown', e => {
+  if (shareEl) return;
   e.preventDefault(); initAudio();
   const p = toLogical(e);
-  const area = (state === 'life' || state === 'review') && !menuOpen && inR(p, [LOG.x, LOG.y, LOG.w, LOG.h]) ? 'log' : state === 'ach' && inR(p, [4, 24, 172, 268]) ? 'ach' : null;
-  ptr = { x0: p.x, y0: p.y, moved: false, s0: area === 'ach' ? achScroll : logScroll, area };
+  const area = (state === 'life' || state === 'review') && !menuOpen && inR(p, [LOG.x, LOG.y, LOG.w, LOG.h]) ? 'log' : state === 'ach' && inR(p, [4, 24, 172, 268]) ? 'ach' : state === 'book' && inR(p, [4, 24, 172, 268]) ? 'book' : null;
+  ptr = { x0: p.x, y0: p.y, moved: false, s0: area === 'ach' ? achScroll : area === 'book' ? bookScroll : logScroll, area };
 }, { passive: false });
 window.addEventListener('pointermove', e => {
   if (!ptr) return;
@@ -2689,19 +2772,20 @@ window.addEventListener('pointermove', e => {
   if (Math.abs(dy) > 4 || Math.abs(p.x - ptr.x0) > 4) ptr.moved = true;
   if (ptr.moved && ptr.area === 'log') logScroll = clamp(ptr.s0 + dy, 0, logMax);
   if (ptr.moved && ptr.area === 'ach') achScroll = clamp(ptr.s0 - dy, 0, achMax);
+  if (ptr.moved && ptr.area === 'book') bookScroll = clamp(ptr.s0 - dy, 0, bookMax);
 });
-window.addEventListener('pointerup', e => { if (!ptr) return; const p = toLogical(e), wasTap = !ptr.moved; ptr = null; if (wasTap) onTap(p); });
+window.addEventListener('pointerup', e => { if (!ptr || shareEl) return; const p = toLogical(e), wasTap = !ptr.moved; ptr = null; if (wasTap) onTap(p); });
 window.addEventListener('pointercancel', () => { ptr = null; });
-window.addEventListener('wheel', e => { if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
+window.addEventListener('wheel', e => { if (state === 'book') bookScroll = clamp(bookScroll + e.deltaY * .3, 0, bookMax); else if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
 window.addEventListener('keydown', e => {
   if (e.repeat) return;
   if ((e.key === '1' || e.key === '2') && state === 'life' && L && L.pend && !menuOpen) { choose(+e.key - 1); return; }
   if ((e.key === ' ' || e.key === 'Enter') && state === 'life' && !menuOpen && L && !L.end && !L.pend) { e.preventDefault(); initAudio(); if (banner && banner.t < 1.4) banner.t = 1.4; else nextYear(); }
   if (e.key === 'Escape' && state === 'life') menuOpen = !menuOpen;
 });
-window.addEventListener('contextmenu', e => e.preventDefault());
-['touchstart', 'touchmove', 'touchend'].forEach(ev => window.addEventListener(ev, e => { if (e.cancelable) e.preventDefault(); }, { passive: false }));
-['selectstart', 'dragstart', 'gesturestart'].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+window.addEventListener('contextmenu', e => { if (!shareEl) e.preventDefault(); });
+['touchstart', 'touchmove', 'touchend'].forEach(ev => window.addEventListener(ev, e => { if (!shareEl && e.cancelable) e.preventDefault(); }, { passive: false }));
+['selectstart', 'dragstart', 'gesturestart'].forEach(ev => window.addEventListener(ev, e => { if (!shareEl) e.preventDefault(); }));
 
 // ============================================================ loop
 function update(dt) {
@@ -2733,7 +2817,7 @@ function update(dt) {
   for (const k in hudFlash) { hudFlash[k].t += dt; if (hudFlash[k].t > 1) delete hudFlash[k]; }
 }
 function wantedTrack() {
-  if (state === 'title' || state === 'ach' || state === 'shop') return 'title';
+  if (state === 'title' || state === 'ach' || state === 'shop' || state === 'book') return 'title';
   if (state === 'gacha' || state === 'fate' || state === 'talent' || state === 'alloc') return 'setup';
   if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
   return 'end';
@@ -2753,6 +2837,7 @@ function render() {
     case 'inherit': drawEnd(); flush(); drawInherit(); break;
     case 'ach': drawAch(); break;
     case 'shop': drawShop(); drawParts(); break;
+    case 'book': drawBook(); break;
   }
   flush();
   if (menuOpen) { drawMenu(); flush(); }
