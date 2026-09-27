@@ -2608,29 +2608,70 @@ function talBonus(k) { let b = 0; for (const id of pickTal) { const fx = TAL[id]
 
 // ============================================================ screens
 let TITLE_BG = null;
+// The title street: one walk through life, from the hospital past the school, the office and home to the park.
 function titleBg() {
   if (TITLE_BG) return TITLE_BG;
-  const c = mk(W, H), x = c.getContext('2d');
-  ['#58b4f0', '#68bcf2', '#78c4f4', '#88ccf6', '#98d4f8', '#a8dcfa', '#b8e4fc', '#c8ecfe'].forEach((col, i) => F(x, 0, i * 28, W, 29, col));
-  dsc(x, 148, 138, 13, '#fff6c0'); dsc(x, 148, 138, 10, '#ffe890');
-  cloud(x, 14, 124); cloud(x, 108, 160); cloud(x, 52, 186);
-  x.fillStyle = '#8ad08a'; for (let i = 0; i < W; i++) { const h = 20 + Math.sin(i * .05) * 7 + Math.sin(i * .13) * 3; x.fillRect(i, 216 - h, 1, h); }
-  const hs = [[2, 30, '#e8a06a', '#c8483a'], [36, 26, '#f4e2c4', '#4a70c8'], [66, 34, '#c890c8', '#6a4a8a'], [104, 28, '#90c890', '#c8483a'], [136, 38, '#e8c870', '#3a8a5a']];
-  for (const [a, w, c1, roof] of hs) {
-    const hh = 18 + (a % 3) * 4, top = 216 - hh;
-    for (let i = 0; i < 9; i++) { const rw = R((w + 6) * (i + 1) / 9); F(x, a + w / 2 - rw / 2 - 1, top - 9 + i, rw + 2, 1, OUT); }
-    for (let i = 1; i < 9; i++) { const rw = R((w + 6) * (i + 1) / 9) - 2; F(x, a + w / 2 - rw / 2, top - 9 + i, rw, 1, roof); }
-    box(x, a, top, w, hh, c1); box(x, a + 4, top + 5, 7, 7, '#9fd8ff', '#d8f0ff'); if (w > 28) box(x, a + w - 11, top + 5, 7, 7, '#9fd8ff', '#d8f0ff');
-    box(x, a + (w >> 1) - 3, top + hh - 10, 7, 10, '#8a5a34');
-  }
-  F(x, 0, 216, W, 104, '#6ac05a'); F(x, 0, 216, W, 2, '#4fa04a');
-  F(x, 0, 226, W, 16, '#dccca4'); F(x, 0, 226, W, 1, '#c0ae84'); F(x, 0, 241, W, 1, '#c0ae84');
-  for (let i = 0; i < 40; i++) F(x, (i * 37) % 180, 246 + (i * 23) % 70, 2, 1, ['#8ee07a', '#ff8ab0', '#ffe14a'][i % 3]);
-  tree(x, 12, 226, .8); tree(x, 168, 226, .8, '#3f9a4a');
-  TITLE_BG = c; return c;
+  const skyC = mk(W, H), c = mk(W, H); let x = skyC.getContext('2d');
+  const sky = ['#46a2ea', '#50a9ec', '#5ab0ee', '#65b7f0', '#70bef2', '#7cc5f4', '#88ccf6', '#94d3f8', '#a0d9f9', '#acdffa', '#b8e5fb', '#c4eafc', '#d0effd', '#dcf4fe'];
+  sky.forEach((col, i) => F(x, 0, i * 16, W, 17, col));
+  x.globalAlpha = .25; dsc(x, 160, 24, 18, '#fffbe0'); x.globalAlpha = 1; dsc(x, 160, 24, 12, '#fff6c0'); dsc(x, 160, 24, 9, '#ffe890'); F(x, 155, 19, 3, 2, '#fffbe8');
+  // distant skyline and hills
+  for (let i = 0, k = 0; i < W; k++) { const w = 8 + (k * 7) % 9, h = 14 + (k * 13) % 26; F(x, i, 198 - h, w, h, '#a4c8e6'); for (let yy = 198 - h + 3; yy < 196; yy += 4) for (let xx = i + 2; xx < i + w - 1; xx += 3) F(x, xx, yy, 1, 1, '#c4ddf2'); i += w + 1; }
+  x.fillStyle = '#92d292'; for (let i = 0; i < W; i++) { const h = 14 + Math.sin(i * .06) * 5 + Math.sin(i * .17) * 2; x.fillRect(i, 212 - h, 1, h + 4); }
+  x = c.getContext('2d'); // buildings and ground go on their own layer so clouds can pass behind them
+  const base = 216;
+  // hospital
+  box(x, 2, base - 46, 32, 46, '#f4f6fa', '#ffffff'); F(x, 3, base - 45, 30, 3, '#dfe6ee');
+  box(x, 12, base - 56, 12, 11, '#ffffff'); F(x, 16, base - 54, 4, 7, '#e8453c'); F(x, 14, base - 52, 8, 3, '#e8453c');
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) box(x, 5 + k * 9, base - 40 + r * 10, 7, 6, '#8fd0f4', '#c8ecff');
+  box(x, 12, base - 10, 12, 10, '#9fd8ff', '#d8f0ff'); F(x, 18, base - 9, 1, 9, '#6aa0c8');
+  // school with a clock and a flagpole
+  box(x, 36, base - 36, 34, 36, '#e8906a', '#f4aa84'); for (let yy = base - 30; yy < base; yy += 5) F(x, 37, yy, 32, 1, '#d8805a');
+  x.fillStyle = OUT; for (let i = 0; i < 9; i++) x.fillRect(53 - i * 2, base - 45 + i, 1 + i * 4, 1); x.fillStyle = '#f4f0e0'; for (let i = 1; i < 9; i++) x.fillRect(54 - i * 2, base - 45 + i, i * 4 - 1, 1);
+  odsc(x, 53, base - 40, 3, '#ffffff'); F(x, 53, base - 42, 1, 2, OUT); F(x, 53, base - 40, 2, 1, OUT);
+  for (let k = 0; k < 3; k++) box(x, 39 + k * 11, base - 28, 7, 8, '#9fd8ff', '#d8f0ff');
+  box(x, 49, base - 13, 9, 13, '#8a5a34', '#a8744a');
+  F(x, 71, base - 64, 1, 64, '#9a9aaa'); F(x, 70, base - 65, 3, 2, '#ffd23f');
+  // office tower
+  box(x, 76, base - 80, 28, 80, '#6a9ed6', '#8ab8e6'); F(x, 89, base - 90, 2, 10, '#8a8a9a'); F(x, 88, base - 91, 4, 2, '#e8453c');
+  for (let yy = base - 76; yy < base - 12; yy += 6) for (let xx = 79; xx < 102; xx += 5) F(x, xx, yy, 3, 4, (xx * 3 + yy) % 7 ? '#a8d0f4' : '#d8ecff');
+  F(x, 78, base - 78, 3, 60, '#b8dcf8'); box(x, 84, base - 10, 12, 10, '#26263a'); F(x, 90, base - 9, 1, 9, '#6a6a8a');
+  // home: roof, chimney, flower box and a little fence
+  const hx = 108, hw = 32, hh = 26;
+  box(x, hx + 22, base - hh - 16, 6, 12, '#b8604a');
+  for (let i = 0; i < 11; i++) { const rw = R((hw + 8) * (i + 1) / 11); F(x, hx + hw / 2 - rw / 2 - 1, base - hh - 11 + i, rw + 2, 1, OUT); }
+  for (let i = 1; i < 11; i++) { const rw = R((hw + 8) * (i + 1) / 11) - 2; F(x, hx + hw / 2 - rw / 2, base - hh - 11 + i, rw, 1, i % 3 ? '#d8483a' : '#b8382a'); }
+  box(x, hx, base - hh, hw, hh, '#f6e8cc', '#fff4e0');
+  box(x, hx + 4, base - hh + 5, 9, 8, '#9fd8ff', '#d8f0ff'); F(x, hx + 8, base - hh + 5, 1, 8, '#f6e8cc'); box(x, hx + 3, base - hh + 13, 11, 3, '#8a5a34'); for (let k = 0; k < 4; k++) F(x, hx + 4 + k * 3, base - hh + 11, 2, 2, ['#ff6a8a', '#ffe14a', '#ff6a8a', '#ffffff'][k]);
+  box(x, hx + 19, base - 13, 9, 13, '#5a8ac8', '#7aa8e0'); F(x, hx + 26, base - 7, 1, 1, '#ffd23f');
+  for (let i = hx - 2; i < hx + hw + 4; i += 4) F(x, i, base - 5, 1, 5, '#f4f4f4'); F(x, hx - 2, base - 4, hw + 6, 1, '#f4f4f4');
+  // the park: a pavilion, a bench and a big tree
+  x.fillStyle = OUT; for (let i = 0; i < 7; i++) x.fillRect(150 - i * 2, base - 34 + i, 18 + i * 4, 1); x.fillStyle = '#3a8a6a'; for (let i = 1; i < 7; i++) x.fillRect(151 - i * 2, base - 34 + i, 16 + i * 4, 1);
+  F(x, 140, base - 27, 38, 2, '#2a6a4a'); F(x, 143, base - 25, 2, 25, '#c8283a'); F(x, 173, base - 25, 2, 25, '#c8283a'); F(x, 158, base - 38, 2, 4, '#ffd23f');
+  tree(x, 36, base + 8, .7); tree(x, 106, base + 8, .6, '#3f9a4a');
+  // ground: grass, a paved path and a flowerbed
+  F(x, 0, base, W, 104, '#6ac05a'); F(x, 0, base, W, 2, '#4fa04a'); for (let i = 0; i < 60; i++) F(x, (i * 29) % 180, base + 3 + (i * 7) % 7, 1, 2, '#4fa04a');
+  F(x, 0, 226, W, 16, '#dccca4'); for (let i = 0; i < W; i += 12) { F(x, i, 226, 1, 16, '#c8b690'); F(x, i + 6, 234, 1, 8, '#c8b690'); } F(x, 0, 233, W, 1, '#c8b690'); F(x, 0, 226, W, 1, '#b8a47c'); F(x, 0, 241, W, 1, '#b8a47c');
+  for (const lx of [58, 132]) { F(x, lx, 206, 2, 20, '#3a3a4a'); box(x, lx - 3, 200, 8, 7, '#ffe8a0', '#fff8d0'); }
+  bench(x, 146, 222);
+  for (let i = 0; i < 70; i++) F(x, (i * 37) % 180, 246 + (i * 23) % 70, 2, i % 5 ? 1 : 2, ['#8ee07a', '#ff8ab0', '#ffe14a', '#ffffff'][i % 4]);
+  for (const [bx, by] of [[8, 252], [170, 260], [22, 300], [160, 304]]) { odsc(x, bx, by, 5, '#4fa04a'); dsc(x, bx - 2, by - 2, 2, '#6ac86a'); F(x, bx + 1, by - 3, 1, 1, '#ff6a8a'); }
+  TITLE_BG = { sky: skyC, fg: c }; return TITLE_BG;
+}
+// moving bits of the title street
+function drawTitleSky() {
+  for (const [cx, cy, sp] of [[20, 132, 3], [120, 150, 2], [60, 176, 1.4]]) { const xx = ((cx + T * sp) % 220) - 30; g.globalAlpha = .95; cloud(g, R(xx), cy); g.globalAlpha = 1; }
+  for (let i = 0; i < 3; i++) { const bx = ((T * (9 + i * 2) + i * 70) % 220) - 20, by = 26 + i * 9 + Math.sin(T * 1.3 + i) * 3, f = Math.floor(T * 5 + i) % 2; g.fillStyle = '#2a3a5a'; g.fillRect(R(bx) - 2, R(by) - f, 2, 1); g.fillRect(R(bx), R(by), 1, 1); g.fillRect(R(bx) + 1, R(by) - f, 2, 1); }
+}
+function drawTitleLife() {
+  for (let i = 0; i < 4; i++) { const k = ((T * .6 + i / 4) % 1), sx = 133 + Math.sin(k * 6 + i) * 2 + k * 6, sy = 170 - k * 26; g.globalAlpha = (1 - k) * .7; dsc(g, sx, sy, 1.5 + k * 2.5, '#eef2f8'); } g.globalAlpha = 1;
+  for (let yy = 0; yy < 6; yy++) { const off = R(Math.sin(T * 5 - yy * .7) * 1.2); g.fillStyle = yy % 2 ? '#d8303a' : '#e8453c'; g.fillRect(72, 153 + yy, 11 + off, 1); }
+  g.fillStyle = '#ffe890'; for (let i = 0; i < 4; i++) { if (Math.floor(T * .7 + i * 1.3) % 3) continue; g.fillRect(79 + ((i * 11) % 23), 140 + ((i * 17) % 60), 3, 4); }
 }
 function drawTitle() {
-  g.drawImage(titleBg(), 0, 0);
+  const tb = titleBg();
+  g.drawImage(tb.sky, 0, 0); drawTitleSky(); g.drawImage(tb.fg, 0, 0);
+  drawTitleLife();
   const len = 22, lp = Math.floor(T / len), t = (T % len) / len;
   if (lp !== titleLoop) { titleLoop = lp; titleLook = { g: lp % 2 ? 'f' : 'm', hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; }
   const age = Math.floor(t * 100), x = -12 + t * 204, fl = titleLook;
