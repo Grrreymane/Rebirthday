@@ -901,8 +901,10 @@ CH.gk = { o: [['复读一年', () => { L.f.fudu = 1; return '你咬咬牙，决�
 CH.scout = { o: [['签约出道', () => { L.f.scout = 1; if (L.age >= 18 && (!L.job || L.job === 'office' || L.job === 'none')) { setJob('star'); YR.big = '出道!'; return JOBS.star.t; } return '你签了经纪公司，一边上学一边当练习生。'; }], ['婉拒', () => { addFx({ SPR: 1 }); return '你笑着摆摆手：“我还是想过普通人的生活。”'; }]] };
 CH.confess = { o: [['鼓起勇气表白', () => { if (L.a.CHR + rand(0, 7) >= 9) { L.f.loved = 1; addFx({ SPR: 2 }); YR.em = 'heart'; return '对方红着脸点了点头。那是你这辈子心跳最快的一天。'; } addFx({ SPR: -1 }); YR.em = 'sad'; return '对方说：“你是个好人。”'; }], ['把喜欢藏在心里', () => '很多年以后，你偶尔还会想起那个{opp}。']] };
 CH.layoff = { o: [['去送外卖', () => { setJob('rider'); return '你骑上电动车，成了一名外卖骑手。'; }], ['拿赔偿金创业', () => { setJob('boss'); if (chance(.5)) return '你一咬牙，拿着赔偿金开了一家自己的公司。'; addFx({ MNY: -2 }); return '你一咬牙开了家公司，结果头三个月就把赔偿金亏光了。'; }]] };
-CH.marry = { o: [['结婚！', () => { marry(); addFx({ SPR: 2 }); YR.big = '喜结连理!'; YR.sc = 'wedding'; YR.em = 'heart'; return ['你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }], ['再等等', () => { addFx({ SPR: -1 }); return '你说还没准备好，{ta}有些失落。'; }]] };
-CH.kid = { o: [['要一个', () => { L.f.wantkid = 1; return '你们开始认真备孕。'; }], ['过二人世界', () => { L.f.dink = 1; addFx({ SPR: 1 }); return '你们决定好好享受二人世界，养了一阳台的花。'; }]] };
+CH.marry = { o: [['结婚！', () => { const again = L.f.mar1; marry(); addFx({ SPR: 2 }); YR.big = again ? '再婚!' : '喜结连理!'; YR.sc = 'wedding'; YR.em = 'heart'; return [again ? (L.f.widowed ? '你和{ta}再婚了。你终于又有了一个可以说说话的人。' : '你和{ta}再婚了，这一次你们都更懂得珍惜。') : '你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }], ['再等等', () => { addFx({ SPR: -1 }); return '你说还没准备好，{ta}有些失落。'; }]] };
+CH.nokid = { o: [['去医院调理', () => { if (chance(.55)) { const k = addKid(); YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; YR.sc = 'hosp'; addFx({ SPR: 3 }); return '调理了一年多，你们终于迎来了一个{kid}！'; } L.f.infertile = 1; addFx({ SPR: -2 }); return '医生说希望很渺茫。你们抱头哭了一场，决定顺其自然。'; }],
+  ['领养一个孩子', () => { const k = addKid(); k.born = L.age - ri(2, 5); k.adopted = 1; addFx({ SPR: 3 }); YR.sc = 'home'; return '你们从福利院领养了一个' + (L.age - k.born) + '岁的{kid}，给了{ta}一个家。'.replace('{ta}', k.g === 'm' ? '他' : '她'); }]] };
+CH.kid = { o: [['要一个', () => { L.f.wantkid = 1; L.wantAge = L.age; return '你们开始认真备孕。'; }], ['过二人世界', () => { L.f.dink = 1; addFx({ SPR: 1 }); return '你们决定好好享受二人世界，养了一阳台的花。'; }]] };
 CH.lotto = { o: [['辞职环游世界', () => { if (L.job && L.job !== 'retired') { L.oldJob = L.job; setJob('none'); } addFx({ SPR: 3 }); return '你辞掉了工作，花了三年走遍了全世界。'; }], ['低调存起来', () => { addFx({ MNY: 1 }); return '你谁也没告诉，照常上班，只是偷偷换了个好一点的保温杯。'; }]] };
 CH.house = { o: [['贷款买房', () => { L.f.house = 1; addFx({ SPR: -1 }); return '你咬咬牙买下了它，背上了三十年的房贷。'; }], ['继续租房', () => { addFx({ SPR: 1, MNY: 1 }); return '你决定继续租房，把首付拿去旅游了。'; }]] };
 CH.midlife = { o: [['买辆摩托车', () => { addFx({ SPR: 2 }); return '你买了一辆摩托车，在山路上狂飙，找回了年轻时的感觉。'; }], ['报个画画班', () => { addFx({ SPR: 1, INT: 1 }); return '你报了个油画班，画的第一幅画被家人挂在了客厅正中间。'; }]] };
@@ -1231,10 +1233,11 @@ E('fill_adult', 18, 59, '平淡的一年过去了。', { rep: 1, cd: 1, w: .1, e
 E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地铁上', '朋友的婚礼上', '健身房', '图书馆', '公司楼下']) + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => (L.a.CHR / 4 + .6) * (L.age >= 22 && L.age <= 36 ? 2 : 1), fx: { SPR: 2 }, em: 'heart', sc: 'park', love: 1 });
 E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
-E('marry', 22, 55, () => { YR.ch = 'marry'; return '你和{ta}交往很久了，两家父母都在催婚。'; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
-E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 10, em: 'q', sc: 'home' });
-E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 12 : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
-E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
+E('marry', 22, 60, () => { YR.ch = 'marry'; return L.f.mar1 ? '你和{ta}交往了一段时间，想一起走完下半辈子。要不要再婚？' : (L.par.dad.alive || L.par.mom.alive) ? '你和{ta}交往很久了，两家父母都在催婚。' : '你和{ta}交往很久了，是时候谈婚论嫁了。'; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
+E('kidwait', 25, 60, () => { YR.ch = 'nokid'; return '你们备孕了好几年，一直没有好消息。'; }, { c: () => L.mar && L.f.wantkid && !L.kids.length && !L.f.infertile && L.age - (L.wantAge || L.marAge) >= 3, w: 8, em: 'q', sc: 'home' });
+E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; L.wantAge = L.age; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 10, em: 'q', sc: 'home' });
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 12 : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
 E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
 E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
 E('divorce', 28, 65, () => { const t = '你和{spouse}因为性格不合，离婚了。'; return t; }, { c: () => L.mar, w: () => L.a.SPR <= 3 ? .6 : .07, fx: { SPR: -2 }, do: () => { endLove(); L.f.divorced = 1; }, em: 'sad', sc: 'street' });
@@ -1342,7 +1345,8 @@ E('pt_die', 55, 130, () => (YR.sc = ROUTES[L.path] ? ROUTES[L.path].sc : 'hosp',
   { p: '*', c: () => L.mar && L.pt && L.path !== 'xian' && L.path !== 'isekai', w: () => Math.pow(Math.max(0, L.age - 58) / 14, 2) * .8, fx: { SPR: -3 }, do: losePartner, em: 'sad' });
 E('widow1', 56, 130, '你一个人去了你们年轻时常去的公园，坐了一整个下午。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', fx: { SPR: -1 }, em: 'sad', sc: 'park' });
 E('widow2', 56, 130, '你学会了一个人吃饭，只是总会习惯性地多摆一副碗筷。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', em: 'sad', sc: 'home' });
-E('oldlove', 62, 90, () => { startLove(); marry(); return '你在老年大学遇到了一位老伴，黄昏恋也可以很甜。'; }, { c: canLove, w: .5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
+E('oldlove', 62, 90, () => { const w = L.f.widowed, d = L.f.divorced, first = !L.f.mar1; startLove(); marry(); YR.big = first ? '黄昏恋!' : '再婚!';
+  return w ? '你在老年大学遇到了一位同样丧偶的老人。两个人互相照顾，最后领证再婚了。' : d ? '你在老年大学遇到了一位老伴，两个人决定领证再婚。' : '你在老年大学遇到了一位老伴，六十多岁，第一次结了婚。'; }, { c: canLove, w: .5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
 E('teeth', 70, 110, '你的牙掉得差不多了，吃什么都要打成糊。', { fx: { STR: -1 }, em: 'sad' });
 E('tvnap', 75, 120, '你看着电视就睡着了，一关电视，你又醒了。', { em: 'zzz' });
 E('timetravel', 15, 60, '你一觉醒来穿越到了古代，三天后又穿了回来，只带回一身虱子。', { w: .06, em: 'q' });
@@ -1763,7 +1767,7 @@ function naturalDeath() {
   if (ROUTES[L.path]) return ROUTES[L.path].death();
   if (L.path === 'isekai') return L.f.king ? '你在王座上安详地闭上了眼睛，举国为你哀悼。' : '你在异世界安详地走完了这一生。';
   if (L.mar && L.kids.length) return '你在儿孙们的陪伴下，安详地闭上了眼睛。';
-  if (L.mar) return '你握着{spouse}的手，安详地离开了人世。';
+  if (L.mar) return L.f.widowed || L.f.divorced ? '你握着老伴的手，安详地离开了人世。' : '你握着{spouse}的手，安详地离开了人世。';
   if (L.pet) return '你的{pet}“{pn}”趴在你身边，陪你走完了最后一程。';
   if (L.kids.length) return '你在{kid0}的陪伴下，安详地离开了人世。';
   return '你在睡梦中安详地离开了人世。';
