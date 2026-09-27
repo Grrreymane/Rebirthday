@@ -1887,6 +1887,7 @@ function weight(e) {
   let w = typeof e.w === 'function' ? e.w() : e.w; const g = e._g;
   if (tal('jinli')) w *= g > 0 ? 1.6 : g < 0 ? .6 : 1;
   if (tal('daomei')) w *= g < 0 ? 1.8 : g > 0 ? .8 : 1;
+  if (e.love) w *= clamp(.35 + L.a.CHR * .13, .35, 2.2);
   if (e.love && tal('taohua')) w *= 2.5;
   if (tal('meiyun')) w *= g < 0 ? 2 : g > 0 ? .7 : 1;
   if (e.love && tal('taojue')) w *= .15;
@@ -1905,6 +1906,7 @@ function doEvent(e) {
   const push = t => [].concat(t).forEach(s => { if (s) YR.lines.push(fmt(s)); });
   push(typeof e.t === 'function' ? e.t() : e.t);
   if (e.fx) addFx(e.fx);
+  if (e.em === 'ill' && e.fx && e.fx.STR < 0 && !L.path && L.a.MNY >= 8 && chance(.5)) { addFx({ STR: 1 }, true); YR.lines.push('【家境】你请得起最好的医生，恢复得很快。'); }
   if (e.f) Object.assign(L.f, e.f);
   if (e.u) e.u.forEach(k => delete L.f[k]);
   if (e.do) push(e.do());
@@ -1932,13 +1934,44 @@ function naturalDeath() {
   if (L.kids.length) return '你在{kid0}的陪伴下，安详地离开了人世。';
   return '你在睡梦中安详地离开了人世。';
 }
+// Stats working quietly in the background of an ordinary life: at most one tagged line a year.
+const PAY = { heir: 3, ambassador: 3, star: 3, singer: 2, scientist: 2, doctor: 2, coder: 2, boss: 2, esports: 2, astronaut: 2, civil: 1, teacher: 1, office: 1, athlete: 1, coach: 1, streamer: 1, writer: 1, chef: 1, rider: 0, worker: 0, farmer: 0 };
+function statTick() {
+  if (L.end || L.path || L.age < 1 || YR.skip) return;
+  const a = L.a, age = L.age, working = L.job && L.job !== 'none' && L.job !== 'retired', o = [];
+  const add = (p, fx, t) => { if (p > 0) o.push([p, fx, t]); };
+  if (age >= 6 && age <= 17) {
+    add(a.MNY >= 8 ? .12 : 0, { INT: 1 }, '【家境】家里给你请了最好的家教，还报了三个兴趣班。');
+    add(a.MNY <= 2 ? .1 : 0, { STR: 1 }, L.bp === 'village' ? '【家境】你从小帮家里下地干活，练出了一副好身板。' : '【家境】你从小帮家里干活，练出了一副好身板。');
+    add(a.MNY <= 2 ? .07 : 0, { SPR: -1 }, '【家境】同学们都穿上了新球鞋，只有你还穿着旧的。');
+    add(age >= 12 && a.CHR >= 9 ? .1 : 0, { SPR: 1 }, '【颜值】你的课桌里经常塞满了情书和零食。');
+    add(age >= 10 && a.CHR <= 2 ? .08 : 0, { SPR: -1 }, '【颜值】同学给你起了个难听的外号，你偷偷哭了好几回。');
+  }
+  if (age >= 18) {
+    if (working) {
+      const pay = PAY[L.job] || 0, smart = Math.max(0, a.INT - 6) * .03, mood = clamp((a.SPR - 9) * .012, -.06, .05);
+      add(pay * .045 + smart + mood, { MNY: 1 }, smart >= .075 && chance(.6) ? '【智力】你的专业能力没人比得上，年底拿到了一大笔奖金。' : a.SPR >= 11 && chance(.4) ? '【快乐】你每天干劲十足，老板给你涨了工资。' : '【工作】你升职加薪了，存款又多了一截。');
+      add(a.CHR >= 8 ? .05 : 0, { MNY: 1 }, '【颜值】客户都爱和你打交道，你的业绩一路飘红。');
+    } else if (L.job === 'none') add(.14, { MNY: -1 }, '【家境】没有收入，家底一点一点地被吃空了。');
+    add(.05 + Math.max(0, a.MNY - 7) * .03, { MNY: -1 }, pick(['【家境】房贷、车贷、孩子的学费……今年的开销比挣的还多。', '【家境】日子过得越来越讲究，钱也花得越来越快。', '【家境】家里的老房子要翻修，花掉了一大笔积蓄。']));
+    add(a.INT <= 3 ? .09 : 0, { MNY: -1 }, pick(['【智力】你被一个“高收益理财”忽悠了，血本无归。', '【智力】你听信了保健品推销员的话，花了好几万买了一堆“神药”。', '【智力】你跟风炒股，买在了最高点。']));
+    add(a.MNY <= 1 ? .2 : 0, { SPR: -1 }, '【家境】房租、账单、借款……你常常为钱发愁到半夜。');
+    add(a.MNY <= 1 && age >= 30 ? .08 : 0, { STR: -1 }, '【家境】你舍不得去医院，小病硬生生拖成了大病。');
+    add(a.SPR <= 6 ? (7 - a.SPR) * .04 : 0, { STR: -1 }, a.SPR <= 3 ? '【快乐】你长期闷闷不乐，身体也跟着垮了下来。' : '【快乐】你最近总是提不起精神，一场小感冒拖了一个多月。');
+    add(a.SPR >= 13 ? .08 : 0, { SPR: -1 }, '【快乐】日子久了，再开心的事也慢慢变得平常了。');
+    add(a.SPR >= 11 ? (a.SPR - 10) * .025 : 0, { STR: 1 }, '【快乐】你每天都乐呵呵的，连感冒都很少找上门。');
+    add(age >= 65 && a.MNY >= 10 ? .05 : 0, { STR: 1 }, '【家境】你请了专业的护工和营养师，身子骨比同龄人硬朗得多。');
+  }
+  for (let i = o.length - 1; i > 0; i--) { const j = ri(0, i); [o[i], o[j]] = [o[j], o[i]]; }
+  for (const [p, fx, t] of o) if (chance(p)) { addFx(fx); YR.lines.push(t); return; }
+}
 function deathCheck() {
   if (L.end) return;
   const a = L.age;
   if (L.path === 'xian' && L.xl >= 1) { if (a > xcap()) die(XSD().old); return; }
   if (L.a.STR <= 0) { die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你的身体终于撑不住了，在病床上离开了人世。'); return; }
   if (a < 50) return;
-  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1.2 - L.a.SPR * .025, .8, 1.3); // a happy life is a longer one
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1 + (9 - L.a.SPR) * .04, .75, 1.35) * clamp(1 + (7 - L.a.MNY) * .045, .75, 1.3); // happy and well-off lives are longer ones
   if (chance(.0045 * Math.pow(1.09, a - 50) * m)) die(naturalDeath());
 }
 function runYear() {
@@ -1954,6 +1987,7 @@ function runYear() {
 function finishYear() {
   const entry = L.log[L.log.length - 1];
   if (tal('xitong') && L.age > 0 && L.age % 10 === 0 && !L.end) { const k = pick(STATS); addFx({ [k]: 2 }, true); YR.lines.push('【叮！人生系统到账：' + SNAME[k] + '+2】'); }
+  statTick();
   deathCheck();
   if (!YR.g) { let s = 0; for (const k in YR.d) s += YR.d[k]; YR.g = s > 0 ? 1 : s < 0 ? -1 : 0; }
   if (L.end) YR.g = L.asc ? 2 : -2;
@@ -3194,11 +3228,11 @@ function drawBook() {
   button(BTN.achBack, '返回', { blue: 1 });
 }
 const STAT_HELP = {
-  CHR: '恋爱机会、被星探发掘、明星路线',
-  INT: '考试学历、职业选择、修仙悟性',
+  CHR: '恋爱机会多少、人缘、星探；颜值高工作也更吃香',
+  INT: '考试学历、职业选择；智力越高，每年越容易加薪',
   STR: '寿命长短、生病多少；降到 0 就会死',
-  MNY: '出生环境、住什么房子、富豪路线',
-  SPR: '寿命、婚姻是否稳定、心魔劫；太低会失眠、陷入低谷',
+  MNY: '童年教育、住房、看病条件和寿命；太穷会发愁生病',
+  SPR: '寿命、身体好坏、工作干劲、婚姻稳定；太低会拖垮身体',
 };
 function drawStatInfo() {
   dim(.6); panel(8, 64, 164, 176);
