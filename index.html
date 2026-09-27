@@ -297,6 +297,21 @@ const PETS = {
 };
 const PETIMG = {};
 function petImg(k, alt, f, flip) { const id = k + alt + f + (flip ? 'l' : ''); if (!PETIMG[id]) { const P = PETS[k]; PETIMG[id] = flip ? flipC(petImg(k, alt, f)) : rows(f ? P.b : P.a, alt ? P.alt : P.pal); } return PETIMG[id]; }
+// The nine-tailed fox: the true form of the beast bloodline.
+let FOX = null;
+function foxSpr() {
+  if (FOX) return FOX;
+  const O = '#e8743a', Lt = '#ffb070', Wt = '#fff4e8';
+  const img = paint(32, 26, G => {
+    for (const [tx, ty, rx, ry] of [[5, 11, 3, 7], [8, 8, 3, 7.5], [11, 7, 3, 7], [3, 15, 3, 5.5], [13, 10, 2.6, 6]]) G.ell(tx, ty, rx, ry, (x, y) => y < ty - ry * .45 ? Wt : O);
+    G.ell(17, 17, 8, 5, O); G.ell(18, 19, 5, 2.4, Lt);
+    G.ell(25, 11, 4.6, 4.2, O); G.ell(29, 12.6, 2.4, 1.7, Lt); G.set(31, 12, OUT);
+    G.px([[22, 4], [22, 5], [23, 5], [22, 6], [23, 6], [24, 6], [27, 4], [27, 5], [26, 5], [27, 6], [26, 6], [25, 6]], O); G.px([[23, 6], [26, 6]], '#ffc0b0');
+    G.px([[26, 10], [26, 11]], OUT); G.px([[24, 13], [28, 13]], '#ff9fae');
+    for (const lx of [11, 14, 20, 23]) { G.rect(lx, 20, 2, 4, O); G.rect(lx, 23, 2, 1, '#8a3a1a'); }
+  });
+  FOX = { img, ay: 25 }; return FOX;
+}
 const EMO = {};
 {
   const ic = {
@@ -1295,33 +1310,15 @@ E('cn_board', 15, 17, '整座县城的希望都压在高考上，县一中门口
 E('cn_newyear', 25, 40, '过年回县城，同学聚会上大家都在比谁开的车更好。', { c: BP('county'), em: 'sweat', sc: 'street' });
 E('cn_stay', 22, 40, '你留在了县城，下班就回家吃饭，日子过得悠闲自在。', { c: () => L.bp === 'county' && L.job && ['civil', 'teacher', 'office', 'chef'].includes(L.job), w: 1.5, fx: { SPR: 2 }, em: 'note', sc: 'home' });
 E('ct_classes', 5, 12, '爸妈给你报了奥数、钢琴、英语、编程、游泳五个兴趣班。', { c: BP('city'), w: 1.5, fx: { INT: 1, SPR: -1 }, em: 'sweat', sc: 'class' });
-E('ct_zoo', 3, 8, () => '周末爸妈带你逛了' + (L.city || '城市') + '的动物园和科技馆。', { c: BP('city'), fx: { INT: 1 }, em: 'note', sc: 'park' });
+E('ct_zoo', 3, 8, '周末爸妈带你逛了动物园和科技馆。', { c: BP('city'), fx: { INT: 1 }, em: 'note', sc: 'park' });
 E('ct_commute', 22, 60, '你每天通勤三个小时，人生有一半的时间都在地铁上。', { c: BP('city'), w: 1.2, fx: { SPR: -1 }, em: 'zzz', sc: 'street' });
 E('ct_rent', 22, 35, '你租的房子只有十平米，一转身就能碰到墙。', { c: () => L.bp === 'city' && !L.f.house, em: 'sweat', sc: 'home0' });
 E('ct_school', 30, 46, '为了孩子上学，你咬牙换了一套老破小的学区房。', { c: () => L.bp === 'city' && L.kids.length, w: 1.5, fx: { MNY: -2 }, em: 'coin', sc: 'home1' });
 E('ab_chinese', 6, 12, '每个周末你都被送去中文学校，学写毛笔字，背《三字经》。', { c: BP('abroad'), w: 1.5, fx: { INT: 1 }, em: 'book', sc: 'class' });
 E('ab_kungfu', 8, 16, '同学问你会不会功夫，你只好现场表演了一套广播体操。', { c: BP('abroad'), w: 1.5, em: 'sweat', sc: 'class' });
 E('ab_newyear', 10, 60, '过年的时候，你和国内的亲戚视频拜年，画面卡成了幻灯片。', { c: BP('abroad'), em: 'note', sc: 'home' });
-E('ab_hotpot', 15, 40, () => '你走遍了整个' + (L.city || '城市') + '，只为找一家正宗的火锅店。', { c: BP('abroad'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
+E('ab_hotpot', 15, 40, '你走遍了整座城市，只为找一家正宗的火锅店。', { c: BP('abroad'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
 E('ab_return', 22, 35, '你决定回国发展，爸妈又高兴又舍不得。', { c: BP('abroad'), em: 'heart', sc: 'street' });
-// ---------------- the calendar: events tied to the year you're living in
-const YEAR = () => L.by + L.age, INY = (a, b) => () => L.by && YEAR() >= a && YEAR() <= b;
-E('e_tv', 3, 30, '家里买了第一台彩色电视机，整栋楼的邻居都挤到你家来看。', { c: INY(1980, 1992), w: 2, fx: { SPR: 1 }, em: 'star', sc: 'home' });
-E('e_nes', 5, 15, '你收到了一台红白机，和小伙伴们轮流玩到半夜。', { c: INY(1988, 2000), w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'home' });
-E('e_bp', 18, 40, '你腰上别着一个BP机，走路都带风。', { c: INY(1992, 1999), w: 1.5, fx: { CHR: 1 }, em: 'spark', sc: 'street' });
-E('e_2000', 1, 90, '千禧年到了，全世界都担心电脑会崩溃，结果什么都没发生。', { c: () => L.by && YEAR() === 2000, w: 6, em: 'q' });
-E('e_qq', 10, 35, '你申请了一个QQ号，在聊天室里认识了一群网友。', { c: INY(2000, 2007), w: 1.5, fx: { SPR: 1 }, em: 'note' });
-E('e_olympic', 3, 90, '北京奥运会开幕了，你守在电视机前看完了整场开幕式。', { c: () => L.by && YEAR() === 2008, w: 8, fx: { SPR: 1 }, em: 'star', sc: 'home' });
-E('e_expo', 6, 90, '上海世博会开幕，你排了五个小时的队才进了一个场馆。', { c: () => L.by && YEAR() === 2010, w: 4, em: 'sweat', sc: 'street' });
-E('e_phone', 10, 70, '你用上了人生中第一部智能手机，从此再也放不下了。', { c: INY(2010, 2014), w: 2, fx: { SPR: 1 }, em: 'spark' });
-E('e_2012', 5, 90, '传说2012年是世界末日，你认真地囤了一箱泡面。', { c: () => L.by && YEAR() === 2012, w: 5, em: 'sweat' });
-E('e_scan', 15, 90, '买菜都能扫码付款了，你已经很久没摸过现金。', { c: INY(2015, 2018), w: 1.5, em: 'coin', sc: 'street' });
-E('e_ai', 12, 90, () => '你第一次和AI聊天，它帮你写完了' + (L.age < 22 ? '作业' : '周报') + '。', { c: INY(2023, 2027), w: 2.5, fx: { INT: 1 }, em: 'q' });
-E('e_car', 20, 100, '自动驾驶汽车普及了，你在上班路上睡了一整路。', { c: INY(2035, 2045), w: 1.5, fx: { SPR: 1 }, em: 'zzz', sc: 'street' });
-E('e_mars', 20, 90, '你报名了火星旅游团，在红色的沙丘上拍了一张剪刀手。', { c: () => INY(2045, 2065)() && L.a.MNY >= 7, w: 1.5, fx: { SPR: 2 }, em: 'star', sc: 'space' });
-E('e_robot', 55, 120, '家里来了一个机器人保姆，做的饭比你做的还好吃。', { c: INY(2050, 2090), w: 1.5, fx: { SPR: 1 }, em: 'note', sc: 'home' });
-E('e_holo', 60, 120, '孙辈戴着全息眼镜给你拜年，你伸手去摸，摸了个空。', { c: () => INY(2060, 2110)() && L.f.grandkid, w: 2, em: 'q', sc: 'home' });
-E('e_150', 70, 130, '科学家宣布人类的寿命可以延长到150岁。你觉得自己还能再活一次。', { c: INY(2080, 2120), w: 1.5, fx: { STR: 1 }, em: 'spark' });
 // ---------------- story arcs: a childhood sweetheart, a best friend, a pet's life
 const QM_N = { m: ['阿杰', '小宇', '浩浩', '阿哲', '小北'], f: ['小雨', '小满', '甜甜', '阿晴', '小鹿'] };
 const BRO_N = { m: ['胖子', '猴子', '大壮', '阿飞', '小黑'], f: ['圆圆', '阿琳', '佳佳', '小美', '朵朵'] };
@@ -1354,7 +1351,7 @@ const XSECT = {
       ['你碎丹成婴，修成了元婴，从此可以御剑飞行。', { STR: 3, INT: 1 }, '元婴大成!'], ['你踏入化神境界，成为了名震天下的一代宗师。', { STR: 2, INT: 2 }, '化神!']],
     trib: '九天之上雷云密布，你的天劫来了……', win: '你硬扛下九九八十一道天雷，羽化飞升，位列仙班！', winBig: '羽化飞升!', lose: '你没能扛过最后一道天雷，灰飞烟灭了。',
     old: '你寿元耗尽，在洞府中安详地坐化了。', title: '羽化登仙', ep: '此人已飞升，墓中空无一人',
-    fill: ['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。'] },
+    fill: ['你在洞府中潜心修炼。', '你在云海之上打坐，参悟天道。', '你在后山练剑，剑气惊起了一群仙鹤。', '你给宗门的新弟子们讲了一年的课。', '你去藏经阁整理了一年的典籍。', '你在山门前扫了一年落叶，心境越发平和。'] },
   mo: { sect: '血煞宗', sc: 'mo', fit: 'demon', song: 'mo', who: '魔修', realm: ['凡人', '炼血境', '凝煞境', '魔丹境', '魔婴境', '魔尊'], gap: .6, cap: .8,
     meet: '一个黑袍人拦住了放学回家的你，说你心中有恨，是修魔的好苗子。',
     join: '你瞒着父母，跟着黑袍人去了血煞宗，踏上了魔修之路。', joinBig: '堕入魔道!',
@@ -1362,15 +1359,15 @@ const XSECT = {
       ['你的魔丹化成魔婴，从此能化作一团黑雾来去无踪。', { STR: 3, INT: 1 }, '魔婴出世!'], ['你登上魔尊之位，正道各派闻风丧胆。', { STR: 3, INT: 1 }, '魔尊降世!']],
     trib: '你的心魔劫来了，这一生的遗憾一幕幕在眼前闪过……', win: '你斩灭心魔，以魔证道，破碎虚空而去！', winBig: '以魔证道!', lose: '你没能斩灭心魔，走火入魔而亡。',
     old: '你寿元耗尽，被自己修炼的魔功反噬而亡。', title: '魔道至尊', ep: '魔尊已破碎虚空，这里只剩一件黑袍',
-    fill: ['你在血池里闭关修炼。', '你在魔宫深处参悟魔功，心魔在耳边窃窃私语。', '你站在血月下，吐纳天地煞气。'] },
-  yao: { sect: '万妖山', sc: 'yao', fit: 'yao', song: 'yao', who: '妖修', realm: ['凡胎', '开灵', '化形', '妖丹', '妖王', '妖皇'], gap: 1.2, cap: 1.6,
+    fill: ['你在血池里闭关修炼。', '你在魔宫深处参悟魔功，心魔在耳边窃窃私语。', '你站在血月下，吐纳天地煞气。', '你去人间转了一圈，买了一大堆糖炒栗子回来。', '你教魔宗的小弟子们认字，他们学得比正道弟子还认真。', '你坐在魔宫屋顶上看了一年的星星。'] },
+  yao: { sect: '万妖山', sc: 'yao', fit: 'yao', song: 'yao', who: '妖修', realm: ['凡胎', '觉醒', '妖身', '妖丹', '妖王', '妖皇'], gap: 1.2, cap: 1.6,
     meet: '你在山里迷了路，一只九尾狐拦住了你：“孩子，你身上流着我族的血。”',
     join: '你跟着九尾狐走进了万妖山，头上冒出了一对毛茸茸的耳朵。', joinBig: '血脉觉醒!',
-    up: [null, null, ['你终于能随心所欲地化成人形了，只是尾巴总是藏不住。', { CHR: 1, STR: 2 }, null], ['你在月下吞吐月华，凝结出一颗妖丹！', { STR: 2, INT: 1 }, '妖丹大成!'],
+    up: [null, null, ['你第一次随心所欲地化回了原形——一只火红的狐狸，身后拖着一条蓬松的大尾巴。', { CHR: 1, STR: 2 }, '化回原形!'], ['你在月下吞吐月华，凝结出一颗妖丹！', { STR: 2, INT: 1 }, '妖丹大成!'],
       ['你一声长啸，方圆百里的妖兽全都俯首称臣。', { STR: 3, INT: 1 }, '称霸一方!'], ['你的血脉返祖，成为了统领万妖的妖皇。', { STR: 3, INT: 2 }, '妖皇!']],
-    trib: '雷劫降临，你在漫天雷光中现出了原形……', win: '你渡过天劫，化身上古神兽，遨游九天！', winBig: '化身神兽!', lose: '你没能渡过雷劫，妖丹碎裂而亡。',
+    trib: '雷劫降临，你化回原形，迎向漫天雷光……', win: '你渡过天劫，化身上古神兽，遨游九天！', winBig: '化身神兽!', lose: '你没能渡过雷劫，妖丹碎裂而亡。',
     old: '你寿元耗尽，化作了一座狐狸形状的石像，守护着万妖山。', title: '妖族之皇', ep: '这里曾住着一只大妖，如今它已化身神兽',
-    fill: ['你趴在万妖山顶晒了一整年的月亮。', '你在林子里追着自己的尾巴转圈，悟出了一招新功法。', '你躺在树洞里冬眠，一觉睡到了开春。'] },
+    fill: ['你趴在万妖山顶晒了一整年的月亮。', '你在林子里追着自己的尾巴转圈，悟出了一招新功法。', '你躺在树洞里冬眠，一觉睡到了开春。', '你帮山里的小妖们调解了一年的纠纷。', '你偷偷去人间看了一场庙会。', '你在溪边抓了一年的鱼，越来越像只狐狸了。'] },
 };
 const XB = () => L.xs || 'zheng', XSD = () => XSECT[XB()];
 const XCAP = [100, 150, 250, 500, 1000, 2500], XGAP = [0, 8, 25, 70, 160];
@@ -1385,8 +1382,11 @@ E('xmeet2', 7, 16, xMeet, { m: 1, c: () => tal('xianyuan') && !L.f.xmeet && L.ag
 E('yaowake', 12, 17, () => { L.f.xmeet = 1; L.xs = 'yao'; YR.sc = 'yao'; return '月圆之夜，你头上冒出了一对毛茸茸的狐狸耳朵——你身上的妖族血脉觉醒了！'; }, { m: 1, c: () => tal('yaoxue') && !L.f.xmeet && L.age >= (L.yage || 14), em: 'bang', nx: ['xjoin', 1, 1] });
 E('moinvite', 16, 45, () => { YR.ch = 'moinv'; return '在你人生最失意的时候，一个黑袍人递给你一本魔功秘籍：“想报复这个世界吗？”'; }, { c: () => !L.f.xmeet && L.a.SPR <= 2, w: .03, em: 'bang' });
 E('xjoin', 0, 60, () => { L.xs = L.xs || 'zheng'; L.path = 'xian'; L.xl = 1; L.xlAge = L.age; L.f.sect = 1; L.job = null; YR.sc = XSD().sc; YR.big = XSD().joinBig; return L.age >= 18 && XB() === 'mo' ? '你抛下了过去的一切，投入了血煞宗，踏上了魔修之路。' : XSD().join; }, { sched: 1, c: () => L.f.xmeet, fx: { SPR: 1 }, em: 'star' });
-E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; const u = XSD().up[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= xgap(), w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
-E('xclose', 0, 9999, () => { const n = ri(5, 12) * L.xl; YR.skip = n - 1; return '你闭关修炼，一闭就是' + n + '年。'; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .5, em: 'zzz' });
+E('xup', 0, 9999, () => { L.xl++; L.xlAge = L.age; if (XB() === 'yao' && L.xl === 2) L.foxAt = L.age; const u = XSD().up[L.xl]; addFx(u[1]); if (u[2]) YR.big = u[2]; return u[0]; }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl >= 1 && L.xl < 5 && L.age - L.xlAge >= xgap(), w: () => .12 + L.a.INT * .012 + L.a.STR * .008, em: 'spark' });
+E('xclose', 0, 9999, () => { const n = ri(8, 16) * L.xl; YR.skip = n - 1; return pick({
+  zheng: ['你闭关修炼，一闭就是' + n + '年。', '你在洞府里枯坐了' + n + '年，洞口长满了青苔。', '你闭关' + n + '年，出关时山下已经换了一个朝代。'],
+  mo: ['你在血池深处闭关了' + n + '年。', '你闭关' + n + '年参悟魔功，出关时满头黑发变成了银白。', '你把自己封进魔宫地底，一睡就是' + n + '年。'],
+  yao: ['你化回原形，在树洞里一睡就是' + n + '年。', '你在万妖山深处吐纳了' + n + '年月华。', '你闭关' + n + '年，出来时发现洞口住进了一窝兔子。'] }[XB()]); }, { p: 'xian', rep: 1, cd: 2, c: () => L.xl >= 2 && L.age - L.xlAge >= 2, w: .25, em: 'zzz' });
 E('xbook', 0, 9999, () => XB() === 'yao' ? '你在山洞深处找到一块刻满妖文的石碑，修为大涨。' : '你在藏经阁的角落里翻到一本落满灰的秘籍，修为大涨。', { p: 'xian', fx: { INT: 2 }, em: 'book' });
 E('xherb', 0, 9999, '你在秘境里找到一株千年灵芝，吃下去后浑身发烫。', { p: 'xian', fx: { STR: 2 }, em: 'spark' });
 E('xdisciple', 0, 9999, () => XB() === 'yao' ? '你收养了一窝失去父母的小狐狸，教它们修炼。' : '你收了一个天资聪颖的徒弟，把毕生所学倾囊相授。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
@@ -1400,9 +1400,9 @@ E('xdown', 120, 9999, '你下山游历，发现山下已经过了一百年，你
 E('xboom', 0, 9999, '你炼丹时炸了炉，眉毛被烧得一根不剩。', { p: 'xian', c: () => XB() !== 'yao', fx: { CHR: -1 }, em: 'sweat' });
 E('xsword', 0, 9999, () => ({ zheng: '你御剑飞行时没看路，一头撞进了一群大雁里。', mo: '你化作黑雾赶路时迷了路，飘进了一户人家的烟囱里。', yao: '你现出原形在云上打盹，被山下的凡人当成了祥云，还有人对着你许愿。' })[XB()], { p: 'xian', c: () => L.xl >= 4, em: 'sweat' });
 E('xhead', 0, 9999, () => ({ zheng: '你被推举为青云宗掌门。', mo: '你杀了老宗主，坐上了血煞宗宗主的位子。', yao: '群妖推举你为万妖山之主。' })[XB()], { p: 'xian', c: () => L.xl >= 4, fx: { SPR: 2, MNY: 2 }, em: 'star', big: () => XB() === 'yao' ? '万妖之主!' : '一派之主!' });
-E('xtrib', 0, 9999, () => { YR.ch = 'trib'; return XSD().trib;
+E('xtrib', 0, 9999, () => { YR.ch = 'trib'; if (XB() === 'yao') L.foxAt = L.age; return XSD().trib;
 }, { p: 'xian', rep: 1, cd: 1, c: () => L.xl === 5 && L.age - L.xlAge >= 40 * XSD().gap, w: .6, em: 'bang' });
-E('xfill', 0, 9999, () => pick(XSD().fill), { p: 'xian', rep: 1, cd: 1, w: .5, em: 'zzz' });
+E('xfill', 0, 9999, () => pick(XSD().fill), { p: 'xian', rep: 1, cd: 2, w: .18, em: 'zzz' });
 // the demon sect
 const MO = () => XB() === 'mo', YAO = () => XB() === 'yao';
 E('mo_pool', 0, 9999, '你在血池里泡了七七四十九天，出来时浑身散发着一股铁锈味。', { p: 'xian', c: MO, fx: { STR: 2, CHR: -1 }, em: 'sweat' });
@@ -1412,9 +1412,9 @@ E('mo_save', 0, 9999, '你救下了一个被正道追杀的孩子，心里的魔
 E('mo_traitor', 0, 9999, '你的师兄背叛了宗门，你亲手清理了门户。', { p: 'xian', c: () => MO() && L.xl >= 2, fx: { STR: 1, SPR: -1 }, em: 'anger' });
 E('mo_turn', 0, 9999, '青云宗的掌门亲自来劝你回头是岸。你把他请进来喝了杯茶，又客客气气地送走了。', { p: 'xian', c: () => MO() && L.xl >= 3, fx: { SPR: 1 }, em: 'note' });
 // the demon beasts
-E('yao_tail', 0, 9999, '你长出了第二条尾巴，走路总是被自己绊倒。', { p: 'xian', c: YAO, fx: { STR: 1 }, em: 'sweat' });
-E('yao_moon', 0, 9999, '每逢月圆之夜，你都忍不住对着月亮嚎两嗓子，吵得全山都睡不着。', { p: 'xian', c: YAO, em: 'note' });
-E('yao_town', 0, 9999, '你化成人形去镇上买糖葫芦，尾巴从衣服底下露了出来，吓跑了半条街。', { p: 'xian', c: () => YAO() && L.xl >= 2, em: 'sweat', sc: 'street' });
+E('yao_tail', 0, 9999, () => { L.foxAt = L.age; return '你化回原形时发现，身后多了第二条尾巴，走路总被自己绊倒。'; }, { p: 'xian', c: () => YAO() && L.xl >= 2 && L.age > L.xlAge, fx: { STR: 1 }, em: 'sweat' });
+E('yao_moon', 0, 9999, () => { L.foxAt = L.age; return '月圆之夜，你忍不住化回原形，对着月亮长啸了一整晚，吵得全山都睡不着。'; }, { p: 'xian', c: () => YAO() && L.xl >= 2, em: 'note' });
+E('yao_town', 0, 9999, '你去镇上买糖葫芦，一激动尾巴从衣服底下冒了出来，吓跑了半条街。', { p: 'xian', c: () => YAO() && L.xl >= 2, em: 'sweat', sc: 'street' });
 E('yao_hunter', 0, 9999, '一个猎妖师盯上了你，你们打了三天三夜，最后成了朋友。', { p: 'xian', c: YAO, fx: { SPR: 1 }, em: 'heart' });
 E('yao_fruit', 0, 9999, '你偷吃了山神供桌上的仙桃，被追着骂了三座山。', { p: 'xian', c: YAO, fx: { STR: 1 }, em: 'bang' });
 E('yao_human', 0, 9999, '你救了一个在山里迷路的小孩，把他送回了家。小孩说：“谢谢狐狸姐姐。”', { p: 'xian', c: () => YAO() && L.g === 'f', fx: { SPR: 2 }, em: 'heart' });
@@ -1491,7 +1491,7 @@ E('gu_miss', 0, 999, '你常常想念手机、外卖和奶茶，尤其是奶茶�
 E('gu_war', 0, 999, '边关告急，你带兵出征，大胜而归。', Object.assign({ c: () => L.a.STR >= 8, fx: { STR: 1, SPR: 1 }, em: 'star' }, GU));
 E('gu_round', 0, 999, '你随口说了一句“地球是圆的”，被当成妖人关进大牢三个月。', Object.assign({ w: .5, fx: { SPR: -2 }, em: 'anger' }, GU));
 E('gu_back', 0, 999, () => { L.path = null; L.f.guback = 1; L.f.nouni = 1; endLove(); L.kids = []; YR.sc = 'street'; return ['你又碰到了那面青铜镜……', '醒来时你回到了现代的博物馆里，手机上的时间只过去了一秒。']; }, Object.assign({ c: () => L.age < 55, w: .002, em: 'q' }, GU));
-E('gu_fill', 0, 999, () => pick(['你在后花园里赏了一年的花。', '你在茶楼里听了一年的评书。', '你在书房里练了一年的毛笔字。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'note' }, GU));
+E('gu_fill', 0, 999, () => pick(['你在后花园里赏了一年的花。', '你在茶楼里听了一年的评书。', '你在书房里练了一年的毛笔字。', '你去城外的寺庙里住了一段日子。', '你在集市上闲逛，看了一年的人间烟火。']), Object.assign({ rep: 1, cd: 2, w: .2, em: 'note' }, GU));
 // the zombie apocalypse
 E('zb_go', 18, 60, () => { enterRoute('zb'); L.zbAge = L.age; return ['新闻里说一种怪病正在全球蔓延。', '第二天醒来，街上到处都是摇摇晃晃的丧尸……']; }, { w: () => tal('mori') ? 2 : .002, em: 'bang', big: '末日降临!' });
 const ZB = { p: 'zb' };
@@ -1538,6 +1538,53 @@ E('pi_wed', 0, 999, () => { marry(); return '你们在船头举行了婚礼，�
 E('pi_king', 0, 999, '你统一了七大洋的海盗，成为了海贼王！', Object.assign({ c: () => L.f.captain && L.f.treasure && L.f.kraken && L.a.MNY >= 9, w: .6, fx: { MNY: 3, SPR: 3 }, f: { pirateking: 1 }, em: 'star', big: '海贼王!' }, PI));
 E('pi_island', 55, 999, '你老了，在一座小岛上盖了间木屋，每天坐在门口看大海。', Object.assign({ fx: { SPR: 2 }, em: 'heart', sc: 'park' }, PI));
 E('pi_fill', 0, 999, () => pick(['你在海上漂了一年，看了数不清的日落。', '你在港口酒馆里讲了一年的冒险故事。', '你们遇上了一场风暴，全船人死里逃生。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'note' }, PI));
+// ---------------- more for the cultivation branches
+const XB3 = (z, m, y) => () => ({ zheng: z, mo: m, yao: y })[XB()];
+E('x_tourney', 0, 9999, XB3('宗门大比上，你一路过关斩将，拿下了第一名。', '魔宗的生死擂台上，你连胜了十场。', '万妖山的比武大会上，你一尾巴把熊妖扫下了擂台。'), { p: 'xian', c: () => L.xl >= 2, fx: { STR: 1, SPR: 1 }, em: 'star' });
+E('x_realm', 0, 9999, '你闯进一处上古秘境，九死一生，带回了一件法宝。', { p: 'xian', c: () => L.xl >= 2, fx: { INT: 1, STR: 1 }, em: 'spark' });
+E('x_forge', 0, 9999, XB3('你用天外陨铁炼出了一把本命飞剑，剑鸣三日不绝。', '你用万年寒铁炼出了一柄魔刀，刀身上缠着黑气。', '你拔下一根自己的尾巴毛，炼成了一件护身法衣。'), { p: 'xian', c: () => L.xl >= 3, fx: { STR: 1 }, em: 'spark' });
+E('x_demonheart', 0, 9999, XB3('你遇上了心魔，在幻境里又把凡人的一生过了一遍。', '心魔在幻境里扮成了你的父母，劝你回头是岸。', '心魔化作一群猎人，在幻境里追了你整整三天。'), { p: 'xian', c: () => L.xl >= 3, fx: { INT: 1, SPR: -1 }, em: 'q' });
+E('x_help', 0, 9999, XB3('山下的村子闹妖怪，你出手把它降服了。', '一伙山贼抢劫村子，你顺手把他们全收拾了，村民吓得直磕头。', '猎户们要放火烧山，你化作一场大雨浇灭了火。'), { p: 'xian', c: () => L.xl >= 2, fx: { SPR: 2 }, em: 'heart', sc: 'street' });
+E('x_school', 80, 9999, '你下山路过当年的小学，操场上换成了一群陌生的孩子。', { p: 'xian', fx: { SPR: -1 }, em: 'sad', sc: 'class' });
+E('x_alone', 200, 9999, '当年和你一起入门的人，大多已经坐化了，只剩下你一个。', { p: 'xian', fx: { SPR: -2 }, em: 'sad' });
+E('x_student2', 0, 9999, '你的徒弟也结成了金丹，你比自己突破的时候还高兴。', { p: 'xian', c: () => used('xdisciple'), fx: { SPR: 2 }, em: 'heart' });
+E('x_war', 0, 9999, XB3('正邪大战爆发，你率领正道各派击退了魔道联军。', '正邪大战爆发，你率领魔道联军一路杀上了昆仑山。', '人妖两族开战，你站出来主持和谈，换来了百年太平。'), { p: 'xian', c: () => L.xl >= 4, fx: { STR: 1, SPR: 1 }, em: 'star', big: XB3('正道之光!', '魔威震天!', '人妖和谈!') });
+E('x_manual', 0, 9999, '你把一生所悟写成了一部功法，流传后世。', { p: 'xian', c: () => L.xl >= 4, fx: { INT: 2 }, em: 'book' });
+E('x_partner', 0, 9999, '你的道侣先你一步渡劫飞升了。临走前，{ta}说会在天上等你。', { p: 'xian', c: () => L.mar && L.xl >= 4, fx: { SPR: -1 }, em: 'sad' });
+E('x_remnant', 0, 9999, '你在一处古战场上感应到了上古大能的残念，得了一丝指点。', { p: 'xian', c: () => L.xl >= 5, fx: { INT: 2 }, em: 'spark' });
+E('x_farewell', 0, 9999, '飞升之前，你回到故乡，在父母的坟前坐了一整天。', { p: 'xian', c: () => L.xl >= 5, w: 1.5, fx: { SPR: 1 }, em: 'sad', sc: 'grave' });
+E('x_stars', 300, 9999, '你已经活了好几百年，望着星空时，常常分不清过去和现在。', { p: 'xian', em: 'q' });
+E('x_tea', 0, 9999, XB3('你在云海边煮了一壶茶，和路过的仙鹤聊了一下午。', '你在魔宫里开了一间茶室，结果魔修们都爱来喝。', '你用晨露泡了一壶花茶，山里的小妖们排着队来讨。'), { p: 'xian', fx: { SPR: 1 }, em: 'note' });
+E('mo_rival', 0, 9999, '青云宗的一位天才一直追杀你，你们打着打着，竟然惺惺相惜起来。', { p: 'xian', c: () => MO() && L.xl >= 2, fx: { SPR: 1 }, em: 'q' });
+E('mo_heal', 0, 9999, '你用魔功治好了一个凡人小女孩的病，她送了你一朵小花。', { p: 'xian', c: MO, fx: { SPR: 2 }, em: 'heart', sc: 'street' });
+E('mo_inn', 0, 9999, '你在人间开了一家“黑店”，其实只卖正经的酒。', { p: 'xian', c: MO, fx: { MNY: 1 }, em: 'coin', sc: 'shop' });
+E('yao_charm', 0, 9999, '狐族长老教你魅惑之术，你学会以后，只用它来讨价还价。', { p: 'xian', c: YAO, fx: { CHR: 1 }, em: 'spark' });
+E('yao_rain', 0, 9999, '你学会了呼风唤雨，偷偷给旱了三年的村子下了一场雨。', { p: 'xian', c: () => YAO() && L.xl >= 2, fx: { SPR: 2 }, em: 'heart', sc: 'farm' });
+E('yao_nine', 0, 9999, () => { L.foxAt = L.age; return '你化回原形，身后长出了第九条尾巴，成了一只真正的九尾狐。'; }, { p: 'xian', c: () => YAO() && L.xl >= 4 && used('yao_tail'), w: 1.5, fx: { STR: 2 }, em: 'spark', big: '九尾!' });
+E('yao_nap', 0, 9999, () => { L.foxAt = L.age; return '你化回原形，蜷在山顶的石头上晒了一下午太阳。'; }, { p: 'xian', c: () => YAO() && L.xl >= 2, fx: { SPR: 1 }, em: 'zzz' });
+E('yao_kids', 0, 9999, '山下的孩子们发现了你的尾巴，你只好陪他们玩了一下午捉迷藏。', { p: 'xian', c: YAO, fx: { SPR: 1 }, em: 'note', sc: 'park' });
+// ---------------- more for the ancient route, especially old age
+E('gu_milktea', 0, 999, '你把珍珠奶茶带到了古代，京城的小姐公子们天天排队。', { p: 'gu', c: () => L.f.gushop, fx: { MNY: 2 }, em: 'coin', sc: 'shop' });
+E('gu_plague', 0, 999, '城里闹瘟疫，你教大家勤洗手、喝开水、隔离病人，救下了很多人。', { p: 'gu', fx: { SPR: 2 }, em: 'heart', sc: 'street' });
+E('gu_textbook', 0, 999, '你“写”的诗被收进了私塾的课本，你心虚了好几天。', { p: 'gu', c: () => L.f.gupoet, em: 'sweat', sc: 'class' });
+E('gu_royal', 0, 999, () => L.g === 'm' ? '皇上要把公主许配给你，你吓得连夜称病。' : '皇上要把你许给一位王爷，你吓得连夜称病。', { p: 'gu', c: () => !L.mar && L.a.CHR >= 7, em: 'sweat' });
+E('gu_court', 0, 999, '朝堂上两派斗得你死我活，你靠着看过的宫斗剧，一次次化险为夷。', { p: 'gu', c: () => L.f.guan, fx: { INT: 1 }, em: 'sweat' });
+E('gu_exile', 0, 999, '你因为直言进谏被贬到了岭南，每天吃三百颗荔枝，倒也乐在其中。', { p: 'gu', c: () => L.f.guan, w: .6, fx: { SPR: 1 }, em: 'note', sc: 'farm' });
+E('gu_steam', 0, 999, '你想造一台蒸汽机，结果把工坊炸上了天。', { p: 'gu', em: 'bang' });
+E('gu_numbers', 0, 999, '你教孩子们写阿拉伯数字，私塾先生气得吹胡子瞪眼。', { p: 'gu', c: () => L.kids.length, fx: { INT: 1 }, em: 'sweat', sc: 'class' });
+E('gu_lantern', 0, 999, '元宵灯会上，你猜中了所有的灯谜，抱回了一大堆花灯。', { p: 'gu', fx: { SPR: 1 }, em: 'star', sc: 'street' });
+E('gu_trip', 0, 999, '你游遍了大江南北，看到了课本里的名胜古迹，只是它们都还很新。', { p: 'gu', fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('gu_prophet', 0, 999, '你凭着对历史的了解，提前预言了一场大水，全城百姓都躲过了一劫。', { p: 'gu', c: () => L.a.INT >= 8, fx: { SPR: 2 }, em: 'star', big: '料事如神!' });
+E('gu_retire', 55, 999, '你告老还乡，在老家修了一座园子，每天种花喝茶。', { p: 'gu', c: () => L.f.guan && !L.f.emperor, w: 2, fx: { SPR: 2 }, f: { guretire: 1 }, em: 'note', sc: 'park' });
+E('gu_grandson', 55, 999, '你的孙子考中了秀才，你笑得合不拢嘴。', { p: 'gu', c: () => L.kids.length, w: 1.5, fx: { SPR: 2 }, em: 'heart' });
+E('gu_notes', 60, 999, '你写下了一本《穿越笔记》，藏进了老宅的墙缝里，希望几百年后有人能找到。', { p: 'gu', fx: { SPR: 1 }, em: 'book' });
+E('gu_dream', 60, 999, '你梦见自己回到了现代，醒来的时候，枕头湿了一片。', { p: 'gu', fx: { SPR: -1 }, em: 'sad' });
+E('gu_seventy', 70, 999, '你七十大寿，满城的人都来祝寿。你偷偷给大家唱了一首《生日快乐》。', { p: 'gu', w: 2, fx: { SPR: 2 }, em: 'star', big: '七十大寿!' });
+E('gu_friend', 65, 999, '当年一起赶考的老友走了，你在他坟前摆了一杯奶茶。', { p: 'gu', fx: { SPR: -1 }, em: 'sad', sc: 'grave' });
+E('gu_chili', 58, 999, '你在园子里种活了一株辣椒——这可是还没传进中原的稀罕物。', { p: 'gu', fx: { SPR: 1 }, em: 'spark', sc: 'farm' });
+E('gu_gomoku', 55, 999, '你教村里的老人们下五子棋，他们都说这比围棋简单多了。', { p: 'gu', fx: { SPR: 1 }, em: 'note', sc: 'park' });
+E('gu_story', 60, 999, '你在茶馆里讲“千年以后的世界”，听众都以为你在讲神话。', { p: 'gu', fx: { SPR: 1 }, em: 'note', sc: 'shop' });
+E('gu_emperorold', 55, 999, '你当皇帝的这些年，推行了简体字和九年义务教育。', { p: 'gu', c: () => L.f.emperor, w: 2, fx: { INT: 1, SPR: 2 }, em: 'star' });
 // ---------------- aliens
 E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
 E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
@@ -1557,19 +1604,16 @@ function newLife(tids, pts) {
     end: false, asc: false, grade: null,
   };
   L.kl = META.last ? JSON.parse(JSON.stringify(META.last)) : null;
-  L.by = ri(1975, 2012);
   { const m = L.a.MNY + (TAL.shoufu && tids.includes('shoufu') ? 9 : 0), w = m <= 2 ? [.7, .3, 0, 0] : m <= 5 ? [.25, .45, .3, 0] : m <= 8 ? [0, .25, .7, .05] : [0, 0, .7, .3];
     let r = Math.random(), i = 0; for (; i < 3; i++) { if (r < w[i]) break; r -= w[i]; } L.bp = ['village', 'county', 'city', 'abroad'][i]; }
   for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
   if (tal('jinshi')) L.f.glasses = 1;
   for (const k of STATS) L.mx[k] = L.a[k];
 }
-const CITIES = ['北京', '上海', '广州', '深圳', '成都', '杭州', '武汉', '西安'], ABROAD = ['纽约', '伦敦', '东京', '温哥华', '悉尼', '巴黎'];
 function birth() {
   const m = L.a.MNY, ln = YR.lines;
-  L.city = L.bp === 'city' ? pick(CITIES) : L.bp === 'abroad' ? pick(ABROAD) : null;
-  const place = { village: '一个小山村', county: '一座小县城', city: L.city, abroad: L.city + '的一个华人家庭' }[L.bp || 'city'] || '一座城市';
-  ln.push((L.by ? L.by + '年，' : '') + '你出生在' + place + '，是个{sex}。');
+  const place = { village: '一个小山村', county: '一座小县城', city: '一座大城市', abroad: '海外的一个华人家庭' }[L.bp || 'city'] || '一座城市';
+  ln.push('你出生在' + place + '，是个{sex}。');
   if (tal('shoufu')) ln.push('你的父亲是全国首富，产房外站满了保镖。');
   else if (m >= 10) ln.push('家里是当地的豪门，你还没睁眼就有了自己的保姆和管家。');
   else if (m >= 7) ln.push('家里很有钱。');
@@ -1670,6 +1714,7 @@ function finishYear() {
   if (!YR.g) { let s = 0; for (const k in YR.d) s += YR.d[k]; YR.g = s > 0 ? 1 : s < 0 ? -1 : 0; }
   if (L.end) YR.g = L.asc ? 2 : -2;
   entry.g = YR.g;
+  if (YR.big) entry.big = 1;
   if (YR.big) (L.hl = L.hl || []).push({ a: L.age, s: YR.big.replace(/!$/, '') });
   if (YR.skip && !L.end) L.age += YR.skip;
   return YR;
@@ -1815,7 +1860,7 @@ function finishLife() {
   META.last = { pet: L.lastPet || null, pt: L.pt && L.mar ? { g: L.pt.g, hair: L.pt.hair, top: L.pt.top, bot: L.pt.bot, skirt: L.pt.skirt, fit: L.pt.fit, ears: L.pt.ears } : null,
     age: L.age, job: j && JOBS[j] && j !== 'retired' && j !== 'none' ? JOBS[j].n : null, ep: L.ep || (L.ep = epitaph()), young: L.age < 30 && !L.asc, rich: !!(L.f.richest || L.f.lotto || L.a.MNY >= 12), asc: L.asc };
   const e0 = L.end; L.end = false; const lk = meLook(0, 0); L.end = e0; Object.assign(lk, { mood: 'h', blink: 0, fr: 0 });
-  META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : ROUTES[L.path] ? ROUTES[L.path].label() : META.last.job, by: L.by, bp: L.city || { village: '山村', county: '县城' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
+  META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : ROUTES[L.path] ? ROUTES[L.path].label() : META.last.job, by: L.by, bp: { village: '山村', county: '县城', city: '城市', abroad: '海外' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
   saveMeta(); clearRun();
 }
 function rarityOdds() {
@@ -2315,7 +2360,8 @@ function drawActor(a, oy) {
     g.drawImage(img, R(a.x - img.width / 2), R(oy + a.y - img.height + 1 - hop)); return;
   }
   const fr = a.mv ? (Math.floor(T * 5) % 2 ? 1 : 2) : 0, blink = ((T + a.x * .37) % 3.4) < .13;
-  const s = person(lookOf(a, fr, blink));
+  const fox = a.k === 'me' && L.path === 'xian' && XB() === 'yao' && (L.foxAt === L.age || (L.end && L.asc));
+  const s = fox ? foxSpr() : person(lookOf(a, fr, blink)), hw = s.img.width / 2;
   let y = oy + a.y - s.ay;
   if (a.k === 'me' && L.end) {
     const rise = L.asc ? endT * 14 : Math.min(18, endT * 10);
@@ -2323,7 +2369,7 @@ function drawActor(a, oy) {
     if (L.asc) { g.globalAlpha = .35 + .15 * Math.sin(T * 4); dsc(g, a.x, y + 16, 14, '#fff3a0'); g.globalAlpha = 1; }
     else g.globalAlpha = .82;
   }
-  g.drawImage(s.img, R(a.x - 10), R(y));
+  g.drawImage(s.img, R(a.x - hw), R(y));
   g.globalAlpha = 1;
   if (a.k === 'me') {
     const baby = s.img && L.age <= 1 && !L.path;
@@ -2415,7 +2461,6 @@ function drawHUD() {
   box(g, 3, 2 - bump, 38, 14, '#ffd23f', '#fff08a', '#c89a10');
   txt(L.age + '岁', 22, 8.5 - bump, L.age >= 1000 ? 7 : 9, '#4a2c17', 'center', null);
   txt(stageLabel(), 46, 9, 7, '#dfe6ff', 'left');
-  if (L.by && L.path !== 'isekai' && L.path !== 'gu') txt((L.by + L.age) + '年', 146, 9, 6, '#a8a0d8', 'right');
   g.drawImage(I.menu, 151, 4); g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
   STATS.forEach((k, i) => {
     const x = 3 + i * 35, y = 17;
@@ -2444,10 +2489,11 @@ function drawLog() {
     const e = ents[i], l = lays[i];
     if (y + l.h >= LOG.iy && y <= LOG.iy + LOG.ih) {
       const last = i === ents.length - 1, al = last && state === 'life' ? clamp(yearT * 6, 0, 1) : 1;
-      if (last) { g.fillStyle = e.g === -2 ? '#f6cfc4' : e.g === 2 ? '#fff0a8' : '#fff8d8'; g.fillRect(LOG.ix, y - 1, LOG.iw, l.h - 1); }
+      if (e.big) { g.fillStyle = last ? '#ffe28a' : '#fbe7a8'; g.fillRect(LOG.ix, y - 1, LOG.iw, l.h - 1); g.fillStyle = '#e8a020'; g.fillRect(LOG.ix + LOG.iw - 3, y - 1, 3, l.h - 1); }
+      else if (last) { g.fillStyle = e.g === -2 ? '#f6cfc4' : e.g === 2 ? '#fff0a8' : '#fff8d8'; g.fillRect(LOG.ix, y - 1, LOG.iw, l.h - 1); }
       g.fillStyle = OUT; g.fillRect(LOG.ix + 1, y, BW - 2, 9); g.fillStyle = ageCol(e.a); g.fillRect(LOG.ix + 2, y + 1, BW - 4, 7);
       txt(e.a + '岁', LOG.ix + BW / 2, y + 4.6, e.a >= 1000 ? 5 : 6, '#ffffff', 'center', null, 1, clip);
-      const col = e.g === -2 ? '#a0201a' : e.g === 2 ? '#a86a00' : e.g > 0 ? '#2a7a3a' : e.g < 0 ? '#b0402a' : '#4a2c17';
+      const col = e.g === -2 ? '#a0201a' : e.g === 2 || e.big ? '#9a5a00' : e.g > 0 ? '#2a7a3a' : e.g < 0 ? '#b0402a' : '#4a2c17';
       l.lines.forEach((s, j) => txt(s, LOG.ix + BW + 1, y + 4.6 + j * LH, LSZ, col, 'left', null, al, clip));
     }
     y += l.h;
@@ -2674,11 +2720,11 @@ function drawEnd() {
 }
 function drawTomb(oy, st) {
   g.drawImage(L.asc ? SCN[ascSc()].bg : SCN.grave.bg, 0, oy);
-  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? ascFit() : 'ghost', mood: 'z', cane: 0, fr: 0 }));
+  const ghost = L.asc && L.path === 'xian' && XB() === 'yao' ? foxSpr() : person(Object.assign(meLook(0, 0), { fit: L.asc ? ascFit() : 'ghost', mood: 'z', cane: 0, fr: 0 }));
   if (L.asc) {
     const y = oy + 70 - Math.min(40, st * 8) + Math.sin(T * 2) * 2;
     g.globalAlpha = .3 + .1 * Math.sin(T * 4); for (let r = 26; r > 8; r -= 6) dsc(g, 90, y + 14, r, '#fff3a0'); g.globalAlpha = 1;
-    g.drawImage(ghost.img, 80, R(y));
+    g.drawImage(ghost.img, R(90 - ghost.img.width / 2), R(y));
   } else {
     const ty = oy + 50;
     dsc(g, 90, ty + 14, 16, OUT); g.fillStyle = OUT; g.fillRect(74, ty + 14, 32, 34);
