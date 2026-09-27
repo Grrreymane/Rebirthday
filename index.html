@@ -123,6 +123,12 @@ const FITS = {
   robe: { top: '#eaf4ff', bot: '#eaf4ff', dress: 1, band: '#4a90d9', wide: 1 },
   demon: { top: '#2e1e34', bot: '#2e1e34', dress: 1, band: '#d8283a', wide: 1 },
   yao: { top: '#e8dcc0', bot: '#e8dcc0', dress: 1, band: '#e8943a', wide: 1 },
+  hanfu: { top: '#5a88c8', bot: '#5a88c8', dress: 1, band: '#e8c060', wide: 1 },
+  guan: { top: '#c8283a', bot: '#c8283a', dress: 1, band: '#ffd23f', wide: 1, hat: 'guan' },
+  huang: { top: '#ffc62a', bot: '#ffc62a', dress: 1, band: '#c8283a', wide: 1, hat: 'guan' },
+  survivor: { top: '#6a7a4a', bot: '#4a4a3c', band: '#c8283a' },
+  cyber: { top: '#26263a', bot: '#3a2a5a', band: '#ff4ae0', shades: 1 },
+  pirate: { top: '#d8403a', bot: '#3a3a4a', band: '#ffd23f', hat: 'pirate' },
   armor: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#c8283a', band: '#8a5a34', metal: 1 },
   king: { top: '#c8d0dc', bot: '#4a4a5c', cape: '#8a2ad0', band: '#ffd23f', metal: 1, hat: 'crown' },
   space: { top: '#f0f0f4', bot: '#f0f0f4', band: '#f07830', visor: 1 },
@@ -232,7 +238,7 @@ function person(o) {
       for (const ex of [7, 12]) { G.px([[ex - 1, oy + 6], [ex, oy + 6], [ex + 1, oy + 6], [ex - 1, oy + 9], [ex, oy + 9], [ex + 1, oy + 9], [ex - 1, oy + 7], [ex - 1, oy + 8], [ex + 1, oy + 7], [ex + 1, oy + 8]], '#3a3a5a'); }
       G.px([[9, oy + 7], [10, oy + 7]], '#3a3a5a');
     }
-    if (o.shades) { G.rect(5, oy + 7, 4, 2, OUT); G.rect(11, oy + 7, 4, 2, OUT); G.rect(9, oy + 7, 2, 1, OUT); G.px([[6, oy + 7], [12, oy + 7]], '#6a6a9a'); }
+    if (o.shades || fit.shades) { G.rect(5, oy + 7, 4, 2, OUT); G.rect(11, oy + 7, 4, 2, OUT); G.rect(9, oy + 7, 2, 1, OUT); G.px([[6, oy + 7], [12, oy + 7]], '#6a6a9a'); }
     // hats
     if (fit.hat === 'chef') { G.rect(6, oy - 1, 8, 4, '#f6f6f6'); G.ell(cx, oy - 1.5, 5, 2.8, '#f6f6f6'); G.rect(6, oy + 3, 8, 1, '#d8d8e0'); }
     if (fit.hat === 'hard' || fit.hat === 'helmet') {
@@ -241,6 +247,8 @@ function person(o) {
       G.rect(3, oy + 4, 14, 1, shade(hcol, -.15)); G.px([[8, oy + 1], [9, oy + 1]], '#fff3b0');
       if (fit.hat === 'helmet') G.rect(5, oy + 3, 10, 1, '#26263a');
     }
+    if (fit.hat === 'guan') { G.rect(6, oy - 1, 8, 4, '#26263a'); G.rect(2, oy + 1, 4, 1, '#26263a'); G.rect(14, oy + 1, 4, 1, '#26263a'); G.set(10, oy, '#ffd23f'); }
+    if (fit.hat === 'pirate') { G.rect(3, oy + 2, 14, 2, '#26263a'); G.rect(6, oy - 1, 8, 3, '#26263a'); G.px([[9, oy], [10, oy], [9, oy + 1]], '#f4f4f4'); }
     if (fit.hat === 'straw') { G.rect(2, oy + 4, 16, 1, '#e8c060'); G.ell(cx, oy + 2.4, 4.6, 2.6, '#e8c060'); G.rect(6, oy + 3, 8, 1, '#c8283a'); }
     if (fit.hat === 'crown') { G.rect(6, oy, 8, 2, '#ffd23f'); G.px([[6, oy - 1], [8, oy - 1], [11, oy - 1], [13, oy - 1], [6, oy - 2], [13, oy - 2], [9, oy - 1], [10, oy - 1], [9, oy - 2]], '#ffd23f'); G.set(9, oy, '#e8453c'); G.set(10, oy, '#e8453c'); }
     if (fit.phones) { for (let x = 5; x <= 14; x++) G.set(x, oy - 1 + (x < 7 || x > 12 ? 1 : 0), '#3a3a4a'); G.rect(3, oy + 5, 2, 3, '#3a3a4a'); G.rect(15, oy + 5, 2, 3, '#3a3a4a'); G.set(3, oy + 6, fit.band); G.set(16, oy + 6, fit.band); }
@@ -531,6 +539,59 @@ function buildScenes() {
     for (const [a, b, c] of [[56, 84, '#5ae8e0'], [66, 88, '#ff8ad8'], [150, 82, '#5ae8e0'], [138, 96, '#ffe86a'], [100, 110, '#5ae8e0']]) { F(x, a, b - 3, 2, 4, '#f0f0e0'); F(x, a - 2, b - 5, 6, 2, OUT); F(x, a - 1, b - 5, 4, 1, c); F(x, a - 1, b - 6, 4, 1, c); }
     box(x, 116, 50, 26, 28, '#6a7a78', '#8a9a98'); F(x, 122, 56, 14, 1, '#4a5a58'); F(x, 122, 62, 10, 1, '#4a5a58'); F(x, 122, 68, 12, 1, '#4a5a58');
   });
+  // an ancient courtyard with a moon gate
+  scn('gu', (x) => {
+    wallpaper(x, '#ece4d2'); wainscot(x, 56, '#9a8a78');
+    F(x, 0, 0, 180, 9, '#4a4e5a'); for (let i = 0; i < 180; i += 4) F(x, i, 0, 1, 9, '#5e6472'); F(x, 0, 9, 180, 2, OUT); F(x, 0, 11, 180, 2, '#7a3a2a');
+    dsc(x, 90, 50, 25, OUT); dsc(x, 90, 50, 24, '#9fd4ff'); x.save(); x.beginPath(); x.rect(60, 50, 60, 24); x.clip(); dsc(x, 90, 50, 24, '#6ab86a'); x.restore();
+    for (const bx of [74, 80, 98, 104]) { F(x, bx, 30, 2, 40, '#3f8a4a'); for (let y = 32; y < 68; y += 6) F(x, bx - 2, y, 6, 1, '#5fb85a'); }
+    F(x, 64, 70, 52, 2, OUT);
+    for (const a of [16, 156]) { box(x, a, 12, 9, 60, '#b8283a', '#d8485a'); F(x, a + 1, 20, 7, 1, '#ffd23f'); }
+    for (const a of [42, 138]) { F(x, a, 13, 1, 6, OUT); odsc(x, a, 23, 5, '#e8343a'); F(x, a - 5, 21, 11, 1, '#ffd23f'); F(x, a - 1, 29, 3, 3, '#ffd23f'); }
+    floorTile(x, '#bab4a6', '#aea89a', 12);
+    x.fillStyle = '#4a3024'; x.fillRect(166, 40, 2, 32); x.fillRect(160, 46, 7, 1); x.fillRect(168, 52, 6, 1); x.fillRect(158, 42, 2, 5);
+    for (const [px, py] of [[160, 44], [163, 45], [172, 50], [170, 53], [158, 40], [167, 38], [174, 48]]) { F(x, px, py, 2, 2, '#ff8ab0'); F(x, px, py, 1, 1, '#ffd0e0'); }
+  });
+  // a ruined city after the zombie outbreak
+  scn('ruins', (x) => {
+    grad(x, 0, 70, ['#54545e', '#62606a', '#727070', '#86807a']); dsc(x, 140, 24, 8, '#e8a060'); dsc(x, 140, 24, 6, '#f0c080');
+    for (const [a, w, h] of [[0, 30, 50], [32, 26, 38], [60, 34, 58], [98, 24, 42], [124, 32, 54], [158, 22, 36]]) {
+      F(x, a, 70 - h, w, h, '#3e3e48'); for (let k = 0; k < w; k += 5) F(x, a + k, 70 - h - (k * 7) % 5, 4, (k * 7) % 5, '#3e3e48');
+      for (let yy = 70 - h + 5; yy < 64; yy += 7) for (let i = a + 3; i < a + w - 4; i += 7) F(x, i, yy, 4, 4, (i + yy) % 3 ? '#26262e' : '#6a6a58');
+    }
+    x.globalAlpha = .45; for (const [a, b, r] of [[80, 10, 8], [86, 2, 6], [30, 14, 6], [26, 6, 5]]) dsc(x, a, b, r, '#9a9aa4'); x.globalAlpha = 1;
+    F(x, 0, 70, 180, 50, '#5a5a62'); F(x, 0, 70, 180, 2, OUT);
+    x.fillStyle = '#3a3a42'; for (const [a, b, l] of [[20, 90, 16], [110, 100, 22], [60, 110, 14], [150, 86, 12]]) for (let i = 0; i < l; i++) x.fillRect(a + i, b + ((i * 3) % 4) - 1, 1, 1);
+    box(x, 12, 62, 34, 12, '#8a3a2a', '#a85a4a'); box(x, 18, 56, 20, 8, '#6a3a30'); odsc(x, 17, 76, 3, '#26262e'); odsc(x, 40, 76, 3, '#26262e');
+    for (const [a, b, c] of [[22, 52, '#ff7a2a'], [28, 49, '#ffc83a'], [34, 53, '#ff7a2a'], [30, 45, '#fff0a0']]) F(x, a, b, 4, 4, c);
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 4 - r; i++) { const cx = 138 + i * 10 + r * 5, cy = 70 - r * 6; dsc(x, cx, cy, 5, OUT); dsc(x, cx, cy, 4, '#b8a878'); F(x, cx - 3, cy - 2, 3, 1, '#d8c898'); }
+  });
+  // a rainy neon city
+  scn('neon', (x) => {
+    grad(x, 0, 70, ['#120820', '#1a0c2e', '#22103a', '#2a1446']);
+    for (const [a, w, h] of [[0, 28, 64], [30, 22, 50], [54, 30, 70], [86, 26, 56], [114, 34, 68], [150, 30, 60]]) {
+      F(x, a, 70 - h, w, h, '#1c1230'); for (let yy = 70 - h + 4; yy < 66; yy += 5) for (let i = a + 2; i < a + w - 2; i += 4) if ((i * 7 + yy * 3) % 5 < 2) F(x, i, yy, 2, 2, (i + yy) % 2 ? '#4ae0ff' : '#ff8ae8');
+    }
+    for (const [a, b, w, c] of [[6, 20, 16, '#ff4ae0'], [58, 12, 22, '#4ae0ff'], [118, 18, 26, '#ffe14a'], [152, 30, 20, '#ff4a6a']]) { x.globalAlpha = .3; F(x, a - 2, b - 2, w + 4, 10, c); x.globalAlpha = 1; box(x, a, b, w, 6, c); }
+    box(x, 88, 22, 24, 30, '#2a1a4a'); x.globalAlpha = .55; F(x, 90, 24, 20, 26, '#4ae0ff'); x.globalAlpha = 1;
+    F(x, 0, 70, 180, 50, '#221832'); F(x, 0, 70, 180, 2, OUT);
+    x.globalAlpha = .25; for (const [a, c] of [[14, '#ff4ae0'], [66, '#4ae0ff'], [128, '#ffe14a'], [160, '#ff4a6a']]) F(x, a, 74, 3, 30, c); x.globalAlpha = 1;
+    F(x, 0, 104, 180, 2, '#3a2a5a');
+  });
+  // the deck of a pirate ship
+  scn('ship', (x) => {
+    grad(x, 0, 48, ['#6ec4f4', '#86cef6', '#a0d8f8']); cloud(x, 20, 14); cloud(x, 150, 22);
+    F(x, 0, 48, 180, 22, '#2a6ab8'); for (let i = 0; i < 180; i += 9) F(x, i + ((i / 9) % 2) * 4, 54 + (i % 3) * 5, 5, 1, '#8ac8ff');
+    floorWood(x, '#a8743a', '#8a5a2a');
+    for (let i = 4; i < 180; i += 16) { F(x, i, 58, 3, 14, '#6a4424'); } F(x, 0, 58, 180, 3, '#8a5a34'); F(x, 0, 58, 180, 1, '#b8844a');
+    F(x, 98, 0, 5, 76, '#6a4424'); F(x, 99, 0, 1, 76, '#8a5a34');
+    x.fillStyle = OUT; for (let i = 0; i < 40; i++) x.fillRect(66 + i * .3, 6 + i, 68 - i * .6, 1);
+    x.fillStyle = '#f4ecd8'; for (let i = 1; i < 39; i++) x.fillRect(67 + i * .3, 6 + i, 66 - i * .6, 1);
+    F(x, 90, 20, 20, 12, '#e8dcc0'); F(x, 94, 24, 4, 4, '#26263a'); F(x, 102, 24, 4, 4, '#26263a');
+    box(x, 103, 0, 16, 10, '#26263a'); F(x, 109, 3, 4, 3, '#f4f4f4'); F(x, 110, 6, 2, 1, '#f4f4f4');
+    for (const a of [14, 26]) { box(x, a, 64, 12, 14, '#8a5a2a', '#a8743a'); F(x, a + 1, 68, 10, 1, '#4a3a2a'); F(x, a + 1, 73, 10, 1, '#4a3a2a'); }
+    box(x, 140, 70, 24, 8, '#3a3a4a', '#5a5a6a'); odsc(x, 146, 80, 4, '#6a4424'); odsc(x, 158, 80, 4, '#6a4424'); F(x, 162, 72, 8, 3, '#26263a');
+  });
   // isekai meadow
   scn('isekai', (x) => {
     grad(x, 0, 64, ['#8a78e0', '#a88ae8', '#c89ce8', '#e8b0e0']); dsc(x, 30, 16, 7, '#fff4d0'); dsc(x, 44, 10, 3, '#d0f4ff');
@@ -604,7 +665,7 @@ function buildScenes() {
   // setup screens: starry void
   scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
 }
-const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+const SCENE_NAME = { hosp: '医院', home0: '家', home1: '家', home2: '豪宅', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
 
 // ============================================================ talents
 const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
@@ -636,7 +697,8 @@ const TAL = {};
   ['yimijiu', '一米九', '颜值+1，体质+1', 1, { CHR: 1, STR: 1 }],
   ['jinli', '锦鲤体质', '好事更容易发生', 2], ['changshou', '长寿基因', '寿命更长', 2], ['yibing', '天赋异禀', '全属性+1', 2, { CHR: 1, INT: 1, STR: 1, MNY: 1, SPR: 1 }],
   ['fuerdai', '富二代', '家境+4', 2, { MNY: 4 }], ['shiba', '永远十八', '容颜不老，颜值+1', 2, { CHR: 1 }], ['yishijie', '异世界体质', '过马路时小心卡车', 2],
-  ['waixing', '外星信号', '外星人对你很感兴趣', 2], ['xingtan', '星探关注', '有机会成为明星，颜值+1', 2, { CHR: 1 }], ['yaoxue', '妖族血脉', '身上流着上古妖族的血', 2],
+  ['waixing', '外星信号', '外星人对你很感兴趣', 2], ['xingtan', '星探关注', '有机会成为明星，颜值+1', 2, { CHR: 1 }], ['yaoxue', '妖族血脉', '身上流着上古妖族的血', 2], ['chuanyue', '时空旅人', '可能会穿越到古代', 2], ['mori', '末日预感', '总觉得世界末日要来了', 2],
+  ['yiti', '义体亲和', '身体很适合义体改造', 2], ['haizi', '大海的孩子', '注定属于大海', 2],
   ['tiancai', '天才头脑', '智力+4', 2, { INT: 4 }], ['jingang', '金刚之躯', '体质+4', 2, { STR: 4 }],
   ['xianyuan', '仙缘', '你与仙道有缘', 3], ['chongsheng', '重生者', '带着前世的记忆出生，智力+3', 3, { INT: 3 }], ['xitong', '人生系统', '每十年领一次系统奖励', 3],
   ['shoufu', '首富之子', '家境+7', 3, { MNY: 7 }], ['tianxuan', '天选之人', '全属性+3', 3, { CHR: 3, INT: 3, STR: 3, MNY: 3, SPR: 3 }], ['jiuming', '九命猫', '死亡时有一次复活的机会', 3],
@@ -1370,6 +1432,94 @@ E('is_ramen', 0, 999, '你在异世界开了一家拉面馆，精灵们天天排
 E('is_lv99', 0, 999, '你的等级升到了99级，系统提示：“已满级，请勿继续刷怪。”', { p: 'isekai', c: () => L.f.guild, fx: { STR: 2 }, em: 'star' });
 E('is_goddess', 0, 999, '女神托梦给你，说当初其实是她把你送错世界了。', { p: 'isekai', em: 'q' });
 E('is_slimepet', 0, 999, '你养了一只史莱姆当宠物，它把你的剑吃掉了。', { p: 'isekai', fx: { SPR: 1 }, em: 'sweat' });
+// ---------------- four more hidden routes: ancient China, the zombie apocalypse, a cyberpunk city, pirates
+const ZOMB = {};
+const ROUTES = {
+  gu: { sc: 'gu', song: 'xian', fit: () => L.f.emperor ? 'huang' : (L.f.guan || L.f.zhuangyuan) ? 'guan' : 'hanfu',
+    label: () => '古代 · ' + (L.f.emperor ? '皇帝' : L.f.zaixiang ? '宰相' : L.f.guan ? '县令' : L.f.zhuangyuan ? '状元' : L.f.jinshi ? '进士' : L.f.xiucai ? '秀才' : L.f.gushop ? '掌柜' : '穿越者'),
+    death: () => L.f.emperor ? '你在龙椅上驾崩了，史书里说你是一位“来历成谜的明君”。' : '你在古代安详地走完了一生，后人为你立了一块碑。',
+    ep: () => L.f.emperor ? '穿越千年，当了一回皇帝' : L.f.guback ? '去古代走了一遭，又回来了' : '来自未来的古人，长眠于此', ascTitle: '', ascEp: '' },
+  zb: { sc: 'ruins', song: 'mo', fit: () => 'survivor',
+    label: () => '末日 · ' + (L.f.zbleader ? '基地首领' : '幸存者'),
+    death: () => L.f.base ? '你在基地的床上安详地离开了，大家为你守了一夜。' : '你在末日里坚持到了最后一刻。',
+    ep: () => L.f.savior ? '用自己的血，救了全世界' : '在末日里，好好地活过', ascTitle: '', ascEp: '' },
+  cy: { sc: 'neon', song: 'cyber', fit: () => 'cyber',
+    label: () => '赛博 · ' + (L.f.hacker ? '黑客' : '义体人'),
+    death: () => '你的义体停止了运转，窗外的霓虹灯还在闪。',
+    ep: () => '一半是人，一半是机器', ascTitle: '赛博永生', ascEp: '这里只剩下一块硬盘' },
+  pi: { sc: 'ship', song: 'isekai', fit: () => (L.f.captain || L.f.pirateking) ? 'pirate' : 'survivor',
+    label: () => '海盗 · ' + (L.f.pirateking ? '海贼王' : L.f.captain ? '船长' : '水手'),
+    death: () => '你在海风里安详地闭上了眼睛，船员们把你葬进了大海。',
+    ep: () => L.f.pirateking ? '海贼王，长眠于大海' : '这一生，属于大海', ascTitle: '', ascEp: '' },
+};
+const ascSc = () => ROUTES[L.path] ? ROUTES[L.path].sc : XSD().sc, ascFit = () => ROUTES[L.path] ? ROUTES[L.path].fit() : XSD().fit;
+function enterRoute(k) { L.path = k; L.routeAge = L.age; L.job = null; YR.sc = ROUTES[k].sc; }
+// ancient China
+E('gu_go', 12, 40, () => { enterRoute('gu'); endLove(); L.kids = []; L.pet = null; return ['你在博物馆里碰了一下那面青铜镜，眼前一黑……', '醒来时，你躺在一座古色古香的院子里，丫鬟尖叫着跑出去：“' + (L.g === 'm' ? '少爷' : '小姐') + '醒了！”']; }, { w: () => tal('chuanyue') ? 2.5 : .003, em: 'bang', big: '穿越!' });
+const GU = { p: 'gu' };
+E('gu_ok', 0, 999, '你顺口说了一句“OK”，全府上下都以为你中了邪，连夜请来道士驱邪。', Object.assign({ em: 'sweat', w: 3 }, GU));
+E('gu_poem', 0, 999, '你在诗会上背了一首李白的诗，技惊四座，被誉为京城第一才子。', Object.assign({ c: () => L.a.INT >= 6, fx: { CHR: 1, SPR: 2 }, f: { gupoet: 1 }, em: 'star' }, GU));
+E('gu_xiucai', 0, 999, () => { L.f.xiucai = 1; return L.g === 'm' ? '你参加科举，考中了秀才。' : '你女扮男装参加科举，考中了秀才。'; }, Object.assign({ c: () => L.a.INT >= 5, w: 2, fx: { INT: 1 }, em: 'book' }, GU));
+E('gu_juren', 0, 999, '乡试放榜，你中了举人，全村敲锣打鼓来报喜。', Object.assign({ c: () => L.f.xiucai && L.a.INT >= 7, w: 2, fx: { SPR: 1 }, f: { juren: 1 }, em: 'star' }, GU));
+E('gu_dianshi', 0, 999, () => { if (L.a.INT + rand(-2, 2) >= 11) { L.f.zhuangyuan = 1; YR.big = '状元及第!'; return '殿试上，皇帝亲自点你为头名状元，你骑着高头大马游街三天。'; } L.f.jinshi = 1; return '殿试上，你考中了进士。'; }, Object.assign({ c: () => L.f.juren, w: 2.5, fx: { INT: 1, SPR: 2 }, em: 'star' }, GU));
+E('gu_guan', 0, 999, '你被派到江南做县令，为百姓修桥铺路，深得民心。', Object.assign({ c: () => (L.f.jinshi || L.f.zhuangyuan) && !L.f.guan, w: 2.5, fx: { SPR: 2 }, f: { guan: 1 }, em: 'heart' }, GU));
+E('gu_xiang', 0, 999, '你一路升迁，最后官拜宰相。', Object.assign({ c: () => L.f.guan && L.a.INT >= 11, w: .5, fx: { MNY: 3 }, f: { zaixiang: 1 }, em: 'star', big: '位极人臣!' }, GU));
+E('gu_emperor', 0, 999, '老皇帝驾崩，没有留下子嗣。群臣商议之后，把你推上了龙椅。', Object.assign({ c: () => L.f.zaixiang && L.a.CHR + L.a.INT >= 20, w: .12, fx: { MNY: 5 }, f: { emperor: 1 }, em: 'star', big: '登基!' }, GU));
+E('gu_hotpot', 0, 999, '你用现代的配方开了一家火锅店，全城的人都来排队。', Object.assign({ fx: { MNY: 3 }, f: { gushop: 1 }, em: 'coin', sc: 'shop' }, GU));
+E('gu_soap', 0, 999, '你又做出了肥皂和玻璃镜子，富甲一方。', Object.assign({ c: () => L.f.gushop, fx: { MNY: 4 }, em: 'coin' }, GU));
+E('gu_love', 0, 999, () => { startLove({ fit: 'hanfu' }); marry(); return '你和一位' + (L.g === 'm' ? '温婉的大家闺秀' : '英俊的少年将军') + '拜了堂。'; }, Object.assign({ c: () => canLove() && L.age >= 16, w: 1.5, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' }, GU));
+E('gu_kid', 0, 999, () => { addKid(); return '你们有了一个{kid}，你偷偷教{kid}背乘法口诀表。'; }, Object.assign({ c: () => L.mar && L.kids.length < 2 && !tal('dingke'), rep: 1, cd: 3, fx: { SPR: 2 }, em: 'heart' }, GU));
+E('gu_miss', 0, 999, '你常常想念手机、外卖和奶茶，尤其是奶茶。', Object.assign({ fx: { SPR: -1 }, em: 'sad' }, GU));
+E('gu_war', 0, 999, '边关告急，你带兵出征，大胜而归。', Object.assign({ c: () => L.a.STR >= 8, fx: { STR: 1, SPR: 1 }, em: 'star' }, GU));
+E('gu_round', 0, 999, '你随口说了一句“地球是圆的”，被当成妖人关进大牢三个月。', Object.assign({ w: .5, fx: { SPR: -2 }, em: 'anger' }, GU));
+E('gu_back', 0, 999, () => { L.path = null; L.f.guback = 1; L.f.nouni = 1; endLove(); L.kids = []; YR.sc = 'street'; return ['你又碰到了那面青铜镜……', '醒来时你回到了现代的博物馆里，手机上的时间只过去了一秒。']; }, Object.assign({ c: () => L.age < 55, w: .002, em: 'q' }, GU));
+E('gu_fill', 0, 999, () => pick(['你在后花园里赏了一年的花。', '你在茶楼里听了一年的评书。', '你在书房里练了一年的毛笔字。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'note' }, GU));
+// the zombie apocalypse
+E('zb_go', 18, 60, () => { enterRoute('zb'); L.zbAge = L.age; return ['新闻里说一种怪病正在全球蔓延。', '第二天醒来，街上到处都是摇摇晃晃的丧尸……']; }, { w: () => tal('mori') ? 2 : .002, em: 'bang', big: '末日降临!' });
+const ZB = { p: 'zb' };
+E('zb_stock', 0, 999, '你冲进超市，抢了一推车的泡面和矿泉水。', Object.assign({ w: 3, fx: { SPR: 1 }, em: 'sweat' }, ZB));
+E('zb_bite', 0, 999, () => { if (L.a.STR >= 10 || chance(tal('mori') ? .45 : .3)) { L.f.immune = 1; addFx({ STR: 1 }); return ['你被丧尸咬了一口！', '奇迹般地，你没有变异。你的血液里好像有某种抗体。']; } die('你被丧尸咬了一口，没能扛过去，变成了它们中的一员。'); return null; }, Object.assign({ c: () => !L.f.immune, w: .5, em: 'bang' }, ZB));
+E('zb_team', 0, 999, '你和几个幸存者组成了小队，每天去废墟里搜寻物资。', Object.assign({ w: 2, fx: { SPR: 1 }, f: { team: 1 }, em: 'note' }, ZB));
+E('zb_base', 0, 999, '你们占领了一座大商场，建起了幸存者基地。', Object.assign({ c: () => L.f.team, w: 2, fx: { SPR: 2 }, f: { base: 1 }, em: 'star', big: '建立基地!' }, ZB));
+E('zb_leader', 0, 999, '大家推举你当了基地的首领。', Object.assign({ c: () => L.f.base && L.a.INT + L.a.CHR >= 12, fx: { SPR: 1 }, f: { zbleader: 1 }, em: 'star' }, ZB));
+E('zb_dog', 0, 999, () => { getPet('dog'); L.pet.n = '闪电'; L.lastPet.n = '闪电'; return '你收留了一只流浪狗，取名“闪电”，它老远就能闻出丧尸的气味。'; }, Object.assign({ c: () => !L.pet, em: 'heart' }, ZB));
+E('zb_garden', 0, 999, '你在商场楼顶开了一片菜园，种出了末日后的第一颗西红柿。', Object.assign({ c: () => L.f.base, fx: { SPR: 2 }, em: 'heart' }, ZB));
+E('zb_siege', 0, 999, '尸潮围攻基地，你带着大家守了三天三夜。', Object.assign({ c: () => L.f.base, fx: { STR: 1, SPR: -1 }, em: 'anger' }, ZB));
+E('zb_bandit', 0, 999, '你遇到一伙抢物资的强盗，只好交出了一半的罐头。', Object.assign({ fx: { SPR: -1 }, em: 'anger' }, ZB));
+E('zb_radio', 0, 999, '你收到一段无线电：“这里是最后的研究所，我们需要一个有抗体的人。”', Object.assign({ c: () => L.f.immune && !L.f.radio, w: .5, f: { radio: 1 }, em: 'q' }, ZB));
+E('zb_cure', 0, 999, () => { if (chance(.5)) { L.f.radio = 0; addFx({ SPR: -2 }); return '你穿越半个国家赶到研究所，却发现那里早已被尸潮攻陷。'; } L.path = null; L.f.savior = 1; L.f.nouni = 1; return ['你穿越半个国家赶到研究所，科学家用你的血研制出了疫苗。', '一年后，城市里重新亮起了灯。']; }, Object.assign({ c: () => L.f.radio, w: 2, fx: { SPR: 3 }, em: 'star', big: '拯救世界!' }, ZB));
+E('zb_fill', 0, 999, () => pick(['你在废墟里又熬过了一年。', '你在屋顶守了一整夜，天亮时看到了日出。', '你用两个罐头换了一本旧书，读了整整一个冬天。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'zzz' }, ZB));
+// the cyberpunk city
+E('cy_go', 20, 50, () => { enterRoute('cy'); return '你签下了一份义体改造协议。醒来时，你的左眼变成了一只发着蓝光的机械眼。'; }, { w: () => tal('yiti') ? 2 : .002, fx: { INT: 2 }, em: 'bang', big: '义体改造!' });
+const CY = { p: 'cy' };
+E('cy_arm', 0, 999, '你把右手换成了机械臂，一拳就能打穿墙壁。', Object.assign({ w: 2, fx: { STR: 3 }, f: { cyarm: 1 }, em: 'spark' }, CY));
+E('cy_chip', 0, 999, '你在后脑装了一块芯片，一秒钟就能读完一本书。', Object.assign({ w: 2, fx: { INT: 3 }, f: { chip: 1 }, em: 'spark' }, CY));
+E('cy_hack', 0, 999, '你黑进了巨型公司的服务器，偷走了一个亿的加密货币。', Object.assign({ c: () => L.f.chip, w: 1.5, fx: { MNY: 4 }, f: { hacker: 1 }, em: 'coin', big: '黑客!' }, CY));
+E('cy_hunted', 0, 999, '公司派出赏金猎人追杀你，你在霓虹灯下狂奔了一整夜。', Object.assign({ c: () => L.f.hacker, fx: { SPR: -2 }, em: 'sweat' }, CY));
+E('cy_psycho', 0, 999, '你装了太多义体，开始分不清自己是人还是机器。', Object.assign({ c: () => L.f.cyarm && L.f.chip, w: .5, fx: { SPR: -3 }, em: 'q' }, CY));
+E('cy_bar', 0, 999, () => { startLove({ hair: 'pink' }); return '你在霓虹酒吧里认识了一个{opp}，{ta}的头发会随着心情变色。'; }, Object.assign({ c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 }, CY));
+E('cy_wed', 0, 999, () => { marry(); return '你们在全息投影的樱花雨下结了婚。'; }, Object.assign({ c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' }, CY));
+E('cy_meat', 0, 999, '你已经很多年没吃过真正的蔬菜了，合成肉吃起来像纸板。', Object.assign({ fx: { SPR: -1 }, em: 'sad' }, CY));
+E('cy_cat', 0, 999, () => { getPet('cat'); return '你领养了一只机械猫，它永远不会掉毛，就是偶尔需要充电。'; }, Object.assign({ c: () => !L.pet, em: 'heart' }, CY));
+CH.upload = { o: [['上传意识', () => { L.end = true; L.asc = true; L.f.upload = 1; YR.big = '意识永生!'; return '你的意识化作一串数据，在网络里永远地活了下去。'; }], ['留在肉身', () => { addFx({ SPR: 2 }); return '你决定像普通人一样慢慢变老。'; }]] };
+E('cy_upload', 45, 999, () => { YR.ch = 'upload'; return '科学家说，可以把你的意识上传到网络，从此获得永生。'; }, Object.assign({ c: () => L.f.chip, w: .6, em: 'q' }, CY));
+E('cy_fill', 0, 999, () => pick(['你在雨夜的霓虹街头游荡了一年。', '你在胶囊公寓里打了一年的全息游戏。', '你给全身的义体做了一次保养。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'zzz' }, CY));
+// pirates
+E('pi_go', 16, 45, () => { enterRoute('pi'); endLove(); return ['你坐的游轮被海盗劫了。', '海盗船长打量了你一眼：“有胆量，留下来当水手吧！”']; }, { w: () => tal('haizi') ? 2.5 : .003, em: 'bang', big: '扬帆起航!' });
+const PI = { p: 'pi' };
+E('pi_mop', 0, 999, '你每天擦甲板擦到半夜，晒得像块黑炭。', Object.assign({ w: 2, fx: { STR: 1 }, em: 'sweat' }, PI));
+E('pi_sick', 0, 999, '你晕船吐了三天三夜，船长说吐着吐着就习惯了。', Object.assign({ w: 2, em: 'sweat' }, PI));
+E('pi_map', 0, 999, '你在港口的酒馆里，从一个醉汉手上赢来了一张藏宝图。', Object.assign({ fx: { SPR: 1 }, f: { map: 1 }, em: 'bang', sc: 'shop' }, PI));
+E('pi_treasure', 0, 999, '你们照着藏宝图，在荒岛上挖出了一整箱金币！', Object.assign({ c: () => L.f.map, w: 2, fx: { MNY: 5 }, f: { treasure: 1 }, em: 'coin', big: '找到宝藏!' }, PI));
+E('pi_navy', 0, 999, '海军追了你们三天三夜，你们借着一场大雾甩掉了他们。', Object.assign({ fx: { STR: 1, SPR: 1 }, em: 'sweat' }, PI));
+E('pi_captain', 0, 999, '老船长受伤退休，把船长帽交给了你。', Object.assign({ c: () => L.a.STR + L.a.INT >= 15 && L.age - L.routeAge >= 5, w: .8, fx: { SPR: 2 }, f: { captain: 1 }, em: 'star', big: '成为船长!' }, PI));
+E('pi_kraken', 0, 999, '海面上伸出了巨大的触手——是海怪克拉肯！你抄起鱼竿和它拔河了一整天，最后把它钓了上来。', Object.assign({ c: () => L.f.captain, w: .4, fx: { STR: 2 }, f: { kraken: 1 }, em: 'bang', big: '钓起海怪!' }, PI));
+E('pi_parrot', 0, 999, '你养了一只鹦鹉，它学会的第一句话是“开饭啦”。', Object.assign({ fx: { SPR: 1 }, em: 'note' }, PI));
+E('pi_mer', 0, 999, () => { startLove({ hair: 'silver' }); return '你在礁石上遇到了一位' + (L.g === 'm' ? '美人鱼' : '人鱼王子') + '，你们一见钟情。'; }, Object.assign({ c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 }, PI));
+E('pi_wed', 0, 999, () => { marry(); return '你们在船头举行了婚礼，全船的海盗都喝得东倒西歪。'; }, Object.assign({ c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' }, PI));
+E('pi_king', 0, 999, '你统一了七大洋的海盗，成为了海贼王！', Object.assign({ c: () => L.f.captain && L.f.treasure && L.f.kraken && L.a.MNY >= 9, w: .6, fx: { MNY: 3, SPR: 3 }, f: { pirateking: 1 }, em: 'star', big: '海贼王!' }, PI));
+E('pi_island', 55, 999, '你老了，在一座小岛上盖了间木屋，每天坐在门口看大海。', Object.assign({ fx: { SPR: 2 }, em: 'heart', sc: 'park' }, PI));
+E('pi_fill', 0, 999, () => pick(['你在海上漂了一年，看了数不清的日落。', '你在港口酒馆里讲了一年的冒险故事。', '你们遇上了一场风暴，全船人死里逃生。']), Object.assign({ rep: 1, cd: 1, w: .4, em: 'note' }, PI));
 // ---------------- aliens
 E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
 E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
@@ -1468,6 +1618,7 @@ function die(text) {
   L.end = true; L.cause = text; YR.lines.push(fmt(text)); YR.dead = true;
 }
 function naturalDeath() {
+  if (ROUTES[L.path]) return ROUTES[L.path].death();
   if (L.path === 'isekai') return L.f.king ? '你在王座上安详地闭上了眼睛，举国为你哀悼。' : '你在异世界安详地走完了这一生。';
   if (L.mar && L.kids.length) return '你在儿孙们的陪伴下，安详地闭上了眼睛。';
   if (L.mar) return '你握着{spouse}的手，安详地离开了人世。';
@@ -1538,13 +1689,15 @@ const LCOL = { SSS: '#ff5ab0', SS: '#ff9a2a', S: '#ffc62a', A: '#b060f0', B: '#4
 function letterOf(s) { return LETTERS.find(x => s >= x[0])[1]; }
 function lifeTitle() {
   const f = L.f;
-  if (L.asc) return XSD().title; if (f.darkking) return '异世界魔王'; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
+  if (L.asc) return ROUTES[L.path] ? ROUTES[L.path].ascTitle : XSD().title;
+  if (f.emperor) return '穿越帝王'; if (f.savior) return '末日救世主'; if (f.pirateking) return '海贼王'; if (f.darkking) return '异世界魔王'; if (f.king) return '异世界之王'; if (f.hero) return '救世勇者'; if (f.nobel) return '人类之光';
   if (f.moon) return '星辰大海'; if (f.richest) return '首富人生'; if (f.topstar) return '顶流人生'; if (f.champ || f.olygold) return '冠军人生';
   return { SSS: '传奇人生', SS: '精彩人生', S: '美满人生', A: '不错的一生', B: '平凡的一生', C: '坎坷的一生', D: '潦草的一生' }[L.grade];
 }
 function epitaph() {
   const f = L.f, j = L.oldJob || L.job;
-  if (L.asc) return XSD().ep;
+  if (L.asc) return ROUTES[L.path] ? ROUTES[L.path].ascEp : XSD().ep;
+  if (ROUTES[L.path] || f.guback || f.savior) return (ROUTES[L.path] || ROUTES[f.guback ? 'gu' : 'zb']).ep();
   if (L.path === 'isekai') return f.darkking ? '一代魔王，其实人还不错' : f.king ? '异世界之王，长眠于此' : '来自异世界的冒险者，长眠于此';
   if (f.nobel) return '诺贝尔奖得主，人类的骄傲';
   if (f.moon) return '曾在月亮上留下过脚印';
@@ -1588,11 +1741,11 @@ const ACH = [
   ['isekai', '异世界转生', '被卡车送进了异世界', () => L.path === 'isekai' || L.f.isback, '过马路时要看车'],
   ['hero', '勇者', '在异世界击败魔王', () => L.f.hero, '先得去一趟异世界'],
   ['xian', '踏入仙途', '拜入青云宗修仙', () => L.path === 'xian' && XB() === 'zheng', '山里好像住着一位白胡子老爷爷'],
-  ['asc', '羽化飞升', '渡劫成功，飞升成仙', () => L.asc && XB() === 'zheng', '修炼到化神之后……'],
+  ['asc', '羽化飞升', '渡劫成功，飞升成仙', () => L.asc && L.path === 'xian' && XB() === 'zheng', '修炼到化神之后……'],
   ['mo', '堕入魔道', '加入血煞宗修魔', () => L.path === 'xian' && XB() === 'mo', '心中有恨的孩子，会被黑袍人盯上'],
-  ['moasc', '以魔证道', '斩灭心魔，破碎虚空', () => L.asc && XB() === 'mo', '魔尊也要渡劫'],
+  ['moasc', '以魔证道', '斩灭心魔，破碎虚空', () => L.asc && L.path === 'xian' && XB() === 'mo', '魔尊也要渡劫'],
   ['yao', '血脉觉醒', '觉醒妖族血脉', () => L.path === 'xian' && XB() === 'yao', '月圆之夜，会发生一些奇怪的事'],
-  ['yaoasc', '化身神兽', '妖皇渡劫成功，化身上古神兽', () => L.asc && XB() === 'yao', '妖族的尽头是什么？'],
+  ['yaoasc', '化身神兽', '妖皇渡劫成功，化身上古神兽', () => L.asc && L.path === 'xian' && XB() === 'yao', '妖族的尽头是什么？'],
   ['nine', '九死一生', '触发九命猫复活', () => L.f.revived, '需要一只猫的九条命'],
   ['curse', '天命难违', '带着诅咒天赋拿到S及以上评价', () => ['S', 'SS', 'SSS'].includes(L.grade) && L.tl.some(id => TAL[id].r === 4)],
   ['kpet', '猫的报恩', '前世的宠物转世来找你', () => L.f.karmaPet, '上辈子的毛孩子，会记得你'],
@@ -1600,6 +1753,14 @@ const ACH = [
   ['dark', '魔王', '在异世界成为了魔王', () => L.f.darkking, '魔王向你伸出手的时候……'],
   ['qm', '青梅竹马', '和青梅竹马走到了一起', () => L.f.qmlove && L.mar, '有些人，从小就在你身边'],
   ['bro', '一辈子的朋友', '和死党一起走到了老', () => used('bro7')],
+  ['gu', '梦回古代', '穿越到了古代', () => L.path === 'gu' || L.f.guback, '博物馆里有一面奇怪的青铜镜'],
+  ['emperor', '穿越帝王', '在古代当上了皇帝', () => L.f.emperor, '从秀才考起，一路往上……'],
+  ['zb', '末日幸存者', '在丧尸末日中活过十年', () => L.path === 'zb' && L.age - L.zbAge >= 10 || L.f.savior, '有一天，新闻里说一种怪病在蔓延'],
+  ['savior', '人类的希望', '用抗体拯救了世界', () => L.f.savior, '被咬了还活下来的人，也许有用'],
+  ['cy', '赛博朋克', '接受了义体改造', () => L.path === 'cy', '有人递给你一份义体改造协议'],
+  ['upload', '意识永生', '把意识上传到了网络', () => L.f.upload, '肉体会老去，数据不会'],
+  ['pi', '扬帆起航', '成为了一名海盗', () => L.path === 'pi', '坐游轮出海要小心'],
+  ['piking', '海贼王', '成为了七大洋的海贼王', () => L.f.pirateking, '宝藏、海怪、船长帽，缺一不可'],
   ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
 ];
 // ============================================================ persistence
@@ -1636,7 +1797,7 @@ function finishLife() {
   META.last = { pet: L.lastPet || null, pt: L.pt && L.mar ? { g: L.pt.g, hair: L.pt.hair, top: L.pt.top, bot: L.pt.bot, skirt: L.pt.skirt, fit: L.pt.fit, ears: L.pt.ears } : null,
     age: L.age, job: j && JOBS[j] && j !== 'retired' && j !== 'none' ? JOBS[j].n : null, ep: L.ep || (L.ep = epitaph()), young: L.age < 30 && !L.asc, rich: !!(L.f.richest || L.f.lotto || L.a.MNY >= 12), asc: L.asc };
   const e0 = L.end; L.end = false; const lk = meLook(0, 0); L.end = e0; Object.assign(lk, { mood: 'h', blink: 0, fr: 0 });
-  META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : META.last.job, by: L.by, bp: L.city || { village: '山村', county: '县城' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
+  META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : ROUTES[L.path] ? ROUTES[L.path].label() : META.last.job, by: L.by, bp: L.city || { village: '山村', county: '县城' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
   saveMeta(); clearRun();
 }
 function rarityOdds() {
@@ -1773,6 +1934,11 @@ const SONGS = {
     chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [7, 'M'], [0, 'M'], [-3, 'm'], [2, 'm'], [7, 'M']],
     mel: [12, _, 14, 16, _, 14, 12, _, 9, _, 12, _, 9, _, 7, _, 9, _, 12, _, 14, _, 16, _, 14, _, _, _, 11, _, 7, _,
       12, _, 14, 16, _, 19, 16, _, 16, _, 14, _, 12, _, 9, _, 9, _, 12, _, 14, _, 12, _, 11, _, 14, _, 7, _, _, _] },
+  // neon city: a driving synth line
+  cyber: { bpm: 118, root: 57, lead: INST.lead, bass: 'root8', comp: 'stab', drums: 'khskkhsk',
+    chords: [[0, 'm'], [-4, 'M'], [-2, 'M'], [-5, 'M'], [0, 'm'], [-4, 'M'], [3, 'M'], [-5, 'M']],
+    mel: [12, 15, 19, 15, 12, 15, 19, 22, 20, 15, 12, 15, 20, _, 19, _, 22, 17, 14, 17, 22, _, 24, _, 19, _, 14, _, 19, _, _, _,
+      12, 15, 19, 24, 22, 19, 15, _, 20, _, 19, _, 15, _, 12, _, 19, 22, 26, 22, 19, _, 15, _, 14, _, 19, _, 23, _, _, _] },
   // the ending: bittersweet music box in A minor
   end: { bpm: 72, root: 57, lead: INST.box, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .4, drums: '........',
     chords: [[0, 'm'], [-4, 'M'], [3, 'M'], [-2, 'M'], [0, 'm'], [-4, 'M'], [-2, 'M'], [0, 'm']],
@@ -1999,6 +2165,7 @@ function defaultScene() {
   const a = L.age;
   if (L.path === 'xian') return L.xl >= 1 ? XSD().sc : homeSc();
   if (L.path === 'isekai') return 'isekai';
+  if (ROUTES[L.path]) return ROUTES[L.path].sc;
   if (a === 0) return 'hosp';
   if (a < 3) return homeSc();
   if (a < 6) return L.f.kg && chance(.6) ? 'kg' : homeSc();
@@ -2027,7 +2194,7 @@ function afterYear(yr, chosen) {
   }
   yearT = 0; lastG = yr.g;
   let sc = yr.sc || (chosen ? curScene : null);
-  if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? 'isekai' : homeSc(); // the family gathers at the end
+  if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? 'isekai' : ROUTES[L.path] ? ROUTES[L.path].sc : homeSc(); // the family gathers at the end
   curScene = resolveScene(sc || defaultScene()); setupCast();
   emote = yr.em || (yr.g > 0 ? 'note' : yr.g < 0 ? 'sweat' : null);
   if (L.end && !L.asc) emote = null;
@@ -2041,7 +2208,7 @@ function afterYear(yr, chosen) {
 }
 
 // ============================================================ the cast on stage
-const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian|mo|yao)$/;
+const FAMILY_SC = /^(home0|home1|home2|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
 function setupCast() {
   const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
   const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
@@ -2079,6 +2246,7 @@ function greyed(age, hair) { return age >= 72 ? 'white' : age >= 56 ? 'grey' : h
 function myFit() {
   const a = L.age, s = stageOf(a);
   if (L.path === 'xian' && L.f.sect) return XSD().fit;
+  if (ROUTES[L.path]) return ROUTES[L.path].fit();
   if (L.path === 'isekai') return L.f.dark ? 'demon' : L.f.king ? 'king' : 'armor';
   if (curScene === 'wedding' && L.mar && L.marAge === a) return L.g === 'm' ? 'groom' : 'bride';
   if (curScene === 'space' && (L.job === 'astronaut' || L.job === 'ambassador')) return 'space';
@@ -2171,6 +2339,13 @@ function drawScene(oy) {
   if (curScene === 'isekai') { const b = Math.abs(Math.sin(T * 3)) * 4; odsc(g, 150, oy + 98 - b, 5, '#5ac8ff'); g.fillStyle = '#b8ecff'; g.fillRect(147, oy + 95 - b, 2, 1); g.fillStyle = OUT; g.fillRect(148, oy + 97 - b, 1, 1); g.fillRect(152, oy + 97 - b, 1, 1); }
   if (curScene === 'mo') for (let i = 0; i < 6; i++) { const y = oy + 110 - ((T * 12 + i * 23) % 90), xx = (i * 31 + Math.sin(T + i) * 6) % 180; g.fillStyle = i % 2 ? '#ff6a3a' : '#ffb03a'; g.fillRect(R(xx), R(y), 1, 1); }
   if (curScene === 'yao') for (let i = 0; i < 8; i++) { const on = (Math.sin(T * 2 + i * 1.7) + 1) / 2; g.globalAlpha = on; g.fillStyle = '#e8ff8a'; g.fillRect(R((i * 29 + Math.sin(T * .5 + i) * 10 + 180) % 180), R(oy + 60 + (i * 13) % 45 + Math.cos(T * .7 + i) * 4), 1, 1); g.globalAlpha = 1; }
+  if (curScene === 'ruins') for (let i = 0; i < 2; i++) {
+    const zx = ((T * 4 + i * 110) % 220) - 20, fr = Math.floor(T * 2 + i) % 2 ? 1 : 2, key = 'z' + i + fr;
+    if (!ZOMB[key]) ZOMB[key] = tintC(person({ st: 'adult', g: i ? 'f' : 'm', hair: 'black', top: i ? '#6a5a7a' : '#5a6a4a', bot: '#4a4436', mood: 's', fr }).img, '#6ad06a', .38);
+    g.globalAlpha = .9; g.drawImage(ZOMB[key], R(zx - 10), oy + 98 - 29); g.globalAlpha = 1;
+  }
+  if (curScene === 'neon') { g.fillStyle = '#8ab8ff'; g.globalAlpha = .45; for (let i = 0; i < 26; i++) { const rx = (i * 37 + T * 40) % 190 - 5, ry = (i * 53 + T * 140) % 120; g.fillRect(R(rx), R(oy + ry), 1, 3); } g.globalAlpha = 1; txt('拉面', 100, oy + 37, 7, '#ffffff', 'center', '#ff4ae0'); }
+  if (curScene === 'ship') { g.fillStyle = '#d8f0ff'; for (let i = 0; i < 8; i++) { const wx = (i * 23 + T * 10) % 190 - 5; g.fillRect(R(wx), oy + 52 + (i % 3) * 5, 3, 1); } }
   if (curScene === 'xian') { g.fillStyle = '#ffffff'; for (let i = 0; i < 2; i++) { const x = (T * (8 + i * 3) + i * 90) % 220 - 20, y = oy + 30 + i * 12 + Math.sin(T + i) * 2; g.fillRect(R(x), R(y), 4, 1); g.fillRect(R(x) + 1 + (Math.floor(T * 4) % 2), R(y) - 1, 1, 1); } }
   const seated = cast.filter(a => a.seat), standing = cast.filter(a => !a.seat).sort((a, b) => a.y - b.y);
   for (const a of seated) drawActor(a, oy);
@@ -2205,6 +2380,7 @@ function drawBanner() {
 }
 function stageLabel() {
   if (L.path === 'xian') return L.xl >= 1 ? XSD().who + ' · ' + XSD().realm[L.xl] + (XB() === 'zheng' ? '期' : '') : '凡人';
+  if (ROUTES[L.path]) return ROUTES[L.path].label();
   if (L.path === 'isekai') return L.f.darkking ? '异世界 · 魔王' : L.f.dark ? '异世界 · 四天王' : L.f.king ? '异世界 · 国王' : L.f.hero ? '异世界 · 勇者' : '异世界 · 冒险者';
   const a = L.age, s = a < 1 ? '婴儿' : a < 3 ? '幼儿' : a < 6 ? '幼童' : a < 12 ? '儿童' : a < 18 ? '少年' : a < 35 ? '青年' : a < 60 ? '中年' : '老年';
   let role = '';
@@ -2221,7 +2397,7 @@ function drawHUD() {
   box(g, 3, 2 - bump, 38, 14, '#ffd23f', '#fff08a', '#c89a10');
   txt(L.age + '岁', 22, 8.5 - bump, L.age >= 1000 ? 7 : 9, '#4a2c17', 'center', null);
   txt(stageLabel(), 46, 9, 7, '#dfe6ff', 'left');
-  if (L.by && L.path !== 'isekai') txt((L.by + L.age) + '年', 146, 9, 6, '#a8a0d8', 'right');
+  if (L.by && L.path !== 'isekai' && L.path !== 'gu') txt((L.by + L.age) + '年', 146, 9, 6, '#a8a0d8', 'right');
   g.drawImage(I.menu, 151, 4); g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
   STATS.forEach((k, i) => {
     const x = 3 + i * 35, y = 17;
@@ -2479,8 +2655,8 @@ function drawEnd() {
   drawParts();
 }
 function drawTomb(oy, st) {
-  g.drawImage(L.asc ? SCN[XSD().sc].bg : SCN.grave.bg, 0, oy);
-  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? XSD().fit : 'ghost', mood: 'z', cane: 0, fr: 0 }));
+  g.drawImage(L.asc ? SCN[ascSc()].bg : SCN.grave.bg, 0, oy);
+  const ghost = person(Object.assign(meLook(0, 0), { fit: L.asc ? ascFit() : 'ghost', mood: 'z', cane: 0, fr: 0 }));
   if (L.asc) {
     const y = oy + 70 - Math.min(40, st * 8) + Math.sin(T * 2) * 2;
     g.globalAlpha = .3 + .1 * Math.sin(T * 4); for (let r = 26; r > 8; r -= 6) dsc(g, 90, y + 14, r, '#fff3a0'); g.globalAlpha = 1;
@@ -2819,7 +2995,7 @@ function update(dt) {
 function wantedTrack() {
   if (state === 'title' || state === 'ach' || state === 'shop' || state === 'book') return 'title';
   if (state === 'gacha' || state === 'fate' || state === 'talent' || state === 'alloc') return 'setup';
-  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
+  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (ROUTES[L.path]) return ROUTES[L.path].song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
   return 'end';
 }
 function render() {
