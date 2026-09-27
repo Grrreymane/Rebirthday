@@ -1074,7 +1074,7 @@ E('s_troll', 18, 50, '你被黑粉骂上了热搜。', { c: J('streamer'), fx: {
 E('wr_daily', 20, 60, '你每天日更一万字，键盘都快敲出了火星。', { c: J('writer'), fx: { INT: 1, STR: -1 }, em: 'book' });
 E('wr_tv', 25, 60, '你的小说被改编成了电视剧，爆火全网。', { c: J('writer'), w: .7, fx: { MNY: 3, SPR: 1 }, em: 'star', big: '作品影视化!' });
 E('wr_block', 20, 60, '你卡文了三个月，读者在评论区寄来了刀片。', { c: J('writer'), fx: { SPR: -1 }, em: 'sweat' });
-E('n_game', 18, 50, '你每天在家打游戏到天亮，爸妈唉声叹气。', { c: J('none'), fx: { SPR: 1 }, em: 'zzz' });
+E('n_game', 18, 50, '你每天在家打游戏到天亮，爸妈唉声叹气。', { c: () => L.job === 'none' && (L.par.dad.alive || L.par.mom.alive), fx: { SPR: 1 }, em: 'zzz' });
 E('n_nag', 18, 50, '过年时，亲戚们轮番“关心”你的工作问题。', { c: J('none'), fx: { SPR: -2 }, em: 'anger' });
 E('n_work', 20, 50, () => ['你终于出门找了份工作。', assignJob('zhuan')], { c: J('none'), w: .6, em: 'star' });
 E('h_yacht', 22, 60, '你一时兴起买了一艘游艇，结果晕船吐了一整天。', { c: J('heir'), fx: { MNY: -1, SPR: 1 }, em: 'sweat', sc: 'park' });
@@ -1158,7 +1158,7 @@ E('marathon', 25, 55, '你跑完了人生中第一个全程马拉松。', { c: (
 E('fill_adult', 18, 59, '平淡的一年过去了。', { rep: 1, cd: 1, w: .1, em: 'note' });
 // ---------------- love & family
 E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地铁上', '朋友的婚礼上', '健身房', '图书馆', '公司楼下']) + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => (L.a.CHR / 4 + .6) * (L.age >= 22 && L.age <= 36 ? 2 : 1), fx: { SPR: 2 }, em: 'heart', sc: 'park', love: 1 });
-E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被爸妈安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被爸妈安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
+E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
 E('marry', 22, 55, () => { YR.ch = 'marry'; return '你和{ta}交往很久了，两家父母都在催婚。'; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
 E('c_kid', 23, 44, () => { L.f.kidq = 1; YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 6, em: 'q', sc: 'home' });
@@ -1189,7 +1189,7 @@ E('dance', 55, 80, '你加入了广场舞队伍，没过多久就成了领舞。
 E('chess', 58, 90, '你每天去公园下象棋，旁边围观的大爷比你还着急。', { fx: { INT: 1, SPR: 1 }, em: 'note', sc: 'park' });
 E('oldscam', 60, 90, '你被推销员忽悠，花三万块买了一堆“包治百病”的保健品。', { c: () => L.a.INT <= 7, fx: { MNY: -1 }, em: 'sweat' });
 E('olduni', 60, 80, '你报名了老年大学，学会了书法和摄影。', { fx: { INT: 1, SPR: 1 }, em: 'book', sc: 'class' });
-E('memoir', 65, 95, '你写了一本回忆录，儿孙们都抢着看。', { c: () => L.a.INT >= 6, fx: { SPR: 1 }, em: 'book' });
+E('memoir', 65, 95, () => L.kids.length ? '你写了一本回忆录，儿孙们都抢着看。' : '你写了一本回忆录，印了一百本，送给了老朋友们。', { c: () => L.a.INT >= 6, fx: { SPR: 1 }, em: 'book' });
 E('oldill', 60, 130, '你生了一场大病，在医院住了很久，身体大不如前了。', { rep: 1, cd: 5, w: .3, fx: { STR: -2 }, em: 'ill', sc: 'hosp' });
 E('cane', 68, 110, '你走路越来越慢，出门开始拄拐杖了。', { c: () => !L.f.cane, f: { cane: 1 }, fx: { STR: -1 }, em: 'sweat' });
 E('glassesonhead', 70, 110, '你到处找眼镜，最后发现它就戴在自己脸上。', { fx: { INT: -1 }, em: 'q' });
@@ -1199,8 +1199,8 @@ E('smartphone', 60, 85, '你学会了用智能手机，每天在家族群里转�
 E('oldfriend', 70, 110, '你的一位老朋友走了，你在葬礼上沉默了很久。', { fx: { SPR: -1 }, em: 'sad' });
 E('mahjong', 55, 95, '你打麻将连胡了三把，高兴得血压都上来了。', { fx: { SPR: 1 }, em: 'note' });
 E('story', 60, 100, '你给{grand}辈讲你年轻时的故事，讲着讲着自己先笑了。', { c: () => L.f.grandkid, fx: { SPR: 1 }, em: 'note', sc: 'home' });
-E('goldwed', 70, 110, '你和{spouse}迎来了金婚纪念日，儿孙们为你们摆了一桌宴席。', { c: () => L.mar && L.age - L.marAge >= 50, w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'home', big: '金婚!' });
-E('century', 100, 100, '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!' });
+E('goldwed', 70, 110, () => '你和{spouse}迎来了金婚纪念日，' + (L.kids.length ? '儿孙们' : '老朋友们') + '为你们摆了一桌宴席。', { c: () => L.mar && L.age - L.marAge >= 50, w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'home', big: '金婚!' });
+E('century', 100, 100, () => L.kids.length ? '你迎来了一百岁生日，全家人为你举办了盛大的寿宴。' : '你迎来了一百岁生日，街坊邻居们凑钱为你办了一场寿宴。', { m: 1, fx: { SPR: 3 }, em: 'star', sc: 'home', big: '百岁寿宴!' });
 E('oldest', 104, 140, '你成了全市最长寿的老人。记者问你长寿的秘诀，你说：“别想太多。”', { fx: { SPR: 1 }, em: 'star' });
 E('fill_old', 60, 200, '你在平静中度过了一年。', { rep: 1, cd: 1, w: .12, em: 'zzz', p: '*' });
 // ---------------- more life
@@ -1324,7 +1324,7 @@ E('ab_chinese', 6, 12, '每个周末你都被送去中文学校，学写毛笔�
 E('ab_kungfu', 8, 16, '同学问你会不会功夫，你只好现场表演了一套广播体操。', { c: BP('abroad'), w: 1.5, em: 'sweat', sc: 'class' });
 E('ab_newyear', 10, 60, '过年的时候，你和国内的亲戚视频拜年，画面卡成了幻灯片。', { c: BP('abroad'), em: 'note', sc: 'home' });
 E('ab_hotpot', 15, 40, '你走遍了整座城市，只为找一家正宗的火锅店。', { c: BP('abroad'), fx: { SPR: 1 }, em: 'heart', sc: 'street' });
-E('ab_return', 22, 35, '你决定回国发展，爸妈又高兴又舍不得。', { c: BP('abroad'), em: 'heart', sc: 'street' });
+E('ab_return', 22, 35, '你决定回国发展，爸妈又高兴又舍不得。', { c: () => L.bp === 'abroad' && (L.par.dad.alive || L.par.mom.alive), em: 'heart', sc: 'street' });
 // ---------------- story arcs: a childhood sweetheart, a best friend, a pet's life
 const QM_N = { m: ['阿杰', '小宇', '浩浩', '阿哲', '小北'], f: ['小雨', '小满', '甜甜', '阿晴', '小鹿'] };
 const BRO_N = { m: ['胖子', '猴子', '大壮', '阿飞', '小黑'], f: ['圆圆', '阿琳', '佳佳', '小美', '朵朵'] };
@@ -1724,6 +1724,7 @@ function finishYear() {
   if (YR.big) entry.big = 1;
   if (YR.big) (L.hl = L.hl || []).push({ a: L.age, s: YR.big.replace(/!$/, '') });
   if (YR.skip && !L.end) L.age += YR.skip;
+  if (L.path === 'xian' && XB() === 'yao' && YR.lines.some(t => t.includes('原形'))) L.foxAt = L.age;
   return YR;
 }
 function resolveChoice(i) {
