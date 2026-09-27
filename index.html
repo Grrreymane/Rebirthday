@@ -2587,6 +2587,7 @@ const BTN = {
   back: [4, 4, 34, 15], pull: [45, 250, 90, 22], tOK: [40, 293, 100, 20],
   aRand: [10, 270, 60, 20], aGo: [76, 270, 94, 20],
   auto: [4, 299, 56, 18], next: [118, 299, 58, 18], seeEnd: [40, 299, 100, 18], toEnd: [40, 299, 100, 18],
+  gShop: [140, 4, 36, 15], eShop: [120, 238, 46, 14],
   review: [6, 297, 54, 18], share: [63, 297, 54, 18], nextLife: [120, 297, 54, 18], inhGo: [40, 224, 100, 20],
   achBack: [50, 296, 80, 18], mResume: [45, 124, 90, 20], mMusic: [45, 150, 90, 20], mHome: [45, 176, 90, 20], jump: [154, 278, 20, 16],
 };
@@ -2643,10 +2644,10 @@ function drawTitle() {
   txt('抽天赋 · 分属性 · 过一生', 90, 116, 7.5, '#ffffff', 'center', '#2a4a8a');
   if (SAVED) {
     button(BTN.tCont, '继续人生 · ' + SAVED.age + '岁', { green: 1 });
-    button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 }); button(BTN.tBook2, '轮回簿', { size: 7 });
+    button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 }); redDot(BTN.tShop2); button(BTN.tBook2, '轮回簿', { size: 7 });
   } else {
     button(BTN.tNew, '开始新人生');
-    button(BTN.tAch, '成就', { blue: 1, size: 7 }); button(BTN.tShop, '轮回殿', { red: 1, size: 7 }); button(BTN.tBook, '轮回簿', { size: 7 });
+    button(BTN.tAch, '成就', { blue: 1, size: 7 }); button(BTN.tShop, '轮回殿', { red: 1, size: 7 }); redDot(BTN.tShop); button(BTN.tBook, '轮回簿', { size: 7 });
   }
   if (META.lives) txt('已轮回 ' + META.lives + ' 次 · 最长 ' + META.best + ' 岁 · 轮回点 ' + (META.rp || 0), 90, 311, 6, '#ffffff', 'center', '#2a5a2a');
   g.drawImage(META.muted ? I.mute : I.sound, 168, 3);
@@ -2693,6 +2694,7 @@ function drawGacha() {
     if (getInh().length) txt('前世继承：' + getInh().map(id => TAL[id].n).join('、'), 90, 284, 7, '#ffe890');
     const o = rarityOdds(); txt('传说 ' + (o[3] * 100).toFixed(1) + '%  史诗 ' + (o[2] * 100).toFixed(1) + '%', 90, 300, 6.5, '#a89ad8');
   }
+  if (G.ph === 'ready') { button(BTN.gShop, '轮回殿', { red: 1, size: 6.5 }); redDot(BTN.gShop); }
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
   drawParts();
 }
@@ -2796,6 +2798,7 @@ function drawEnd() {
   txt(L.asc ? '飞升结算' : '人生总结', 90, 8, 9, '#ffe14a');
   drawTomb(16, st);
   endPanel(st);
+  if (st > 1 && state === 'end') { button(BTN.eShop, '去加点', { red: 1, size: 6.5 }); redDot(BTN.eShop); }
   button(BTN.review, '回顾', { blue: 1, size: 7.5 }); button(BTN.share, '分享', { red: 1, size: 7.5 }); button(BTN.nextLife, '再来！', { green: 1, size: 7.5 });
   drawParts();
 }
@@ -2840,8 +2843,8 @@ function endPanel(st) {
     txt(L.score + ' 分', 143, 203, 6.5, '#8a6a4a', 'center', null);
     txt(lifeTitle(), 143, 214, 7, '#6a3a1a', 'center', null);
   }
-  txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 270, 6.5, '#6a4a2a', 'center', null);
-  if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 60, 256, 6.5, '#b8780a', 'center', null);
+  txt('天赋：' + L.tl.map(id => TAL[id].n).join('、'), 90, 274, 6.5, '#6a4a2a', 'center', null);
+  if (L.newAch) txt('这一世解锁了 ' + L.newAch + ' 个新成就', 60, 260, 6.5, '#b8780a', 'center', null);
   if (st > 1 && L.rpGain) txt('轮回点 +' + L.rpGain, 143, 232, 7.5, '#b8780a', 'center', null);
 }
 // A tall pixel postcard of the life: tomb, grades, highlights and a link, rendered at 4x.
@@ -2945,8 +2948,12 @@ function drawShop() {
   txt('每一世结束，按评价和新成就获得轮回点', 90, 283, 6.5, '#8a6a4a', 'center', null);
   button(BTN.achBack, '返回', { blue: 1 });
 }
+let shopFrom = 'title';
+function openShop(from) { shopFrom = from; go('shop'); SFX.click(); }
+const canUpgrade = () => UPG.some(u => upLv(u.id) < u.max && (META.rp || 0) >= u.cost[upLv(u.id)]);
+function redDot(r) { if (!canUpgrade()) return; const x = r[0] + r[2] - 3, y = r[1] - 2; g.fillStyle = OUT; g.fillRect(x - 1, y - 1, 6, 6); g.fillStyle = '#ff3b3b'; g.fillRect(x, y, 4, 4); g.fillStyle = '#ffb0b0'; g.fillRect(x, y, 1, 1); }
 function tapShop(p) {
-  if (inR(p, BTN.achBack)) { go('title'); SFX.click(); return; }
+  if (inR(p, BTN.achBack)) { go(shopFrom); if (shopFrom === 'end') st = 5; if (shopFrom === 'gacha') startGacha(); SFX.click(); return; }
   UPG.forEach((u, i) => {
     if (!inR(p, shopBtn(i))) return;
     const lv = upLv(u.id), cost = u.cost[lv];
@@ -3016,18 +3023,19 @@ function tapTitle(p) {
     if (inR(p, BTN.tCont)) return resumeLife();
     if (inR(p, BTN.tNew2)) { clearRun(); startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch2)) return openAch('title');
-    if (inR(p, BTN.tShop2)) { go('shop'); SFX.click(); return; }
+    if (inR(p, BTN.tShop2)) return openShop('title');
     if (inR(p, BTN.tBook2)) { bookScroll = 0; go('book'); SFX.click(); return; }
   } else {
     if (inR(p, BTN.tNew)) { startGacha(); SFX.click(); return; }
     if (inR(p, BTN.tAch)) return openAch('title');
-    if (inR(p, BTN.tShop)) { go('shop'); SFX.click(); return; }
+    if (inR(p, BTN.tShop)) return openShop('title');
     if (inR(p, BTN.tBook)) { bookScroll = 0; go('book'); SFX.click(); return; }
   }
 }
 function tapGacha(p) {
   const G = gacha;
   if (G.ph === 'ready' && inR(p, BTN.back)) { go('title'); SFX.click(); return; }
+  if (G.ph === 'ready' && inR(p, BTN.gShop)) return openShop('gacha');
   if (G.ph === 'ready' && inR(p, BTN.pull)) { G.ph = 'shake'; G.t = 0; SFX.crank(); return; }
   if (G.ph === 'wait') { G.ph = 'open'; G.t = 0; const best = TAL[G.fate].r; confetti(best === 4 ? 30 : 30 + best * 15, 200, best === 4 ? ['#8a5aa8', '#3a2a4a', '#c8a8e8'] : best >= 2 ? [RAR[best].c, '#ffffff', '#ffe14a'] : null); shake = best === 3 || best === 4 ? 3 : 0; }
 }
@@ -3076,6 +3084,7 @@ function tapLife(p) {
   if (p.y > SY) nextYear();
 }
 function tapEnd(p) {
+  if (st > 1 && inR(p, BTN.eShop)) return openShop('end');
   if (inR(p, BTN.share)) { SFX.select(); makeShare(); return; }
   if (inR(p, BTN.review)) { go('review'); logScroll = 0; SFX.click(); return; }
   if (inR(p, BTN.nextLife)) { inhSel = []; go('inherit'); SFX.click(); }
