@@ -683,6 +683,27 @@ function buildScenes() {
     for (const a of [14, 26]) { box(x, a, 64, 12, 14, '#8a5a2a', '#a8743a'); F(x, a + 1, 68, 10, 1, '#4a3a2a'); F(x, a + 1, 73, 10, 1, '#4a3a2a'); }
     box(x, 140, 70, 24, 8, '#3a3a4a', '#5a5a6a'); odsc(x, 146, 80, 4, '#6a4424'); odsc(x, 158, 80, 4, '#6a4424'); F(x, 162, 72, 8, 3, '#26263a');
   });
+  // throne rooms for the isekai king and the dark lord
+  const castle = (id, banner, wall, glow, gold) => scn(id, (x) => {
+    F(x, 0, 0, 180, FY, wall); for (let y = 4; y < FY; y += 8) for (let i = ((y - 4) / 8 % 2) * 10; i < 180; i += 20) F(x, i, y, 19, 7, shade(wall, .08));
+    F(x, 0, 48, 180, 22, shade(wall, -.12)); F(x, 0, 47, 180, 2, gold); F(x, 0, 49, 180, 1, shade(gold, -.35));
+    for (const px of [18, 152]) { box(x, px, 0, 10, FY, shade(wall, .18), shade(wall, .3)); F(x, px - 2, 0, 14, 4, gold); F(x, px - 2, FY - 5, 14, 5, shade(wall, -.25)); }
+    // stained glass above the throne
+    const win = [[86, 2, 8, 1], [83, 3, 14, 1], [81, 4, 18, 2], [80, 6, 20, 18]];
+    for (const [wx, wy, ww, wh] of win) F(x, wx - 1, wy - 1, ww + 2, wh + 2, OUT);
+    const glass = [shade(banner, .35), shade(glow, .2), '#6ac8ff', shade(banner, .1)];
+    for (const [wx, wy, ww, wh] of win) for (let yy = wy; yy < wy + wh; yy++) for (let xx = wx; xx < wx + ww; xx++) { x.fillStyle = glass[((xx >> 2) + (yy >> 2)) % 4]; x.fillRect(xx, yy, 1, 1); }
+    F(x, 89, 1, 2, 24, OUT); F(x, 79, 14, 22, 1, OUT);
+    for (const bx of [42, 126]) { box(x, bx, 4, 12, 34, banner, shade(banner, .2)); x.fillStyle = banner; for (let k = 0; k < 6; k++) x.fillRect(bx + 3 + k, 38 + (k < 3 ? k : 5 - k), 1, 1); F(x, bx + 4, 14, 4, 4, glow); F(x, bx + 5, 12, 2, 8, glow); F(x, bx - 1, 3, 14, 2, gold); }
+    for (const tx of [34, 144]) { F(x, tx, 30, 2, 8, '#6a4a2a'); F(x, tx - 1, 37, 4, 2, gold); dsc(x, tx + 1, 27, 2.5, '#ff9a2a'); dsc(x, tx + 1, 26, 1.2, '#fff0a0'); }
+    // throne on a stepped dais
+    box(x, 56, 58, 68, 8, shade(wall, .2), shade(wall, .35)); box(x, 62, 52, 56, 8, shade(wall, .28), shade(wall, .4));
+    box(x, 74, 22, 32, 32, gold, shade(gold, .3), shade(gold, -.3)); F(x, 74, 20, 4, 4, gold); F(x, 102, 20, 4, 4, gold); box(x, 86, 16, 8, 8, gold, shade(gold, .3));
+    F(x, 89, 18, 2, 3, glow); box(x, 79, 27, 22, 20, banner, shade(banner, .2)); box(x, 70, 40, 8, 13, gold, shade(gold, .3)); box(x, 102, 40, 8, 13, gold, shade(gold, .3)); box(x, 77, 44, 26, 7, shade(banner, .1), shade(banner, .3));
+    F(x, 0, FY, 180, 50, shade(wall, -.2)); for (let y = FY + 6; y < SH; y += 8) F(x, 0, y, 180, 1, shade(wall, -.3)); F(x, 0, FY, 180, 2, OUT);
+    F(x, 78, FY, 24, 50, banner); F(x, 80, FY, 20, 50, shade(banner, .15)); F(x, 78, FY, 1, 50, gold); F(x, 101, FY, 1, 50, gold); F(x, 78, FY, 24, 2, OUT);
+  });
+  castle('castle', '#c8283a', '#a8a4b4', '#ffd23f', '#d8b040'); castle('darkcastle', '#6a2a8a', '#4a4058', '#ff4ae0', '#8a7aa0');
   // isekai meadow
   scn('isekai', (x) => {
     grad(x, 0, 64, ['#8a78e0', '#a88ae8', '#c89ce8', '#e8b0e0']); dsc(x, 30, 16, 7, '#fff4d0'); dsc(x, 44, 10, 3, '#d0f4ff');
@@ -756,7 +777,7 @@ function buildScenes() {
   // setup screens: starry void
   scn('void', (x) => { grad(x, 0, SH, ['#140c2a', '#1a1036', '#221442', '#2a184c']); });
 }
-const SCENE_NAME = { hosp: '医院', home0: '出租屋', home0v: '农家小院', home1: '家', home1b: '家', home1c: '家', home2: '豪宅', home3: '庄园', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
+const SCENE_NAME = { hosp: '医院', home0: '出租屋', home0v: '农家小院', home1: '家', home1b: '家', home1c: '家', home2: '豪宅', home3: '庄园', kg: '幼儿园', class: '教室', campus: '大学', office: '办公室', site: '工地', shop: '小饭馆', street: '街头', park: '公园', wedding: '婚礼', xian: '青云宗', mo: '血煞宗', yao: '万妖山', gu: '古代府邸', castle: '王宫', darkcastle: '魔王城', ruins: '末日废墟', neon: '霓虹夜城', ship: '海盗船', isekai: '异世界', space: '月球', stage: '舞台', arena: '赛场', lab: '实验室', farm: '田间', field: '运动场', grave: '墓地', void: '' };
 
 // ============================================================ talents
 const STATS = ['CHR', 'INT', 'STR', 'MNY', 'SPR'];
@@ -1517,8 +1538,8 @@ E('is_darkramen', 0, 999, '你带着魔王军去勇者的家乡吃拉面，吃�
 E('is_darkhero', 0, 999, '一个新的勇者来讨伐你，你看着他，想起了当年的自己。', { p: 'isekai', c: () => L.f.darkking, fx: { SPR: -1 }, em: 'q' });
 E('is_king', 0, 999, '国王把王位传给了你，你成为了异世界的新国王。', { p: 'isekai', c: () => L.f.hero && !L.f.dark, fx: { MNY: 5 }, f: { king: 1 }, em: 'star', big: '登基!' });
 E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红烧肉。', { p: 'isekai', fx: { SPR: -1 }, em: 'sad' });
-E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .015, em: 'q', sc: 'hosp' });
-E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。']), { p: 'isekai', rep: 1, cd: 1, w: .4, em: 'note' });
+E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .003, em: 'q', sc: 'hosp' });
+E('is_fill', 0, 999, () => pick(['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。', '你在城外的草原上躺了一整天，看两个月亮慢慢升起。', '你接了一年的护送商队任务，走遍了大陆的每一条商道。']), { p: 'isekai', rep: 1, cd: 1, w: .2, em: 'note' });
 E('is_peace', 0, 999, '在你的治理下，异世界迎来了和平。', { p: 'isekai', c: () => L.f.king, rep: 1, cd: 4, w: .4, fx: { SPR: 1 }, em: 'note' });
 E('xchores', 0, 9999, '你每天挑水劈柴，师父说这也是修炼。', { p: 'xian', c: () => L.xl === 1 && XB() === 'zheng', fx: { STR: 1 }, em: 'sweat' });
 E('xpill', 0, 9999, '你偷吃了师父炼的丹药，睡了三天三夜。', { p: 'xian', fx: { INT: 1 }, em: 'zzz' });
@@ -1667,11 +1688,58 @@ E('gu_chili', 58, 999, '你在园子里种活了一株辣椒——这可是还�
 E('gu_gomoku', 55, 999, '你教村里的老人们下五子棋，他们都说这比围棋简单多了。', { p: 'gu', fx: { SPR: 1 }, em: 'note', sc: 'park' });
 E('gu_story', 60, 999, '你在茶馆里讲“千年以后的世界”，听众都以为你在讲神话。', { p: 'gu', fx: { SPR: 1 }, em: 'note', sc: 'shop' });
 E('gu_emperorold', 55, 999, '你当皇帝的这些年，推行了简体字和九年义务教育。', { p: 'gu', c: () => L.f.emperor, w: 2, fx: { INT: 1, SPR: 2 }, em: 'star' });
+// ---------------- more isekai: the newcomer years, adventures, ruling, and growing old there
+const IS = { p: 'isekai' }, isYrs = () => L.age - L.isAge;
+const IE = (id, t, o) => E(id, 0, 999, t, Object.assign({}, IS, o));
+IE('is_status', '你对着空气喊了一声“状态栏”，面前真的弹出了一块半透明的面板。', { c: () => isYrs() <= 3, w: 3, fx: { INT: 1 }, em: 'bang' });
+IE('is_goblin', '你第一次出城打怪，被一只哥布林追着跑了三条街。', { c: () => isYrs() <= 4, w: 2, fx: { STR: 1 }, em: 'sweat' });
+IE('is_coins', '异世界的金币、银币、铜币你怎么都换算不明白，被奸商坑了一大笔钱。', { c: () => isYrs() <= 4, fx: { MNY: -1 }, em: 'sweat' });
+IE('is_spell', '你第一次在魔法学院念咒，就把教室的屋顶炸飞了。', { w: 1.5, fx: { INT: 1 }, em: 'bang' });
+IE('is_rival', '一个自称“真正的天选勇者”的金发少年，处处跟你作对。', { c: () => L.f.guild, f: { rival: 1 }, em: 'anger' });
+IE('is_rival2', () => '金发勇者在一场恶战中替你挡了一刀。从那以后，你们成了' + (L.g === 'm' ? '好兄弟' : '好朋友') + '。', { c: () => L.f.rival && isYrs() >= 3, w: 2, fx: { SPR: 2 }, em: 'heart' });
+IE('is_sword', () => { if (chance(.35)) { L.f.holysword = 1; addFx({ STR: 3 }); YR.big = '圣剑认主!'; return '你从石头里拔出了传说中的圣剑，剑身亮起了金光。'; } return '你从石头里拔出了一把“圣剑”，剑柄上刻着一行小字：纪念品，十个铜币。'; }, { c: () => L.f.guild, em: 'spark' });
+IE('is_dungeon', '你们闯进一座地下迷宫，一路打到第九十九层，带回了一箱魔晶石。', { c: () => L.f.guild, fx: { MNY: 2, STR: 1 }, em: 'coin' });
+IE('is_curry', '你在异世界复刻出了咖喱饭，国王尝了一口，当场封你为御厨。', { c: () => !L.f.king && !L.f.dark, fx: { MNY: 1, SPR: 1 }, em: 'star' });
+IE('is_trap', '你在迷宫里踩中了传送陷阱，被传到一座荒岛上，花了三个月才游回来。', { c: () => L.f.guild, fx: { SPR: -1, STR: 1 }, em: 'sweat' });
+IE('is_hoard', '你找到了一座被遗忘的古龙宝库，金币堆得像小山一样高。', { c: () => L.f.guild && isYrs() >= 3, w: .6, fx: { MNY: 4 }, em: 'coin', big: '古龙宝库!' });
+IE('is_potion', '女神下凡视察，看你过得不错，偷偷往你背包里塞了一瓶万能药。', { fx: { STR: 2 }, em: 'heart' });
+IE('is_sage', '你在王都开了一所学校，教孩子们九九乘法表，被尊称为“贤者大人”。', { c: () => L.a.INT >= 7, fx: { INT: 2, SPR: 1 }, f: { sage: 1 }, em: 'book' });
+IE('is_statue', () => '王都广场为你立了一座雕像，比你本人' + (L.g === 'm' ? '帅' : '美') + '多了。', { c: () => L.f.hero, fx: { SPR: 1 }, em: 'star' });
+IE('is_war', () => L.f.dark ? '人类联军打上魔王城，你挥手把城外的焦土变成了一片花田。联军看傻了，撤兵了。' : '邻国趁乱发兵来犯，你带着圣剑单枪匹马守住了城门。', { c: () => L.f.hero || L.f.dark, fx: { STR: 2 }, em: 'star' });
+CH.royal = { o: [['向{ta}求婚', () => { startLove({ hair: 'dye' }); marry(); L.f.royal = 1; YR.big = '王室联姻!'; YR.em = 'heart'; return '国王大喜，为你们办了一场全国同庆的婚礼。'; }], ['送回王宫就走', () => { addFx({ SPR: 1 }); return '你婉拒了国王的赏赐，背起行囊继续冒险。'; }]] };
+IE('is_rescue', () => { YR.ch = 'royal'; return '一位' + (L.g === 'm' ? '公主' : '王子') + '被魔物掳走了，你杀进魔窟把{ta}救了回来。'; }, { c: () => L.f.guild && canLove(), w: 1.2, em: 'heart' });
+CH.portal = { o: [['回到原来的世界', () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; YR.sc = 'hosp'; return '一道白光闪过。你在医院的病床上醒来，医生说你已经昏迷了整整' + n + '年。'; }],
+  ['留下来', () => { addFx({ SPR: 2 }); return '你摇了摇头：“这里才是我的家。”'; }]] };
+IE('is_portal', () => { YR.ch = 'portal'; return '女神出现在你面前：“我可以送你回原来的世界，要回去吗？”'; }, { c: () => isYrs() >= 8 && L.age < 70, w: .5, em: 'q' });
+// ruling
+IE('is_tax', '你当上国王后的第一道圣旨是减税，全国百姓都在唱歌夸你。', { c: () => L.f.king, w: 2, fx: { SPR: 2 }, em: 'heart', sc: 'castle' });
+IE('is_sneak', '当国王太闷了，你穿上旧盔甲溜出王宫，去冒险者公会接了个采药任务。', { c: () => L.f.king, fx: { SPR: 1 }, em: 'note' });
+IE('is_heir', '你的{kid0}长大了，你亲手把王冠戴到了{kid0}的头上。', { c: () => L.f.king && kidAge(0) >= 20, w: 2, fx: { SPR: 2 }, em: 'star', sc: 'castle', big: '传位!' });
+IE('is_minion', '魔王军的小兵们见了你都发抖，其实你只是想问他们午饭吃什么。', { c: () => L.f.dark, fx: { SPR: 1 }, em: 'sweat', sc: 'darkcastle' });
+IE('is_treaty', '你和人类王国签订了和平条约，魔族和人类第一次一起过了个节。', { c: () => L.f.darkking, w: 1.5, fx: { SPR: 2 }, em: 'heart', sc: 'darkcastle', big: '人魔和平!' });
+IE('is_kidskill', '你的{kid0}继承了你的外挂技能，五岁就能单挑史莱姆。', { c: () => kidAge(0) >= 5 && kidAge(0) <= 12, w: 1.5, fx: { SPR: 1 }, em: 'star' });
+IE('is_elfwife', '你的精灵{spouse}还是年轻时的模样，每天笑着帮你拔白头发。', { c: () => L.mar && L.pt && L.pt.hair === 'silver' && L.age >= 50, w: 1.5, fx: { SPR: 1 }, em: 'heart' });
+// growing old in another world
+IE('is_tales', '你老了，常坐在酒馆门口，给年轻冒险者讲当年攻打魔王城的故事。', { c: () => L.age >= 60, w: 1.5, fx: { SPR: 1 }, em: 'note' });
+IE('is_reunion', '当年的冒险小队重聚了。精灵弓手还是年轻的模样，只有你满头白发。', { c: () => L.age >= 60 && L.f.guild, w: 1.5, fx: { SPR: -1 }, em: 'sad' });
+IE('is_olddragon', '你的老坐骑巨龙也老了，你们一起趴在山顶看日落。', { c: () => L.age >= 60 && used('is_dragon'), w: 1.5, fx: { SPR: 1 }, em: 'heart' });
+IE('is_memoir', '你写了一本《勇者回忆录》，成了异世界的畅销书。', { c: () => L.age >= 55, fx: { MNY: 1, SPR: 1 }, em: 'book' });
+IE('is_visit', '女神又来了。你以为是来接你的，结果她只是来蹭饭。', { c: () => L.age >= 65, fx: { SPR: 1 }, em: 'sweat' });
 // ---------------- aliens
 E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
 E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
 E('alien3', 20, 80, () => { setJob('ambassador'); return ['外星人再次来访，邀请你加入银河联邦。', '你成为了银河联邦驻地球大使。']; }, { c: () => L.f.alien && used('alien2') && L.job !== 'ambassador' && L.a.INT >= 7, w: .2, fx: { MNY: 3 }, em: 'spark', sc: 'space', big: '星际大使!' });
 
+// Route talents keep their promise: the route starts at a rolled age, and random routes stay out of the way.
+const ROUTE_TAL = { yishijie: ['truck', 18, 5, .004], chuanyue: ['gu_go', 14, 4, .003], mori: ['zb_go', 20, 6, .002], yiti: ['cy_go', 22, 5, .002], haizi: ['pi_go', 18, 4, .003], waixing: ['alien1', 12, 5, .0015] };
+const hasRouteTal = () => ['xianyuan', 'yaoxue', 'yishijie', 'chuanyue', 'mori', 'yiti', 'haizi'].some(tal);
+for (const t in ROUTE_TAL) {
+  const [id, base, step, rare] = ROUTE_TAL[t], e = EVI[id];
+  E(id + '_t', e.a0, e.a1 + 15, e.t, Object.assign({}, e, { id: id + '_t', m: 1, w: 1, c: () => tal(t) && !L.used[id + '_t'] && L.age >= base + (L.ta || 0) * step }));
+  e.w = () => tal(t) || (t !== 'waixing' && hasRouteTal()) ? 0 : rare;
+}
+EVI.xmeet.w = () => hasRouteTal() ? 0 : .01;
+EVI.moinvite.w = () => hasRouteTal() ? 0 : .03;
 // ============================================================ life engine
 function newLife(tids, pts) {
   const look = () => ({ hair: pick(['black', 'black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS) });
@@ -2312,7 +2380,7 @@ const resolveScene = s => s === 'home' ? homeSc() : s;
 function defaultScene() {
   const a = L.age;
   if (L.path === 'xian') return L.xl >= 1 ? XSD().sc : homeSc();
-  if (L.path === 'isekai') return 'isekai';
+  if (L.path === 'isekai') return (L.f.king || L.f.darkking) && chance(.5) ? (L.f.darkking ? 'darkcastle' : 'castle') : 'isekai';
   if (ROUTES[L.path]) return ROUTES[L.path].sc;
   if (a === 0) return 'hosp';
   if (a < 3) return homeSc();
@@ -2342,7 +2410,7 @@ function afterYear(yr, chosen) {
   }
   yearT = 0; lastG = yr.g;
   let sc = yr.sc || (chosen ? curScene : null);
-  if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? 'isekai' : ROUTES[L.path] ? ROUTES[L.path].sc : homeSc(); // the family gathers at the end
+  if (L.end && !L.asc && L.path !== 'xian' && sc !== 'hosp') sc = L.path === 'isekai' ? (L.f.darkking ? 'darkcastle' : L.f.king ? 'castle' : 'isekai') : ROUTES[L.path] ? ROUTES[L.path].sc : homeSc(); // the family gathers at the end
   curScene = resolveScene(sc || defaultScene()); setupCast();
   emote = yr.em || (yr.g > 0 ? 'note' : yr.g < 0 ? 'sweat' : null);
   if (L.end && !L.asc) emote = null;
@@ -2356,7 +2424,7 @@ function afterYear(yr, chosen) {
 }
 
 // ============================================================ the cast on stage
-const FAMILY_SC = /^(home\w*|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
+const FAMILY_SC = /^(home\w*|castle|darkcastle|park|street|farm|isekai|xian|mo|yao|gu|ruins|neon|ship)$/;
 function setupCast() {
   const sc = SCN[curScene], old = {}; for (const a of cast) old[a.id] = a;
   const out = [], y0 = sc.fy[0], y1 = sc.fy[1];
