@@ -787,6 +787,8 @@ const canLove = () => !tal('danshen') && !L.love && !L.mar;
 function newPartner(o) { return Object.assign({ g: L.g === 'm' ? 'f' : 'm', hair: pick(['black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) }, o || {}); }
 function startLove(o) { L.love = 1; L.loveAge = L.age; L.f.loved = 1; L.pt = newPartner(o); }
 function endLove() { L.love = 0; L.mar = 0; L.pt = null; }
+// The partner leaves the story for good (death, ascension): they also leave the stage.
+function losePartner() { L.love = 0; L.mar = 0; L.pt = null; L.f.widowed = 1; }
 function marry() { L.mar = 1; L.love = 1; L.marAge = L.age; L.f.mar1 = 1; }
 function addKid() { const k = { g: chance(.5) ? 'm' : 'f', born: L.age, hair: L.pt && chance(.5) ? L.pt.hair : L.look.hair, top: pick(TOPS), bot: pick(BOTS) }; L.kids.push(k); return k; }
 const CAT_N = [['小橘', '年糕', '大黄', '橘座'], ['煤球', '黑米', '芝麻', '警长']], DOG_N = [['旺财', '豆豆', '可乐', '来福'], ['小白', '雪球', '棉花', '汤圆']];
@@ -901,7 +903,7 @@ E('gamebox', 8, 14, '你偷偷玩游戏机被发现，游戏机被没收了。',
 E('line38', 7, 11, '你的同桌在课桌中间画了一条“三八线”，你一过线就被戳。', { em: 'anger', sc: 'class' });
 E('sanhao', 7, 12, '你被评为“三好学生”，奖状贴满了家里的一面墙。', { c: () => L.a.INT >= 6, fx: { SPR: 1 }, em: 'star' });
 E('bike', 7, 11, '在摔了十几跤之后，你终于学会了骑自行车。', { fx: { STR: 1 }, em: 'sweat', sc: 'street' });
-E('divorcep', 6, 15, () => '你的父母离婚了，你跟着' + (chance(.5) ? '爸爸' : '妈妈') + '生活。', { w: .25, fx: { SPR: -2 }, em: 'sad', f: { pdiv: 1 } });
+E('divorcep', 6, 15, () => { L.f.pdivWith = chance(.5) ? 'dad' : 'mom'; return '你的父母离婚了，你跟着' + (L.f.pdivWith === 'dad' ? '爸爸' : '妈妈') + '生活。'; }, { w: .25, fx: { SPR: -2 }, em: 'sad', f: { pdiv: 1 } });
 E('transfer', 7, 12, '你转学了，和好朋友们哭着说了再见。', { fx: { SPR: -1 }, em: 'sad' });
 E('cards', 6, 11, '你迷上了集卡片，零花钱全都花在了干脆面上。', { fx: { SPR: 1 }, em: 'note' });
 E('latiao', 6, 11, '你用零花钱买了一包辣条，这是你童年最幸福的时刻之一。', { fx: { SPR: 1 }, em: 'heart', sc: 'street' });
@@ -1251,7 +1253,7 @@ E('kiddraw', 27, 55, '你的{kid0}画了一幅全家福，把你画成了一颗�
 E('kidfever', 24, 55, '你的{kid0}半夜发高烧，你抱着孩子冲进了急诊室。', { c: () => kidAge(0) >= 1 && kidAge(0) <= 9, fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
 E('kidprize', 30, 60, '你的{kid0}在钢琴比赛中拿了第一名，你比孩子还激动。', { c: () => kidAge(0) >= 7 && kidAge(0) <= 15, fx: { SPR: 1 }, em: 'star', sc: 'stage' });
 E('kidemoji', 33, 65, '你的{kid0}嫌你发的表情包太土，把你设成了“消息免打扰”。', { c: () => kidAge(0) >= 11 && kidAge(0) <= 17, em: 'sweat' });
-E('kidabroad', 45, 80, '你的{kid0}去外地工作了，你学会了每天晚上视频通话。', { c: () => kidAge(0) >= 23, fx: { SPR: -1 }, em: 'sad' });
+E('kidabroad', 45, 80, '你的{kid0}去外地工作了，你学会了每天晚上视频通话。', { c: () => kidAge(0) >= 23, fx: { SPR: -1 }, do: () => { L.kids[0].away = 1; }, em: 'sad' });
 E('ptcook', 25, 80, '{spouse}做了一桌菜，你假装很好吃，全部吃光了。', { c: () => L.mar, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
 E('ptphoto', 30, 70, '你和{spouse}去海边补拍了一套婚纱照。', { c: () => L.mar && L.a.MNY >= 5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
 E('ptsnore', 40, 80, '你嫌{spouse}打呼噜，{ta}嫌你磨牙，你们分房睡了。', { c: () => L.mar, em: 'anger', sc: 'home' });
@@ -1265,6 +1267,10 @@ E('oldorder', 65, 90, '你第一次用手机点外卖，手一抖点了十份。
 E('bird', 60, 90, '你每天提着鸟笼去公园遛鸟，和鸟聊得比和人还多。', { fx: { SPR: 1 }, em: 'note', sc: 'park' });
 E('oldclass', 70, 90, '毕业五十年的同学聚会，只来了三个人。', { fx: { SPR: -1 }, em: 'sad', sc: 'shop' });
 E('oldvlog', 65, 90, '你开了个账号分享家常菜，意外收获了十万粉丝。', { fx: { SPR: 2 }, em: 'star' });
+E('pt_die', 55, 130, () => (YR.sc = ROUTES[L.path] ? ROUTES[L.path].sc : 'hosp', { gu: '你的{spouse}走了。你在{ta}的坟前种了一棵梅树。', zb: '你的{spouse}没能熬过这个冬天。你把{ta}葬在了基地楼顶的菜园旁边。', cy: '你的{spouse}的义体停止了运转。你留着{ta}最后一段语音，每晚都要听一遍。', pi: '你的{spouse}走了。你把{ta}葬进了大海，那天的海面格外平静。' })[L.path] || '你的{spouse}走了。你把{ta}的照片放在床头，每天都和{ta}说说话。',
+  { p: '*', c: () => L.mar && L.pt && L.path !== 'xian' && L.path !== 'isekai', w: () => Math.pow(Math.max(0, L.age - 58) / 14, 2) * .8, fx: { SPR: -3 }, do: losePartner, em: 'sad' });
+E('widow1', 56, 130, '你一个人去了你们年轻时常去的公园，坐了一整个下午。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', fx: { SPR: -1 }, em: 'sad', sc: 'park' });
+E('widow2', 56, 130, '你学会了一个人吃饭，只是总会习惯性地多摆一副碗筷。', { p: '*', c: () => L.f.widowed && !L.mar && L.path !== 'xian', em: 'sad', sc: 'home' });
 E('oldlove', 62, 90, () => { startLove(); marry(); return '你在老年大学遇到了一位老伴，黄昏恋也可以很甜。'; }, { c: canLove, w: .5, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
 E('teeth', 70, 110, '你的牙掉得差不多了，吃什么都要打成糊。', { fx: { STR: -1 }, em: 'sad' });
 E('tvnap', 75, 120, '你看着电视就睡着了，一关电视，你又醒了。', { em: 'zzz' });
@@ -1550,7 +1556,8 @@ E('x_alone', 200, 9999, '当年和你一起入门的人，大多已经坐化了�
 E('x_student2', 0, 9999, '你的徒弟也结成了金丹，你比自己突破的时候还高兴。', { p: 'xian', c: () => used('xdisciple'), fx: { SPR: 2 }, em: 'heart' });
 E('x_war', 0, 9999, XB3('正邪大战爆发，你率领正道各派击退了魔道联军。', '正邪大战爆发，你率领魔道联军一路杀上了昆仑山。', '人妖两族开战，你站出来主持和谈，换来了百年太平。'), { p: 'xian', c: () => L.xl >= 4, fx: { STR: 1, SPR: 1 }, em: 'star', big: XB3('正道之光!', '魔威震天!', '人妖和谈!') });
 E('x_manual', 0, 9999, '你把一生所悟写成了一部功法，流传后世。', { p: 'xian', c: () => L.xl >= 4, fx: { INT: 2 }, em: 'book' });
-E('x_partner', 0, 9999, '你的道侣先你一步渡劫飞升了。临走前，{ta}说会在天上等你。', { p: 'xian', c: () => L.mar && L.xl >= 4, fx: { SPR: -1 }, em: 'sad' });
+E('x_partner', 0, 9999, '你的道侣先你一步渡劫飞升了。临走前，{ta}说会在天上等你。', { p: 'xian', c: () => L.mar && L.xl >= 4, w: .35, fx: { SPR: -1 }, do: losePartner, em: 'sad' });
+E('x_partnerdie', 0, 9999, () => XB() === 'mo' ? '你的道侣在一场正邪大战中陨落了。你抱着{ta}，在血月下坐了三天三夜。' : '你的道侣没能扛过天劫，在雷光中灰飞烟灭。你在{ta}的洞府前守了一百年。', { p: 'xian', c: () => L.mar && L.xl >= 3, w: .3, fx: { SPR: -3 }, do: losePartner, em: 'sad' });
 E('x_remnant', 0, 9999, '你在一处古战场上感应到了上古大能的残念，得了一丝指点。', { p: 'xian', c: () => L.xl >= 5, fx: { INT: 2 }, em: 'spark' });
 E('x_farewell', 0, 9999, '飞升之前，你回到故乡，在父母的坟前坐了一整天。', { p: 'xian', c: () => L.xl >= 5, w: 1.5, fx: { SPR: 1 }, em: 'sad', sc: 'grave' });
 E('x_stars', 300, 9999, '你已经活了好几百年，望着星空时，常常分不清过去和现在。', { p: 'xian', em: 'q' });
@@ -2286,8 +2293,8 @@ function setupCast() {
   const fam = FAMILY_SC.test(curScene) || (curScene === 'hosp' && (L.end || L.age === 0 || (L.kids.length && kidAge(L.kids.length - 1) === 0)));
   if ((fam || curScene === 'wedding') && L.pt && (L.mar || L.love)) { const p = add('pt', 'pt'); if (curScene === 'wedding') { p.fixed = 1; p.x = 100; p.y = 100; } }
   if (fam) {
-    L.kids.slice(0, 3).forEach((k, i) => { const ka = L.age - k.born; if (ka >= 0 && ka < 30) add('kid' + i, 'kid', { i, fixed: ka <= 1 ? 1 : 0 }); });
-    if (L.age < 18 && !L.path) { if (L.par.dad.alive) add('dad', 'dad'); if (L.par.mom.alive) add('mom', 'mom'); }
+    L.kids.slice(0, 3).forEach((k, i) => { const ka = L.age - k.born; if (ka >= 0 && ka < 30 && !k.away) add('kid' + i, 'kid', { i, fixed: ka <= 1 ? 1 : 0 }); });
+    if (L.age < 18 && !L.path) { const w = L.f.pdiv ? L.f.pdivWith || 'mom' : null; if (L.par.dad.alive && (!w || w === 'dad')) add('dad', 'dad'); if (L.par.mom.alive && (!w || w === 'mom')) add('mom', 'mom'); }
     if (L.pet && curScene !== 'hosp') add('pet', 'pet', { y: y1 - 1 });
   }
   const npc = (id, st_, o) => {
