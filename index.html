@@ -939,7 +939,7 @@ E('kgcry', 3, 4, '上幼儿园的第一周，你每天抱着妈妈的腿哭一�
 E('flower', 3, 5, '你在幼儿园表现很好，得到了一朵小红花。', { c: () => L.f.kg, fx: { SPR: 1 }, em: 'star', sc: 'kg' });
 E('toy', 3, 5, '有个小朋友抢了你的玩具。', { c: () => L.f.kg, sc: 'kg', em: 'anger', do: () => L.a.STR >= 6 ? (addFx({ STR: 1 }), '你一把抢了回来，从此成了幼儿园一霸。') : '你哭着去找老师告状了。' });
 E('poem', 3, 5, '你能背一百首唐诗，被亲戚们当成神童到处炫耀。', { c: () => L.a.INT >= 6, fx: { INT: 1 }, em: 'book' });
-E('prodigy', 3, 4, '三岁的你已经能看报纸了，还指出了报纸上的一个错别字。', { c: () => tal('shentong'), w: 5, fx: { INT: 2 }, em: 'bang' });
+E('prodigy', 4, 7, () => L.age + '岁的你已经能看报纸了，还指出了报纸上的一个错别字。', { m: 1, c: () => tal('shentong'), fx: { INT: 2 }, em: 'bang' });
 E('dogchase', 3, 9, '你在路上被一只大黄狗追了三条街。', { fx: { STR: 1 }, em: 'sweat', sc: 'street' });
 E('stitch', 3, 7, '你从楼梯上摔了下来，额头缝了三针。', { fx: { CHR: -1 }, em: 'sad', sc: 'hosp' });
 E('amuse', 3, 7, '爸妈带你去了游乐园，你坐了人生中第一次旋转木马。', { c: () => L.a.MNY >= 3, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
@@ -949,8 +949,11 @@ E('lost', 3, 6, '你在商场里走丢了，最后在玩具区被找到，怀里
 E('kglove', 4, 5, '你在幼儿园有了一个“{bf}”，你们约定长大以后要结婚。', { c: () => !tal('danshen') && L.f.kg, fx: { SPR: 1 }, em: 'heart', sc: 'kg' });
 E('bedwet', 3, 5, () => L.pet && L.pet.k === 'cat' ? '你尿床了，并一口咬定是猫干的。猫表示这个锅它不背。' : '你尿床了，并一口咬定是别人干的。', { em: 'sweat' });
 E('cape', 4, 8, '你披着床单当披风，从沙发上跳下来想飞，结果摔了个狗啃泥。', { em: 'sweat' });
-E('catget', 3, 10, () => { getPet('cat'); return '你在楼下捡到一只小' + (L.pet.alt ? '黑' : '橘') + '猫，给它取名叫“{pn}”，从此它成了你的家人。'; }, { c: () => !L.pet, w: () => tal('mao') ? 6 : .1, em: 'heart', x: 'pet1' });
-E('dogget', 3, 10, () => { getPet('dog'); return '家里养了一只小狗，叫“{pn}”，它每天摇着尾巴等你放学回家。'; }, { c: () => !L.pet, w: () => tal('gou') ? 6 : .1, em: 'heart', x: 'pet1' });
+E('catget', 3, 10, () => { getPet('cat'); return '你在楼下捡到一只小' + (L.pet.alt ? '黑' : '橘') + '猫，给它取名叫“{pn}”，从此它成了你的家人。'; }, { c: () => !L.pet && !tal('mao') && !tal('gou'), w: .1, em: 'heart', x: 'pet1' });
+// talents that promise a childhood pet keep that promise
+E('dog_t', 3, 12, () => { getPet('dog'); return '家里养了一只小狗，叫“{pn}”，它每天摇着尾巴等你放学回家。'; }, { m: 1, c: () => tal('gou') && !L.f.haddog && L.age >= 3 + (L.ta || 0), em: 'heart' });
+E('cat_t', 3, 12, () => { getPet('cat'); return '你在楼下捡到一只小' + (L.pet.alt ? '黑' : '橘') + '猫，给它取名叫“{pn}”，从此它成了你的家人。'; }, { m: 1, c: () => tal('mao') && !tal('gou') && !L.f.hadcat && L.age >= 3 + (L.ta || 0), em: 'heart' });
+E('dogget', 3, 10, () => { getPet('dog'); return '家里养了一只小狗，叫“{pn}”，它每天摇着尾巴等你放学回家。'; }, { c: () => !L.pet && !tal('mao') && !tal('gou'), w: .1, em: 'heart', x: 'pet1' });
 E('fill_kid', 3, 11, '你度过了无忧无虑的一年。', { rep: 1, cd: 1, w: .15, em: 'note' });
 // ---------------- 6-11 primary school
 E('pri', 6, 6, () => L.a.MNY >= 8 ? '你进入了一所贵族私立小学，同学们都是坐豪车来上学的。' : L.a.MNY <= 1 ? (addFx({ STR: 1 }), '你上小学了，每天要走五公里山路去村小上课。') : '你戴上红领巾，成为了一名小学生。', { m: 1, f: { pri: 1 }, sc: 'class', em: 'star' });
@@ -1017,10 +1020,11 @@ E('vocfix', 15, 18, '你在职高学会了修电脑，亲戚家的电脑坏了�
 E('vocfree', 15, 18, '职高的生活很自由，你每天和兄弟们在操场上踢球。', { c: () => L.f.voc, fx: { STR: 1, SPR: 1 }, em: 'note', sc: 'field' });
 E('dropjob', 16, 16, () => ['你在城里漂了一年。', assignJob('drop')], { m: 1, c: () => L.f.drop && !L.job, sc: 'street', em: 'sweat' });
 E('factory', 16, 19, '你在流水线上一站就是十二个小时，下了班只想倒头就睡。', { c: () => L.f.drop, fx: { STR: 1, SPR: -1 }, em: 'zzz', sc: 'site' });
-E('espkid', 13, 17, '你在游戏天梯上打到了全服第一，一支职业战队私信联系了你。', { c: () => tal('youxi') && !L.job, w: 4, f: { espoffer: 1 }, em: 'bang', sc: 'arena' });
+E('espkid', 13, 17, '你在游戏天梯上打到了全服第一，一支职业战队私信联系了你。', { m: 1, c: () => tal('youxi') && !L.job && L.age >= 13 + (L.ta || 0), f: { espoffer: 1 }, em: 'bang', sc: 'arena' });
 E('espjoin', 16, 19, () => { setJob('esports'); return '你说服了爸妈，退学加入了职业电竞战队。'; }, { c: () => L.f.espoffer && !L.job, w: 3, em: 'star', sc: 'arena', big: '职业出道!' });
-E('singkid', 12, 17, '你在学校晚会上唱了一首歌，台下的尖叫声差点掀翻了屋顶。', { c: () => tal('haosang'), w: 4, fx: { CHR: 1, SPR: 1 }, f: { singoffer: 1 }, em: 'note', sc: 'stage' });
-E('scout', 14, 24, () => { YR.ch = 'scout'; return '你在街上被星探拦住，问你有没有兴趣出道。'; }, { c: () => (L.a.CHR >= 9 || tal('xingtan')) && !L.f.scout && (!L.job || L.job === 'office' || L.job === 'none'), w: () => tal('xingtan') ? 4 : 1, em: 'bang', sc: 'street' });
+E('singkid', 12, 17, '你在学校晚会上唱了一首歌，台下的尖叫声差点掀翻了屋顶。', { m: 1, c: () => tal('haosang') && L.age >= 12 + (L.ta || 0), fx: { CHR: 1, SPR: 1 }, f: { singoffer: 1 }, em: 'note', sc: 'stage' });
+E('scout_t', 15, 24, () => { YR.ch = 'scout'; return '你在街上被星探拦住，问你有没有兴趣出道。'; }, { m: 1, c: () => tal('xingtan') && !used('scout') && L.age >= 15 + (L.ta || 0) && (!L.job || L.job === 'office' || L.job === 'none'), em: 'bang', sc: 'street' });
+E('scout', 14, 24, () => { YR.ch = 'scout'; return '你在街上被星探拦住，问你有没有兴趣出道。'; }, { c: () => L.a.CHR >= 9 && !tal('xingtan') && !L.f.scout && (!L.job || L.job === 'office' || L.job === 'none'), w: () => tal('xingtan') ? 4 : 1, em: 'bang', sc: 'street' });
 E('fill_teen', 12, 17, '你每天两点一线：上学、放学、写作业。', { rep: 1, cd: 1, w: .15, em: 'book', sc: 'class' });
 // ---------------- 18-22 gaokao & university
 function gaokao(second) {
@@ -1182,7 +1186,7 @@ E('lotto5', 18, 80, '你买彩票中了五块钱，开心了一整天。', { fx:
 E('stocklose', 25, 60, '你听信了“内部消息”去炒股，亏光了积蓄。', { fx: { MNY: -2, SPR: -2 }, em: 'sad' });
 E('stockwin', 25, 60, '你炒股赚了一笔，请全家吃了顿大餐。', { c: () => L.a.INT >= 8, fx: { MNY: 1 }, em: 'coin' });
 E('bitcoin', 16, 25, '你凭着前世的记忆，早早买了一堆比特币。如今它们值一个亿。', { c: () => tal('chongsheng'), w: 3, fx: { MNY: 5 }, em: 'coin', big: '先知!' });
-E('deja', 3, 10, '你总觉得这一切似曾相识，好像上辈子也是这样过的。', { c: () => tal('chongsheng'), w: 2, em: 'q' });
+E('deja', 4, 12, '你总觉得这一切似曾相识，好像上辈子也是这样过的。', { m: 1, c: () => tal('chongsheng') && L.age >= 4 + (L.ta || 0), em: 'q' });
 E('travel', 22, 65, () => '你去' + pick(['云南', '西藏', '海南', '新疆', '冰岛', '日本', '埃及']) + '旅游，拍了几千张照片，每张都比着剪刀手。', { c: () => L.a.MNY >= 4, fx: { SPR: 1 }, em: 'heart', sc: 'park' });
 E('lostway', 12, 70, '你出门旅游，拿着地图在同一个路口转了三个小时。', { c: () => tal('luchi'), w: 3, em: 'q', sc: 'street' });
 E('gym1', 20, 50, '你办了一张健身卡，一共去了三次。', { em: 'sweat' });
@@ -1228,9 +1232,9 @@ E('meet', 18, 45, () => { startLove(); return '你在' + pick(['咖啡馆', '地
 E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
 E('marry', 22, 55, () => { YR.ch = 'marry'; return '你和{ta}交往很久了，两家父母都在催婚。'; }, { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
-E('c_kid', 23, 44, () => { L.f.kidq = 1; YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 6, em: 'q', sc: 'home' });
-E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 5 : tal('duozi') ? 1.2 : .35, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
-E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && (L.kids.length || L.f.wantkid), w: .5, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
+E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 10, em: 'q', sc: 'home' });
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 12 : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
 E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
 E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
 E('divorce', 28, 65, () => { const t = '你和{spouse}因为性格不合，离婚了。'; return t; }, { c: () => L.mar, w: () => L.a.SPR <= 3 ? .6 : .07, fx: { SPR: -2 }, do: () => { endLove(); L.f.divorced = 1; }, em: 'sad', sc: 'street' });
@@ -1360,7 +1364,7 @@ const KL = () => L.kl || {};
 E('k_pet', 3, 9, () => { const kp = L.kl.pet; getPet(kp.k); L.pet.alt = kp.alt; L.pet.n = kp.n; L.lastPet = { k: kp.k, alt: kp.alt, n: kp.n }; L.f.karmaPet = 1;
   const col = kp.k === 'cat' ? (kp.alt ? '黑' : '橘') : (kp.alt ? '白' : '黄');
   return '一只' + col + (kp.k === 'cat' ? '猫' : '狗') + '蹲在你家门口，怎么赶都不走。你脱口而出：“' + kp.n + '？”它' + (kp.k === 'cat' ? '“喵”' : '“汪”') + '了一声，好像等你很久了。'; },
-  { c: () => KL().pet && !L.pet, w: 4, em: 'heart' });
+  { c: () => KL().pet && !L.pet && !tal('gou') && !tal('mao'), w: 4, em: 'heart' });
 E('k_love', 18, 40, () => { startLove(L.kl.pt); L.f.karmaLove = 1; return '你在人群中看到一个人，总觉得在哪里见过。{ta}也愣住了：“我们……是不是认识？”'; },
   { c: () => KL().pt && KL().pt.g !== L.g && canLove(), w: 3, fx: { SPR: 2 }, em: 'heart', sc: 'street', love: 1 });
 E('k_dream', 5, 15, () => '你常常梦见另一段人生：梦里你是一名' + L.kl.job + '，活到了' + L.kl.age + '岁。', { c: () => KL().job, em: 'q' });
@@ -1678,6 +1682,7 @@ function newLife(tids, pts) {
     end: false, asc: false, grade: null,
   };
   L.kl = META.last ? JSON.parse(JSON.stringify(META.last)) : null;
+  L.ta = ri(0, 3);
   { const m = L.a.MNY + (TAL.shoufu && tids.includes('shoufu') ? 9 : 0), w = m <= 2 ? [.7, .3, 0, 0] : m <= 5 ? [.25, .45, .3, 0] : m <= 8 ? [0, .25, .7, .05] : [0, 0, .7, .3];
     let r = Math.random(), i = 0; for (; i < 3; i++) { if (r < w[i]) break; r -= w[i]; } L.bp = ['village', 'county', 'city', 'abroad'][i]; }
   L.look = Object.assign(randLook(L.g), { elder: pick(ELDER_TOPS), beard: chance(.35) });
