@@ -615,6 +615,7 @@ const RAR = [
   { n: '稀有', c: '#5ab0ff', d: '#2a6ab8', bg: '#e4f2ff' },
   { n: '史诗', c: '#b77bff', d: '#6a3ab8', bg: '#f2e8ff' },
   { n: '传说', c: '#ffc62a', d: '#b8780a', bg: '#fff4d0' },
+  { n: '诅咒', c: '#8a5aa8', d: '#5a2a78', bg: '#efe4f4' },
 ];
 const TAL = {};
 [
@@ -639,6 +640,10 @@ const TAL = {};
   ['tiancai', '天才头脑', '智力+4', 2, { INT: 4 }], ['jingang', '金刚之躯', '体质+4', 2, { STR: 4 }],
   ['xianyuan', '仙缘', '你与仙道有缘', 3], ['chongsheng', '重生者', '带着前世的记忆出生，智力+3', 3, { INT: 3 }], ['xitong', '人生系统', '每十年领一次系统奖励', 3],
   ['shoufu', '首富之子', '家境+7', 3, { MNY: 7 }], ['tianxuan', '天选之人', '全属性+3', 3, { CHR: 3, INT: 3, STR: 3, MNY: 3, SPR: 3 }], ['jiuming', '九命猫', '死亡时有一次复活的机会', 3],
+  // curses only come out of the fate capsule
+  ['meiyun', '霉运缠身', '坏事更容易找上你', 4], ['yipang', '易胖体质', '喝凉水都长肉，颜值-2', 4, { CHR: -2 }], ['boli', '玻璃心', '一点小事就难过，快乐-2', 4, { SPR: -2 }],
+  ['duanming', '短命鬼', '寿命更短', 4], ['qiongshen', '穷神附体', '钱总是留不住，家境-3', 4, { MNY: -3 }], ['jinshui', '脑子进水', '智力-2', 4, { INT: -2 }],
+  ['tiruo', '体弱多病', '三天两头生病，体质-2', 4, { STR: -2 }], ['taojue', '桃花绝缘', '爱情很难找上门', 4], ['zhaowen', '招蚊体质', '毫无影响，只是蚊子特别爱你', 4], ['shesi', '社死体质', '经常当众出丑，快乐-1', 4, { SPR: -1 }],
 ].forEach(([id, n, d, r, fx]) => { TAL[id] = { id, n, d, r, fx }; });
 const TAL_IDS = Object.keys(TAL);
 
@@ -1151,6 +1156,15 @@ E('meteor', 10, 80, '一颗陨石落在了你家门口，你把它卖给了博�
 E('noise', 18, 50, '你租的房子半夜总有怪声，你吓得不敢睡，后来发现是楼上在装修。', { w: .3, em: 'sweat' });
 E('catfire', 10, 100, '半夜你的猫疯狂挠门把你叫醒，原来厨房着火了，它救了全家。', { c: () => L.pet && L.pet.k === 'cat', w: .3, fx: { SPR: 2 }, em: 'heart', p: '*' });
 E('dogthief', 10, 100, '你的狗抓住了一个入室小偷，登上了本地新闻。', { c: () => L.pet && L.pet.k === 'dog', w: .3, fx: { SPR: 1 }, em: 'star', p: '*' });
+E('mosquito', 3, 90, '夏天一到，方圆十里的蚊子都赶来找你。', { c: () => tal('zhaowen'), w: 3, em: 'anger' });
+E('mosquito2', 20, 90, '你参加露营，所有人都睡得很香，只有你被咬了八十个包。', { c: () => tal('zhaowen'), w: 2, em: 'anger', sc: 'park' });
+E('shesi1', 8, 60, '你在全校（全公司）面前平地摔了个大马趴。', { c: () => tal('shesi'), w: 2, fx: { SPR: -1 }, em: 'sweat', sc: 'stage' });
+E('shesi2', 22, 60, '你把吐槽老板的消息，发进了公司大群。', { c: () => tal('shesi') && L.job, w: 2, fx: { SPR: -2 }, em: 'bang', sc: 'office' });
+E('shesi3', 12, 80, '你冲着路人热情地挥手，才发现对方是在跟你身后的人打招呼。', { c: () => tal('shesi'), w: 2, em: 'sweat', sc: 'street' });
+E('fatwater', 12, 60, '你喝凉水都长肉，体重秤看到你都想逃跑。', { c: () => tal('yipang'), w: 2, em: 'sweat' });
+E('broke', 20, 70, '你刚存下一点钱，家里的电器就接二连三地坏了。', { c: () => tal('qiongshen'), rep: 1, cd: 8, w: .8, fx: { MNY: -1 }, em: 'sad' });
+E('cold', 3, 90, '换季了，你又感冒了。', { c: () => tal('tiruo'), rep: 1, cd: 7, w: .5, fx: { STR: -1 }, em: 'ill' });
+E('fragile', 8, 80, '别人随口开了句玩笑，你难过了一整个星期。', { c: () => tal('boli'), rep: 1, cd: 6, w: .6, fx: { SPR: -1 }, em: 'sad' });
 E('fourth', 20, 90, '你隐约觉得，自己的人生像一场游戏，屏幕外好像有人一直在点“下一年”。', { w: .08, em: 'q', p: '*' });
 // ---------------- the immortal path
 // Three ways to cultivate: the orthodox sect, the demon sect (faster, shorter-lived, a heart-demon trial)
@@ -1313,6 +1327,8 @@ function weight(e) {
   if (tal('jinli')) w *= g > 0 ? 1.6 : g < 0 ? .6 : 1;
   if (tal('daomei')) w *= g < 0 ? 1.8 : g > 0 ? .8 : 1;
   if (e.love && tal('taohua')) w *= 2.5;
+  if (tal('meiyun')) w *= g < 0 ? 2 : g > 0 ? .7 : 1;
+  if (e.love && tal('taojue')) w *= .15;
   return w;
 }
 function pickEvent() {
@@ -1360,7 +1376,7 @@ function deathCheck() {
   if (L.path === 'xian' && L.xl >= 1) { if (a > xcap()) die(XSD().old); return; }
   if (L.a.STR <= 0) { die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你的身体终于撑不住了，在病床上离开了人世。'); return; }
   if (a < 50) return;
-  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (L.a.SPR <= 1 ? 1.25 : 1);
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * (L.a.SPR <= 1 ? 1.25 : 1);
   if (chance(.0045 * Math.pow(1.09, a - 50) * m)) die(naturalDeath());
 }
 function runYear() {
@@ -1457,6 +1473,7 @@ const ACH = [
   ['yao', '血脉觉醒', '觉醒妖族血脉', () => L.path === 'xian' && XB() === 'yao', '月圆之夜，会发生一些奇怪的事'],
   ['yaoasc', '化身神兽', '妖皇渡劫成功，化身上古神兽', () => L.asc && XB() === 'yao', '妖族的尽头是什么？'],
   ['nine', '九死一生', '触发九命猫复活', () => L.f.revived, '需要一只猫的九条命'],
+  ['curse', '天命难违', '带着诅咒天赋拿到S及以上评价', () => ['S', 'SS', 'SSS'].includes(L.grade) && L.tl.some(id => TAL[id].r === 4)],
   ['sss', '完美人生', '获得SSS评价', () => L.grade === 'SSS'], ['d', '重在参与', '获得D评价', () => L.grade === 'D'],
 ];
 // ============================================================ persistence
@@ -1480,6 +1497,13 @@ function finishLife() {
 function rarityOdds() {
   const n = Object.keys(META.ach).length, o = [.6, .26, .1 + n * .004, .04 + n * .003];
   const s = o.reduce((a, b) => a + b, 0); return o.map(v => v / s);
+}
+// The fate talent: 40% a curse, otherwise drawn with the normal rarity odds; it can't be changed.
+function drawFate(ex) {
+  const curses = TAL_IDS.filter(id => TAL[id].r === 4);
+  if (chance(.4)) return pick(curses);
+  const odds = rarityOdds(); let r = Math.random(), tier = 0; for (; tier < 3; tier++) { if (r < odds[tier]) break; r -= odds[tier]; }
+  const pool = TAL_IDS.filter(id => TAL[id].r === tier && !ex.includes(id)); return pool.length ? pick(pool) : pick(curses);
 }
 function drawTalents() {
   const odds = rarityOdds(), out = [], seen = new Set();
@@ -1795,10 +1819,11 @@ function talentRow(id, x, y, w, h, sel, tag) {
   g.fillStyle = rr.c; g.fillRect(x + 1, y + 1, 4, h - 2);
   if (sel) { g.fillStyle = '#ffb82a'; g.fillRect(x + 1, y + 1, w - 2, 1); g.fillRect(x + 1, y + h - 2, w - 2, 1); g.fillRect(x + w - 2, y + 1, 1, h - 2); }
   if (t.r === 3) { const k = Math.floor(T * 6 + y) % 24; g.fillStyle = '#ffffff'; g.fillRect(x + 8 + k * 6, y + 3, 1, 1); g.fillRect(x + 7 + ((k + 11) % 24) * 6, y + h - 4, 1, 1); }
-  txt(t.n, x + 10, y + 7.5, 8.5, rr.d, 'left', null);
-  txt(t.d, x + 10, y + h - 6.5, 6.5, '#6a5a4a', 'left', null);
+  const tight = h < 24;
+  txt(t.n, x + 10, y + (tight ? 6 : 7.5), tight ? 8 : 8.5, rr.d, 'left', null);
+  txt(t.d, x + 10, y + h - (tight ? 5 : 6.5), 6.5, '#6a5a4a', 'left', null);
   txt(rr.n, x + w - 5, y + 7, 6, rr.d, 'right', null);
-  if (tag) txt(tag, x + w - 5, y + h - 6.5, 6, '#c8483a', 'right', null);
+  if (tag) txt(tag, x + w - 5, y + h - (h < 24 ? 5 : 6.5), 6, '#c8483a', 'right', null);
   if (sel) g.drawImage(I.check, x + w - 26, y + 4);
 }
 
@@ -1810,7 +1835,7 @@ let meHead = { x: 90, y: 60 }, titleLook = null, titleLoop = -1, sparkT = 0;
 function go(s) { state = s; st = 0; ptr = null; }
 const stNow = () => st;
 function toggleMute() { META.muted = !META.muted; saveMeta(); if (!META.muted) SFX.click(); }
-function startGacha() { gacha = { ph: 'ready', t: 0, tal: drawTalents(), sel: [] }; go('gacha'); }
+function startGacha() { const tal_ = drawTalents(); gacha = { ph: 'ready', t: 0, tal: tal_, fate: drawFate(tal_), sel: [] }; go('gacha'); }
 function openAch(from) { achFrom = from || state; achScroll = 0; go('ach'); SFX.click(); }
 function startLife() {
   newLife(pickTal, alloc); clearRun();
@@ -2086,7 +2111,8 @@ const BTN = {
 };
 const ALLOC_K = ['CHR', 'INT', 'STR', 'MNY'];
 const allocY = i => 148 + i * 28;
-const allocLeft = () => 20 - ALLOC_K.reduce((s, k) => s + alloc[k], 0);
+const allocTotal = () => 20 + (pickTal[0] && TAL[pickTal[0]].r === 4 ? 3 : 0);
+const allocLeft = () => allocTotal() - ALLOC_K.reduce((s, k) => s + alloc[k], 0);
 function talBonus(k) { let b = 0; for (const id of pickTal) { const fx = TAL[id].fx; if (fx && fx[k]) b += fx[k]; } return b; }
 
 // ============================================================ screens
@@ -2167,9 +2193,9 @@ function drawMachine(cx, cy, sh, ang) {
 }
 function drawGacha() {
   drawVoid();
-  const G = gacha, best = Math.max(...G.tal.map(id => TAL[id].r)), col = RAR[best].c;
+  const G = gacha, best = TAL[G.fate].r, col = RAR[best].c;
   txt('天赋扭蛋', 90, 30, 16, '#ffe14a');
-  txt('抽 10 个天赋，从中挑选 3 个', 90, 48, 7.5, '#dcd0ff');
+  txt('先开出一个天命，再从 10 个里自选 2 个', 90, 48, 7.5, '#dcd0ff');
   const sh = G.ph === 'shake' ? Math.sin(G.t * 50) * 2 : 0, ang = G.ph === 'shake' ? G.t * 14 : .6;
   drawMachine(90, 150, sh, ang);
   if (G.ph === 'drop' || G.ph === 'wait' || G.ph === 'open') {
@@ -2178,7 +2204,7 @@ function drawGacha() {
     if (G.ph === 'wait') { cx += Math.sin(T * 10) * 1.2; }
     if (best >= 2 && G.ph !== 'drop') { g.globalAlpha = .25 + .15 * Math.sin(T * 6); dsc(g, cx, cy, 14, col); g.globalAlpha = 1; }
     drawCapsule(R(cx), R(cy), col, G.ph === 'open' ? Math.min(6, G.t * 30) : 0);
-    if (G.ph === 'wait' && Math.floor(T * 2) % 2 === 0) txt('点一下打开扭蛋', 90, 230, 8, '#ffffff');
+    if (G.ph === 'wait' && Math.floor(T * 2) % 2 === 0) txt('点一下打开命运胶囊', 90, 230, 8, '#ffffff');
     if (G.ph === 'open') { g.globalAlpha = Math.max(0, 1 - G.t * 2.2); g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
   }
   if (G.ph === 'ready') {
@@ -2189,13 +2215,32 @@ function drawGacha() {
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
   drawParts();
 }
+function drawFateCard() {
+  drawVoid();
+  const t = TAL[gacha.fate], rr = RAR[t.r], k = Math.min(1, st / .25), curse = t.r === 4;
+  txt('你的天命是……', 90, 60, 11, '#dcd0ff');
+  if (t.r >= 2) { g.globalAlpha = .18 + .08 * Math.sin(T * 4); for (let r = 70; r > 30; r -= 10) dsc(g, 90, 150, r * k, rr.c); g.globalAlpha = 1; }
+  const w = R(130 * k), h = R(96 * k);
+  g.fillStyle = OUT; g.fillRect(90 - w / 2 - 1, 102 - 1, w + 2, h + 2); g.fillStyle = rr.c; g.fillRect(90 - w / 2, 102, w, h); g.fillStyle = rr.bg; g.fillRect(90 - w / 2 + 3, 105, w - 6, h - 6);
+  if (k >= 1) {
+    txt(rr.n + ' · 天命', 90, 116, 7, rr.d, 'center', null);
+    txt(t.n, 90, 138, 15, rr.d, 'center', null);
+    txt(t.d, 90, 160, 7, '#6a5a4a', 'center', null);
+    txt(curse ? '诅咒补偿：属性点 +3' : '这个天赋已经锁定', 90, 182, 7, curse ? '#8a3aa8' : '#8a6a4a', 'center', null);
+    txt(curse ? '命运弄人，但也许会有转机' : t.r >= 2 ? '天命眷顾！' : '平平淡淡也是一种命', 90, 222, 8, curse ? '#c8a8e8' : '#ffe890');
+    if (st > .6 && Math.floor(T * 2) % 2 === 0) txt('点击继续，再自选 2 个天赋', 90, 260, 7.5, '#ffffff');
+  }
+  drawParts();
+}
 function drawTalentPick() {
   drawVoid();
   const G = gacha, n = G.sel.length;
-  txt('选择 3 个天赋', 90, 14, 11, '#ffe14a');
-  txt('已选 ' + n + ' / 3', 90, 26, 7.5, n === 3 ? '#8aff96' : '#dcd0ff');
-  G.tal.forEach((id, i) => talentRow(id, 6, 33 + i * 25.5, 168, 24, G.sel.includes(id), id === META.inh ? '前世继承' : ''));
-  button(BTN.tOK, n === 3 ? '就是它们了！' : '还差 ' + (3 - n) + ' 个', { dis: n !== 3, green: n === 3 });
+  txt('再选 2 个天赋', 90, 12, 11, '#ffe14a');
+  txt('已选 ' + n + ' / 2', 90, 24, 7.5, n === 2 ? '#8aff96' : '#dcd0ff');
+  talentRow(G.fate, 6, 31, 168, 21, false, '天命 · 不可更改');
+  g.fillStyle = '#6a5a9a'; g.fillRect(20, 55, 140, 1);
+  G.tal.forEach((id, i) => talentRow(id, 6, 58 + i * 23, 168, 21, G.sel.includes(id), id === META.inh ? '前世继承' : ''));
+  button(BTN.tOK, n === 2 ? '就是它们了！' : '还差 ' + (2 - n) + ' 个', { dis: n !== 2, green: n === 2 });
   drawParts();
 }
 const CRIB = mk(70, 46), cg = CRIB.getContext('2d');
@@ -2232,7 +2277,7 @@ function drawAlloc() {
     txt(String(v), b ? 159 : 163, y + 7, 10, '#4a2c17', 'center', null);
     if (b) txt((b > 0 ? '+' : '') + b, 171, y + 8, 6.5, b > 0 ? '#2a8a3a' : '#c83a2a', 'right', null);
   });
-  txt(left ? '还有 ' + left + ' 点没有分配' : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
+  txt(left ? '还有 ' + left + ' 点没有分配' + (allocTotal() > 20 ? '（含诅咒补偿 3 点）' : '') : '点数分配完毕 · 快乐初始为 5', 90, 257, 7, left ? '#c8483a' : '#6a5a4a', 'center', null);
   button(BTN.aRand, '随机', { blue: 1 }); button(BTN.aGo, '开始新人生！', { dis: left !== 0, green: left === 0 });
   button(BTN.back, '返回', { size: 6.5, blue: 1 });
 }
@@ -2300,10 +2345,11 @@ function drawEnd() {
   button(BTN.review, '回顾一生', { blue: 1 }); button(BTN.nextLife, '再来一次！', { green: 1 });
   drawParts();
 }
+const inhList = () => L.tl.filter(id => TAL[id].r !== 4);
 function drawInherit() {
   dim(.65); panel(14, 70, 152, 182);
   txt('带一个天赋去下一世', 90, 84, 9, '#4a2c17', 'center', null);
-  L.tl.forEach((id, i) => talentRow(id, 20, 94 + i * 29, 140, 26, inhSel === id));
+  inhList().forEach((id, i) => talentRow(id, 20, 94 + i * 29, 140, 26, inhSel === id));
   const r = [20, 183, 140, 16], sel = inhSel === 'none';
   g.fillStyle = OUT; g.fillRect(r[0], r[1], r[2], r[3]); g.fillStyle = sel ? '#ffe890' : '#e8dcc0'; g.fillRect(r[0] + 1, r[1] + 1, r[2] - 2, r[3] - 2);
   txt('什么都不带', 90, r[1] + 8, 7.5, '#6a5a4a', 'center', null);
@@ -2358,16 +2404,16 @@ function tapGacha(p) {
   const G = gacha;
   if (G.ph === 'ready' && inR(p, BTN.back)) { go('title'); SFX.click(); return; }
   if (G.ph === 'ready' && inR(p, BTN.pull)) { G.ph = 'shake'; G.t = 0; SFX.crank(); return; }
-  if (G.ph === 'wait') { G.ph = 'open'; G.t = 0; const best = Math.max(...G.tal.map(id => TAL[id].r)); confetti(30 + best * 15, 200, best >= 2 ? [RAR[best].c, '#ffffff', '#ffe14a'] : null); shake = best >= 3 ? 3 : 0; }
+  if (G.ph === 'wait') { G.ph = 'open'; G.t = 0; const best = TAL[G.fate].r; confetti(best === 4 ? 30 : 30 + best * 15, 200, best === 4 ? ['#8a5aa8', '#3a2a4a', '#c8a8e8'] : best >= 2 ? [RAR[best].c, '#ffffff', '#ffe14a'] : null); shake = best === 3 || best === 4 ? 3 : 0; }
 }
 function tapTalent(p) {
   const G = gacha;
-  if (inR(p, BTN.tOK)) { if (G.sel.length === 3) { pickTal = G.sel.slice(); alloc = { CHR: 5, INT: 5, STR: 5, MNY: 5 }; go('alloc'); SFX.select(); } else SFX.no(); return; }
+  if (inR(p, BTN.tOK)) { if (G.sel.length === 2) { pickTal = [G.fate].concat(G.sel); alloc = { CHR: 5, INT: 5, STR: 5, MNY: 5 }; go('alloc'); SFX.select(); } else SFX.no(); return; }
   for (let i = 0; i < G.tal.length; i++) {
-    if (!inR(p, [6, 33 + i * 25.5, 168, 24])) continue;
+    if (!inR(p, [6, 58 + i * 23, 168, 21])) continue;
     const id = G.tal[i], j = G.sel.indexOf(id);
     if (j >= 0) { G.sel.splice(j, 1); SFX.minus(); }
-    else if (G.sel.length < 3) { G.sel.push(id); SFX.plus(); }
+    else if (G.sel.length < 2) { G.sel.push(id); SFX.plus(); }
     else SFX.no();
     return;
   }
@@ -2375,7 +2421,7 @@ function tapTalent(p) {
 function tapAlloc(p) {
   if (inR(p, BTN.back)) { go('talent'); SFX.click(); return; }
   if (inR(p, BTN.aRand)) {
-    for (const k of ALLOC_K) alloc[k] = 0; let left = 20;
+    for (const k of ALLOC_K) alloc[k] = 0; let left = allocTotal();
     while (left > 0) { const k = pick(ALLOC_K); if (alloc[k] < 10) { alloc[k]++; left--; } }
     SFX.select(); return;
   }
@@ -2405,7 +2451,7 @@ function tapEnd(p) {
   if (inR(p, BTN.nextLife)) { inhSel = null; go('inherit'); SFX.click(); }
 }
 function tapInherit(p) {
-  L.tl.forEach((id, i) => { if (inR(p, [20, 94 + i * 29, 140, 26])) { inhSel = id; SFX.select(); } });
+  inhList().forEach((id, i) => { if (inR(p, [20, 94 + i * 29, 140, 26])) { inhSel = id; SFX.select(); } });
   if (inR(p, [20, 183, 140, 16])) { inhSel = 'none'; SFX.click(); }
   if (inR(p, BTN.inhGo) && inhSel) { META.inh = inhSel === 'none' ? null : inhSel; saveMeta(); startGacha(); SFX.start(); }
 }
@@ -2420,6 +2466,7 @@ function onTap(p) {
     case 'title': return tapTitle(p);
     case 'gacha': return tapGacha(p);
     case 'talent': return tapTalent(p);
+    case 'fate': if (st > .5) { go('talent'); SFX.reveal(Math.max(...gacha.tal.map(id => TAL[id].r))); } return;
     case 'alloc': return tapAlloc(p);
     case 'life': case 'review': return tapLife(p);
     case 'end': return tapEnd(p);
@@ -2459,7 +2506,7 @@ function update(dt) {
     const G = gacha; G.t += dt;
     if (G.ph === 'shake' && G.t > .9) { G.ph = 'drop'; G.t = 0; SFX.pop(); }
     else if (G.ph === 'drop' && G.t > .7) { G.ph = 'wait'; G.t = 0; }
-    else if (G.ph === 'open' && G.t > .45) { go('talent'); SFX.reveal(Math.max(...G.tal.map(id => TAL[id].r))); }
+    else if (G.ph === 'open' && G.t > .45) { go('fate'); const r = TAL[G.fate].r; if (r === 4) { tone(220, .5, 'sawtooth', .05, 110); noise(.4, .06, 500); } else SFX.reveal(r); }
   }
   if ((state === 'life' || state === 'review') && L) {
     const sc = SCN[curScene];
@@ -2483,7 +2530,7 @@ function update(dt) {
 }
 function wantedTrack() {
   if (state === 'title' || state === 'ach') return 'title';
-  if (state === 'gacha' || state === 'talent' || state === 'alloc') return 'setup';
+  if (state === 'gacha' || state === 'fate' || state === 'talent' || state === 'alloc') return 'setup';
   if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
   return 'end';
 }
@@ -2495,6 +2542,7 @@ function render() {
     case 'title': drawTitle(); break;
     case 'gacha': drawGacha(); break;
     case 'talent': drawTalentPick(); break;
+    case 'fate': drawFateCard(); break;
     case 'alloc': drawAlloc(); break;
     case 'life': case 'review': drawLife(); break;
     case 'end': drawEnd(); break;
