@@ -1499,7 +1499,7 @@ E('bro6', 32, 60, () => { if (chance(.5)) { addFx({ MNY: 4 }); return '{bro}的�
 E('bro7', 55, 85, '{bro}来看你，你们喝得烂醉，聊起了小时候的那包辣条。', { w: 4, c: () => L.bro && !L.f.brogone, fx: { SPR: 1 }, em: 'note', sc: 'home' });
 E('bro8', 68, 95, '{bro}走了。你在葬礼上念悼词，念到一半就哭了。', { w: 4, c: () => L.bro && used('bro7'), fx: { SPR: -2 }, f: { brogone: 1 }, em: 'sad', sc: 'grave' });
 E('pet_trick', 4, 100, '{pn}学会了握手，还会自己开门溜出去玩。', { c: () => L.pet && L.age - L.pet.born >= 1, fx: { SPR: 1 }, em: 'note', p: '*' });
-E('pet_babies', 4, 100, '{pn}生了一窝小{pet}，你把它们送给了街坊邻居。', { c: () => L.pet && L.age - L.pet.born >= 2 && L.age - L.pet.born <= 7, w: .4, fx: { SPR: 1 }, em: 'heart', p: '*' });
+E('pet_babies', 4, 100, () => L.path === 'zb' ? '{pn}生了一窝小{pet}，基地里的孩子们高兴坏了。' : '{pn}生了一窝小{pet}，你把它们送给了街坊邻居。', { c: () => L.pet && L.age - L.pet.born >= 2 && L.age - L.pet.born <= 7, w: .4, fx: { SPR: 1 }, em: 'heart', p: '*' });
 E('pet_elder', 10, 110, '{pn}老了，走不动路了。你每天抱着它晒太阳。', { c: () => L.pet && L.age - L.pet.born >= 10, w: 1.5, em: 'sad', p: '*' });
 // ---------------- the immortal path
 // Three ways to cultivate: the orthodox sect, the demon sect (faster, shorter-lived, a heart-demon trial)
@@ -1581,7 +1581,7 @@ E('yao_fruit', 0, 9999, '你偷吃了山神供桌上的仙桃，被追着骂了�
 E('yao_human', 0, 9999, '你救了一个在山里迷路的小孩，把他送回了家。小孩说：“谢谢狐狸姐姐。”', { p: 'xian', c: () => YAO() && L.g === 'f', fx: { SPR: 2 }, em: 'heart' });
 E('yao_human2', 0, 9999, '你救了一个在山里迷路的小孩，把他送回了家。小孩说：“谢谢狐狸哥哥。”', { p: 'xian', c: () => YAO() && L.g === 'm', fx: { SPR: 2 }, em: 'heart' });
 // ---------------- isekai
-E('truck', 16, 45, () => { L.path = 'isekai'; L.isAge = L.age; L.job = null; endLove(); L.kids = []; L.pet = null; return ['你过马路时，一辆卡车朝你冲了过来……', '再睁开眼时，你发现自己转生到了剑与魔法的异世界！']; }, { w: () => tal('yishijie') ? 2.5 : .004, em: 'bang', sc: 'isekai', big: '异世界转生!' });
+E('truck', 16, 45, () => { L.f.leftfam = L.mar || L.kids.length || L.pet ? 1 : 0; L.path = 'isekai'; L.isAge = L.age; L.job = null; endLove(); L.kids = []; L.pet = null; return ['你过马路时，一辆卡车朝你冲了过来……', '再睁开眼时，你发现自己转生到了剑与魔法的异世界！']; }, { w: () => tal('yishijie') ? 2.5 : .004, em: 'bang', sc: 'isekai', big: '异世界转生!' });
 E('is_skill', 0, 999, () => '你发现自己觉醒了外挂技能“' + pick(['无限鉴定', '时间暂停', '万物收纳', '究极治愈', '和史莱姆对话']) + '”。', { p: 'isekai', w: 3, fx: { INT: 2 }, em: 'spark' });
 E('is_guild', 0, 999, '你去冒险者公会登记，测魔力的水晶球被你直接撑爆了。', { p: 'isekai', w: 2, fx: { STR: 1 }, f: { guild: 1 }, em: 'bang' });
 E('is_slime', 0, 999, '你打倒了一只史莱姆，升到了2级。', { p: 'isekai', fx: { STR: 1 }, em: 'star' });
@@ -1597,7 +1597,7 @@ E('is_darkramen', 0, 999, '你带着魔王军去勇者的家乡吃拉面，吃�
 E('is_darkhero', 0, 999, '一个新的勇者来讨伐你，你看着他，想起了当年的自己。', { p: 'isekai', c: () => L.f.darkking, fx: { SPR: -1 }, em: 'q' });
 E('is_king', 0, 999, '国王把王位传给了你，你成为了异世界的新国王。', { p: 'isekai', c: () => L.f.hero && !L.f.dark, fx: { MNY: 5 }, f: { king: 1 }, em: 'star', big: '登基!' });
 E('is_home', 0, 999, '你偶尔会梦见原来的世界，梦见妈妈做的红烧肉。', { p: 'isekai', fx: { SPR: -1 }, em: 'sad' });
-E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .003, em: 'q', sc: 'hosp' });
+E('is_back', 0, 999, () => { const n = L.age - L.isAge; L.f.lostfam = L.mar || L.kids.length ? 1 : 0; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; return ['一道白光闪过，你被召回了原来的世界……', '你在医院的病床上醒来。医生说，你已经昏迷了整整' + n + '年。']; }, { p: 'isekai', w: .003, em: 'q', sc: 'hosp' });
 E('is_fill', 0, 999, () => pick(L.age >= 60 ? ['你坐在城堡的花园里，看了一年的双月。', '你在酒馆门口晒了一年的太阳，冒险者们都叫你“老前辈”。', '你把年轻时的装备擦得锃亮，挂在了墙上。'] : ['你在异世界又冒险了一年。', '你在酒馆里和冒险者们喝了一整晚的麦酒。', '你在魔法学院旁听了一年的课。', '你在城外的草原上躺了一整天，看两个月亮慢慢升起。', '你接了一年的护送商队任务，走遍了大陆的每一条商道。']), { p: 'isekai', rep: 1, cd: 1, w: .13, em: 'note' });
 E('is_peace', 0, 999, '在你的治理下，异世界迎来了和平。', { p: 'isekai', c: () => L.f.king, rep: 1, cd: 4, w: .4, fx: { SPR: 1 }, em: 'note' });
 E('xchores', 0, 9999, '你每天挑水劈柴，师父说这也是修炼。', { p: 'xian', c: () => L.xl === 1 && XB() === 'zheng', fx: { STR: 1 }, em: 'sweat' });
@@ -1634,7 +1634,7 @@ const ROUTES = {
 const ascSc = () => ROUTES[L.path] ? ROUTES[L.path].sc : XSD().sc, ascFit = () => ROUTES[L.path] ? ROUTES[L.path].fit() : XSD().fit;
 function enterRoute(k) { L.path = k; L.routeAge = L.age; L.job = null; YR.sc = ROUTES[k].sc; }
 // ancient China
-E('gu_go', 12, 40, () => { enterRoute('gu'); endLove(); L.kids = []; L.pet = null; return ['你在博物馆里碰了一下那面青铜镜，眼前一黑……', '醒来时，你躺在一座古色古香的院子里，丫鬟尖叫着跑出去：“' + (L.g === 'm' ? '少爷' : '小姐') + '醒了！”']; }, { w: () => tal('chuanyue') ? 2.5 : .003, em: 'bang', big: '穿越!' });
+E('gu_go', 12, 40, () => { L.f.leftfam = L.mar || L.kids.length || L.pet ? 1 : 0; enterRoute('gu'); endLove(); L.kids = []; L.pet = null; return ['你在博物馆里碰了一下那面青铜镜，眼前一黑……', '醒来时，你躺在一座古色古香的院子里，丫鬟尖叫着跑出去：“' + (L.g === 'm' ? '少爷' : '小姐') + '醒了！”']; }, { w: () => tal('chuanyue') ? 2.5 : .003, em: 'bang', big: '穿越!' });
 const GU = { p: 'gu' };
 E('gu_ok', 0, 999, '你顺口说了一句“OK”，全府上下都以为你中了邪，连夜请来道士驱邪。', Object.assign({ em: 'sweat', w: 3 }, GU));
 E('gu_poem', 0, 999, '你在诗会上背了一首李白的诗，技惊四座，被誉为京城第一才子。', Object.assign({ c: () => L.a.INT >= 6, fx: { CHR: 1, SPR: 2 }, f: { gupoet: 1 }, em: 'star' }, GU));
@@ -1651,7 +1651,7 @@ E('gu_kid', 0, 999, () => { addKid(); return '你们有了一个{kid}，你偷�
 E('gu_miss', 0, 999, '你常常想念手机、外卖和奶茶，尤其是奶茶。', Object.assign({ fx: { SPR: -1 }, em: 'sad' }, GU));
 E('gu_war', 0, 999, '边关告急，你带兵出征，大胜而归。', Object.assign({ c: () => L.a.STR >= 8, fx: { STR: 1, SPR: 1 }, em: 'star' }, GU));
 E('gu_round', 0, 999, '你随口说了一句“地球是圆的”，被当成妖人关进大牢三个月。', Object.assign({ w: .5, fx: { SPR: -2 }, em: 'anger' }, GU));
-E('gu_back', 0, 999, () => { L.path = null; L.f.guback = 1; L.f.nouni = 1; endLove(); L.kids = []; YR.sc = 'street'; return ['你又碰到了那面青铜镜……', '醒来时你回到了现代的博物馆里，手机上的时间只过去了一秒。']; }, Object.assign({ c: () => L.age < 55, w: .002, em: 'q' }, GU));
+E('gu_back', 0, 999, () => { L.f.lostfam = L.mar || L.kids.length ? 1 : 0; L.path = null; L.f.guback = 1; L.f.nouni = 1; endLove(); L.kids = []; YR.sc = 'street'; return ['你又碰到了那面青铜镜……', '醒来时你回到了现代的博物馆里，手机上的时间只过去了一秒。']; }, Object.assign({ c: () => L.age < 55, w: .002, em: 'q' }, GU));
 E('gu_fill', 0, 999, () => pick(L.age >= 60 ? ['你在院子里摇着蒲扇，听了一年的蝉鸣。', '你坐在茶楼里，听说书人讲的居然是你当年的故事。', '你每天清晨在城墙根下打一套太极。'] : ['你在后花园里赏了一年的花。', '你在茶楼里听了一年的评书。', '你在书房里练了一年的毛笔字。', '你去城外的寺庙里住了一段日子。', '你在集市上闲逛，看了一年的人间烟火。']), Object.assign({ rep: 1, cd: 2, w: .2, em: 'note' }, GU));
 // the zombie apocalypse
 E('zb_go', 18, 60, () => { enterRoute('zb'); L.zbAge = L.age; return ['新闻里说一种怪病正在全球蔓延。', '第二天醒来，街上到处都是摇摇晃晃的丧尸……']; }, { w: () => tal('mori') ? 2 : .002, em: 'bang', big: '末日降临!' });
@@ -1684,7 +1684,7 @@ CH.upload = { o: [['上传意识', () => { L.end = true; L.asc = true; L.f.uploa
 E('cy_upload', 45, 999, () => { YR.ch = 'upload'; return '科学家说，可以把你的意识上传到网络，从此获得永生。'; }, Object.assign({ c: () => L.f.chip, w: .6, em: 'q' }, CY));
 E('cy_fill', 0, 999, () => pick(L.age >= 60 ? ['你在老旧的胶囊公寓里，听了一年的黑胶唱片。', '你的义体又升级了一次系统，你还是只会用它开灯。', '你坐在窗前，看着霓虹灯一年一年地换新。'] : ['你在雨夜的霓虹街头游荡了一年。', '你在胶囊公寓里打了一年的全息游戏。', '你给全身的义体做了一次保养。', '你在天台上看了一年的飞行汽车。', '你在拉面摊吃了一年的合成拉面。']), Object.assign({ rep: 1, cd: 2, w: .2, em: 'zzz' }, CY));
 // pirates
-E('pi_go', 16, 45, () => { enterRoute('pi'); endLove(); return ['你坐的游轮被海盗劫了。', '海盗船长打量了你一眼：“有胆量，留下来当水手吧！”']; }, { w: () => tal('haizi') ? 2.5 : .003, em: 'bang', big: '扬帆起航!' });
+E('pi_go', 16, 45, () => { L.f.leftfam = L.mar || L.kids.length || L.pet ? 1 : 0; enterRoute('pi'); endLove(); L.kids = []; L.pet = null; return ['你坐的游轮被海盗劫了。', '海盗船长打量了你一眼：“有胆量，留下来当水手吧！”']; }, { w: () => tal('haizi') ? 2.5 : .003, em: 'bang', big: '扬帆起航!' });
 const PI = { p: 'pi' };
 E('pi_mop', 0, 999, '你每天擦甲板擦到半夜，晒得像块黑炭。', Object.assign({ w: 2, fx: { STR: 1 }, em: 'sweat' }, PI));
 E('pi_sick', 0, 999, '你晕船吐了三天三夜，船长说吐着吐着就习惯了。', Object.assign({ w: 2, em: 'sweat' }, PI));
@@ -1767,7 +1767,7 @@ IE('is_statue', () => '王都广场为你立了一座雕像，比你本人' + (L
 IE('is_war', () => L.f.dark ? '人类联军打上魔王城，你挥手把城外的焦土变成了一片花田。联军看傻了，撤兵了。' : '邻国趁乱发兵来犯，你带着圣剑单枪匹马守住了城门。', { c: () => L.f.hero || L.f.dark, fx: { STR: 2 }, em: 'star' });
 CH.royal = { o: [['向{ta}求婚', () => { startLove({ hair: 'dye' }); marry(); L.f.royal = 1; YR.big = '王室联姻!'; YR.em = 'heart'; return '国王大喜，为你们办了一场全国同庆的婚礼。'; }], ['送回王宫就走', () => { addFx({ SPR: 1 }); return '你婉拒了国王的赏赐，背起行囊继续冒险。'; }]] };
 IE('is_rescue', () => { YR.ch = 'royal'; return '一位' + (L.g === 'm' ? '公主' : '王子') + '被魔物掳走了，你杀进魔窟把{ta}救了回来。'; }, { c: () => L.f.guild && canLove(), w: 1.2, em: 'heart' });
-CH.portal = { o: [['回到原来的世界', () => { const n = L.age - L.isAge; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; YR.sc = 'hosp'; return '一道白光闪过。你在医院的病床上醒来，医生说你已经昏迷了整整' + n + '年。'; }],
+CH.portal = { o: [['回到原来的世界', () => { const n = L.age - L.isAge; L.f.lostfam = L.mar || L.kids.length ? 1 : 0; L.path = null; endLove(); L.kids = []; L.f.isback = 1; L.f.nouni = 1; YR.sc = 'hosp'; return '一道白光闪过。你在医院的病床上醒来，医生说你已经昏迷了整整' + n + '年。'; }],
   ['留下来', () => { addFx({ SPR: 2 }); return '你摇了摇头：“这里才是我的家。”'; }]] };
 IE('is_portal', () => { YR.ch = 'portal'; return '女神出现在你面前：“我可以送你回原来的世界，要回去吗？”'; }, { c: () => isYrs() >= 8 && L.age < 70, w: .5, em: 'q' });
 // ruling
@@ -1876,6 +1876,21 @@ E('x_phone', 0, 9999, '你闭关出来，发现手机已经更新换代了好几
 E('x_mortal', 0, 9999, '你下山去看望当年的同学，他们都已经白发苍苍，只有你还是少年模样。', { p: 'xian', c: () => L.age >= 50, fx: { SPR: -1 }, em: 'sad', sc: 'street' });
 E('x_pupil', 0, 9999, '一个凡间的孩子跪在山门前三天三夜，求你收他为徒。', { p: 'xian', c: () => L.xl >= 3, fx: { SPR: 1 }, em: 'heart' });
 E('x_debate', 0, 9999, XB3('你参加了一场论道大会，和各派高手辩了七天七夜。', '魔道各宗开会，你一拍桌子，把最嚣张的那个宗主骂哭了。', '妖族开会商量要不要和人类做生意，你投了赞成票。'), { p: 'xian', c: () => L.xl >= 3, fx: { INT: 1 }, em: 'book' });
+// ---------------- coming back from another world: a few years of finding your feet
+const BACKF = () => L.f.isback || L.f.guback || L.f.savior;
+const backYrs = () => L.age - (L.backAge === undefined ? L.age : L.backAge);
+E('back_init', 0, 999, () => { L.backAge = L.age; L.q.push({ a: L.age + 1, id: 'back_home' }, { a: L.age + 2, id: 'back_job' }, { a: L.age + 3, id: 'back_miss' }); return L.f.guback ? '你花了好几个月，才改掉见人就作揖、张口就“在下”的习惯。' : L.f.savior ? '疫苗普及后，你回到了重建的城市，重新学着过普通人的日子。' : '你已经和世界脱节太久，花了好几个月才重新学会用手机，连支付都不会。'; }, { m: 1, c: () => BACKF() && !L.path && L.backAge === undefined, em: 'sweat' });
+E('back_home', 0, 999, () => '你回到家，' + (L.par.dad.alive && L.par.mom.alive ? '爸妈' : L.par.mom.alive ? '妈妈' : '爸爸') + (L.f.isback ? '抱着你哭了一整夜。这些年，他们每个周末都去医院看你。' : '抱着你哭了一整夜。'), { c: () => BACKF() && !L.f.guback && !L.path && backYrs() <= 3 && (L.par.dad.alive || L.par.mom.alive), w: 6, fx: { SPR: 2 }, em: 'heart', sc: 'home' });
+E('back_job', 0, 999, () => { if (L.f.guback) return '你回到原来的生活，同事们都说你像变了个人，说话文绉绉的。'; setJob('office'); return '你太久没有工作过了，只好从最基层的岗位重新做起。'; }, { c: () => BACKF() && !L.path && backYrs() <= 4 && L.age < 55 && (!L.job || L.f.guback), w: 5, em: 'sweat', sc: 'office' });
+E('back_miss', 0, 999, () => L.f.guback ? '你常常梦见古代的那个家，醒来时，枕头都湿了。' : '你常常梦见异世界的家人，醒来时，枕头都湿了。', { c: () => L.f.lostfam && !L.path && backYrs() <= 8, w: 4, fx: { SPR: -2 }, em: 'sad' });
+E('back_tale', 0, 999, () => L.f.guback ? '你把在古代的经历写成了小说，读者都说细节真实得不像编的。' : L.f.savior ? '你把末日里的经历写成了回忆录，成了畅销书。' : '你把在异世界的经历写成了小说，网友都说：“作者脑洞真大。”', { c: () => BACKF() && !L.path && backYrs() >= 1 && backYrs() <= 10, w: 2, fx: { MNY: 1, SPR: 1 }, em: 'book' });
+E('back_skill', 0, 999, () => L.f.guback ? '你写得一手好毛笔字，随手一幅就在书法比赛上拿了第一。' : '你偷偷念了一句咒语，什么都没发生。又试了一次，指尖冒出了一点小小的火星。', { c: () => (L.f.isback || L.f.guback) && !L.path && backYrs() >= 1, w: 1.5, fx: { SPR: 1 }, em: 'spark' });
+E('back_nobody', 0, 999, () => L.f.savior ? '街上的年轻人都不知道你是谁，也没人记得那场末日了。你觉得这样挺好。' : '你试着跟朋友讲起那段经历，大家都笑着说你该去看看心理医生。', { c: () => BACKF() && !L.path && backYrs() >= 1 && backYrs() <= 12, fx: { SPR: -1 }, em: 'q' });
+// the family left behind when you crossed over
+E('is_missfam', 0, 999, '你常常想起原来世界的家人，不知道他们现在过得好不好。', { p: 'isekai', c: () => L.f.leftfam, w: 2, fx: { SPR: -1 }, em: 'sad' });
+E('gu_missfam', 0, 999, '你常常想起现代的家人，只能对着月亮默默地说一句：“我很好，别担心。”', { p: 'gu', c: () => L.f.leftfam, w: 2, fx: { SPR: -1 }, em: 'sad' });
+E('pi_missfam', 0, 999, '你托一艘路过的商船捎了一封信回家，却再也没收到回音。', { p: 'pi', c: () => L.f.leftfam, w: 2, fx: { SPR: -1 }, em: 'sad' });
+E('pi_missparents', 0, 999, '你每到一个港口，都会给家里寄一张明信片，报一声平安。', { p: 'pi', c: () => !L.f.leftfam && (L.par.dad.alive || L.par.mom.alive), fx: { SPR: 1 }, em: 'heart' });
 // ---------------- aliens
 E('alien1', 8, 60, '一个深夜，一道光从天而降，把你吸进了飞碟里。', { w: () => tal('waixing') ? 1.5 : .0015, f: { alien: 1 }, em: 'bang', sc: 'space', nx: ['alien2', 1, 1] });
 E('alien2', 0, 200, '外星人对你研究了一番，把你送了回来，还往你脑子里塞了点知识。', { sched: 1, p: '*', fx: { INT: 2 }, em: 'q' });
@@ -1996,7 +2011,7 @@ function naturalDeath() {
 // Stats working quietly in the background of an ordinary life: at most one tagged line a year.
 const PAY = { heir: 3, ambassador: 3, star: 3, singer: 2, scientist: 2, doctor: 2, coder: 2, boss: 2, esports: 2, astronaut: 2, civil: 1, teacher: 1, office: 1, athlete: 1, coach: 1, streamer: 1, writer: 1, chef: 1, rider: 0, worker: 0, farmer: 0 };
 function statTick() {
-  if (L.end || L.path || L.age < 1 || YR.skip) return;
+  if (L.end || L.path || L.age < 1 || YR.skip || YR.lines.some(t => t[0] === '【')) return;
   const a = L.a, age = L.age, working = L.job && L.job !== 'none' && L.job !== 'retired', o = [];
   const add = (p, fx, t) => { if (p > 0) o.push([p, fx, t]); };
   if (age >= 6 && age <= 17) {
@@ -2012,7 +2027,7 @@ function statTick() {
       add(pay * .045 + smart + mood, { MNY: 1 }, smart >= .075 && chance(.6) ? '【智力】你的专业能力没人比得上，年底拿到了一大笔奖金。' : a.SPR >= 11 && chance(.4) ? '【快乐】你每天干劲十足，老板给你涨了工资。' : '【工作】你升职加薪了，存款又多了一截。');
       add(a.CHR >= 8 ? .05 : 0, { MNY: 1 }, '【颜值】客户都爱和你打交道，你的业绩一路飘红。');
     } else if (L.job === 'none') add(.14, { MNY: -1 }, '【家境】没有收入，家底一点一点地被吃空了。');
-    add(.05 + Math.max(0, a.MNY - 7) * .03, { MNY: -1 }, pick(['【家境】房贷、车贷、孩子的学费……今年的开销比挣的还多。', '【家境】日子过得越来越讲究，钱也花得越来越快。', '【家境】家里的老房子要翻修，花掉了一大笔积蓄。']));
+    add(.05 + Math.max(0, a.MNY - 7) * .03, { MNY: -1 }, pick([L.kids.length ? '【家境】孩子的学费、补习班、兴趣班……今年的开销比挣的还多。' : L.f.house ? '【家境】房贷压得你喘不过气，今年又没攒下钱。' : '【家境】房租又涨了，今年几乎没攒下钱。', '【家境】日子过得越来越讲究，钱也花得越来越快。', L.age >= 45 ? '【家境】家里的老房子要翻修，花掉了一大笔积蓄。' : '【家境】你换了新手机、新电脑，钱包又瘪了。']));
     add(a.INT <= 3 ? .09 : 0, { MNY: -1 }, pick(['【智力】你被一个“高收益理财”忽悠了，血本无归。', '【智力】你听信了保健品推销员的话，花了好几万买了一堆“神药”。', '【智力】你跟风炒股，买在了最高点。']));
     add(a.MNY <= 1 ? .2 : 0, { SPR: -1 }, '【家境】房租、账单、借款……你常常为钱发愁到半夜。');
     add(a.MNY <= 1 && age >= 30 ? .08 : 0, { STR: -1 }, '【家境】你舍不得去医院，小病硬生生拖成了大病。');
