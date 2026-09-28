@@ -1669,7 +1669,7 @@ const ROUTES = {
     label: () => '古代 · ' + (L.f.emperor ? '皇帝' : L.f.guretire ? (L.f.zaixiang ? '前宰相' : '前县令') : L.f.zaixiang ? '宰相' : L.f.guan ? '县令' : L.f.zhuangyuan ? '状元' : L.f.jinshi ? '进士' : L.f.xiucai ? '秀才' : L.f.gushop ? '掌柜' : '穿越者'),
     death: () => L.f.emperor ? '你在龙椅上驾崩了。' : '你在古代走完了一生。',
     ep: () => L.f.emperor ? '穿越千年，当了一回皇帝' : L.f.guback ? '去古代走了一遭，又回来了' : '来自未来的古人，长眠于此', ascTitle: '', ascEp: '' },
-  zb: { get sc() { return L.f.zbpeace ? homeSc() : 'ruins'; }, get song() { return L.f.zbpeace ? (L.age < 60 ? 'adult' : 'old') : 'mo'; }, fit: () => L.f.zbpeace ? (stageOf(L.age) === 'old' && !tal('shiba') ? 'elder' : 'casual') : 'survivor', // once the city is rebuilt you live, dress and hear the music of an ordinary town again
+  zb: { get sc() { return L.f.zbpeace ? homeSc() : 'ruins'; }, get song() { return L.f.zbpeace ? (L.age < 60 ? 'kid' : 'old') : 'mo'; }, fit: () => L.f.zbpeace ? (stageOf(L.age) === 'old' && !tal('shiba') ? 'elder' : 'casual') : 'survivor', // once the city is rebuilt you live, dress and hear the music of an ordinary town again
     label: () => '末日 · ' + (L.f.zbleader ? '基地首领' : '幸存者'),
     death: () => L.f.zbpeace ? '你在重建的城市里安详地闭上了眼睛。' : L.f.base ? '你在基地的床上安详地离开了。' : '你在末日里坚持到了最后一刻。',
     ep: () => L.f.savior ? '用自己的血，救了全世界' : '在末日里，好好地活过', ascTitle: '', ascEp: '' },
@@ -2568,16 +2568,11 @@ const SONGS = {
     chords: [[0, 'M'], [5, 'M'], [7, 'M'], [0, 'M'], [-3, 'm'], [5, 'M'], [2, '7'], [7, '7']],
     mel: [7, _, 12, _, 12, 14, 16, _, 17, _, 16, _, 14, _, 12, _, 14, _, 11, _, 7, _, 11, 14, 12, _, _, _, _, _, 7, _,
       9, _, 12, _, 16, _, 12, _, 17, _, 21, _, 19, 17, 16, _, 14, _, 18, _, 21, _, 18, _, 19, _, 17, _, 14, _, 11, _] },
-  // adulthood: jazzy electric piano
-  adult: { bpm: 100, swing: .18, root: 62, lead: INST.ep, bass: 'walk', comp: 'off', drums: 'K.h.K.hw',
-    chords: [[0, 'M7'], [-3, 'm7'], [2, 'm7'], [7, '7'], [0, 'M7'], [-3, 'm7'], [2, 'm7'], [7, '7']],
-    mel: [16, _, 14, _, 11, _, 9, _, 9, _, 11, _, 14, _, 12, _, 14, _, 17, _, 19, _, 17, _, 16, _, _, _, 11, _, _, _,
-      16, _, 19, _, 21, _, 19, _, 21, _, 19, _, 16, _, 14, _, 14, _, 12, _, 11, _, 9, _, 7, _, 11, _, 14, _, _, _] },
-  // old age: slow flute over a music box
-  old: { bpm: 84, root: 60, lead: INST.flute, bass: 'long', comp: 'arp', compInst: INST.box, echo: .3, drums: '........',
-    chords: [[5, 'M'], [0, 'M'], [2, 'm'], [-3, 'm'], [5, 'M'], [0, 'M'], [7, 'M'], [0, 'M']],
-    mel: [17, _, _, _, 16, _, 14, _, 12, _, _, _, 7, _, _, _, 14, _, 17, _, 21, _, 19, _, 16, _, _, _, _, _, _, _,
-      17, _, _, _, 19, _, 21, _, 19, _, 16, _, 12, _, _, _, 14, _, _, _, 11, _, 14, _, 12, _, _, _, _, _, _, _] },
+  // old age: a warm folk tune on plucked strings over a music box, with soft brushes
+  old: { bpm: 88, swing: .08, root: 60, lead: INST.steel, bass: 'long', comp: 'arp', compInst: INST.box, echo: .3, drums: 'w...w..w',
+    chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [7, 'M'], [0, 'M'], [4, 'm'], [5, 'M'], [7, '7']],
+    mel: [16, _, _, 14, 12, _, 7, _, 9, _, 12, _, 16, _, _, _, 17, _, 16, _, 14, _, 12, _, 14, _, _, _, 11, _, 7, _,
+      12, _, _, 14, 16, _, 19, _, 19, _, _, _, 16, _, _, _, 17, _, 21, _, 19, _, 17, _, 14, _, 11, _, 12, _, _, _] },
   // the immortal path: pentatonic zither
   xian: { bpm: 76, root: 62, lead: INST.zheng, bass: 'long', comp: 'arp', compInst: INST.pluck, echo: .45, drums: 'w.......',
     chords: [[0, 'M'], [-3, 'm'], [5, 'M'], [0, 'M'], [-3, 'm'], [-5, 'M'], [-3, 'm'], [0, 'M']],
@@ -3784,7 +3779,7 @@ function update(dt) {
 function wantedTrack() {
   if (state === 'title' || state === 'ach' || state === 'shop' || state === 'book') return 'title';
   if (state === 'gacha' || state === 'fate' || state === 'talent' || state === 'alloc') return 'setup';
-  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (ROUTES[L.path]) return ROUTES[L.path].song; if (L.path === 'isekai') return 'isekai'; return L.age < 18 ? 'kid' : L.age < 60 ? 'adult' : 'old'; }
+  if (state === 'life') { if (L.end) return 'end'; if (L.path === 'xian') return XSD().song; if (ROUTES[L.path]) return ROUTES[L.path].song; if (L.path === 'isekai') return 'isekai'; return L.age < 60 ? 'kid' : 'old'; }
   return 'end';
 }
 function render() {
