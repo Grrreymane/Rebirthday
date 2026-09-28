@@ -1360,10 +1360,10 @@ E('fill_adult', 18, 59, '平淡的一年过去了。', { rep: 1, cd: 1, w: .1, e
 E('meet', 18, 45, () => { startLove(); const [p, s] = pick([['咖啡馆', 'shop'], ['地铁上', 'street'], ['朋友的婚礼上', 'wedding'], ['公园夜跑时', 'park'], ['图书馆', 'campus'], ['公司楼下', 'street']]); YR.sc = s; return '你在' + p + '邂逅了一个{opp}，你们一见钟情，坠入了爱河。'; }, { c: canLove, w: () => (L.a.CHR / 4 + .6) * (L.age >= 22 && L.age <= 36 ? 2 : 1), fx: { SPR: 2 }, em: 'heart', love: 1 });
 E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { who: 'pt', c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
-E('marry', 22, 60, () => { YR.ch = 'marry'; const d = L.par.dad.alive, m = L.par.mom.alive; if ((d || m) && !L.f.pdiv) YR.who = 'par'; return L.f.mar1 ? '你和{ta}交往了一段时间，想一起走完下半辈子。要不要再婚？' : !(d || m) ? '你和{ta}交往很久了，是时候谈婚论嫁了。' : !L.f.pdiv ? '你和{ta}交往很久了，两家父母都在催婚。' : d && m ? '你和{ta}交往很久了。爸妈离婚这么多年，催婚的电话倒是一个比一个打得勤。' : '你和{ta}交往很久了，' + (d ? '爸爸' : '妈妈') + '天天打电话催你结婚。'; }, { sc: 'home', c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.age - L.loveAge >= 2 ? 6 : 2, rep: 1, cd: 2, em: 'heart' });
+E('marry', 22, 60, () => { YR.ch = 'marry'; const d = L.par.dad.alive, m = L.par.mom.alive; if ((d || m) && !L.f.pdiv) YR.who = 'par'; return L.f.mar1 ? '你和{ta}交往了一段时间，想一起走完下半辈子。要不要再婚？' : !(d || m) ? '你和{ta}交往很久了，是时候谈婚论嫁了。' : !L.f.pdiv ? '你和{ta}交往很久了，两家父母都在催婚。' : d && m ? '你和{ta}交往很久了。爸妈离婚这么多年，催婚的电话倒是一个比一个打得勤。' : '你和{ta}交往很久了，' + (d ? '爸爸' : '妈妈') + '天天打电话催你结婚。'; }, { sc: 'home', m: 1, c: () => L.love && !L.mar && L.age - L.loveAge >= 2, rep: 1, cd: 2, em: 'heart' }); // two years together and the question comes up; "not yet" puts it off two more
 E('kidwait', 25, 60, () => { YR.ch = 'nokid'; return '你们备孕了好几年，一直没有好消息。'; }, { c: () => L.mar && L.f.wantkid && !L.kids.length && !L.f.infertile && L.age - (L.wantAge || L.marAge) >= 3, w: 8, em: 'q', sc: 'home' });
-E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; L.wantAge = L.age; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq, w: 10, em: 'q', sc: 'home' });
-E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? 12 : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; L.wantAge = L.age; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq && L.age - L.marAge >= 1, m: 1, em: 'q', sc: 'home' }); // a year into marriage
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? (L.age - (L.wantAge || L.marAge) >= 1 ? 40 : 12) : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
 E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
 E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
 E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
@@ -1753,7 +1753,12 @@ E('zb_radio', 0, 999, () => L.f.zbpeace ? '研究所的人找上门来：“城�
 E('zb_cure', 0, 999, () => { const peace = L.f.zbpeace; YR.sc = 'lab'; if (chance(.5)) { L.f.radio = 0; addFx({ SPR: -2 }); return peace ? '你赶到研究所，可实验一次次失败，你的血样被冻进了冰箱。' : '你穿越半个国家赶到研究所，那里早已被尸潮攻陷。'; } L.path = null; L.f.savior = 1; outOfSchool(); return peace ? ['你赶到研究所，科学家用你的血做出了疫苗。', '一年后，末日真的结束了。'] : ['你穿越半个国家赶到研究所，科学家用你的血做出了疫苗。', '一年后，城市重新亮起了灯。']; }, Object.assign({ c: () => L.f.radio, w: 2, fx: { SPR: 3 }, em: 'star', big: '拯救世界!' }, ZB));
 E('zb_fill', 0, 999, () => { if (!L.f.zbpeace) return fresh(['你在废墟里又熬过了一年。', '你在屋顶守了一整夜，天亮时看到了日出。', '你用两个罐头换了一本旧书，读了整整一个冬天。', '你在废弃的加油站里过了一个安静的夏天。', L.f.base ? '你把基地的围墙又加高了一米。' : '你把藏身处的门窗又钉牢了一层。']); const y = L.age - L.at.zb_rebuild, gk = L.age - L.at.zb_grandkid, [t, s] = fresh([['你在院子里晒了一年的太阳，偶尔擦一擦那根老球棍。', 'home'], ['你教' + (gk >= 4 && gk <= 14 ? '孙辈们' : '街坊的孩子们') + '辨认哪些野菜能吃，哪些不能。', 'park'], ['你在' + (y <= 5 ? '新盖的' : '街心') + '广场上下了一年的棋，' + (y <= 15 ? '没人相信你当年砍过丧尸。' : '棋友换了好几茬，还是没人相信你当年砍过丧尸。'), 'park'], ['你去菜市场转了一圈，看着堆成小山的新鲜蔬菜，站在摊位前傻笑了半天。', 'street'], ['你去电影院看了一部丧尸片，全程都在小声挑毛病：“丧尸才不是这么跑的。”', 'street'], ['你的储藏室里还囤着一整面墙的罐头，谁劝都没用，你一罐也舍不得扔。', 'home']]); YR.sc = s; return t; }, Object.assign({ rep: 1, cd: 1, w: .2, em: 'zzz' }, ZB));
 // the cyberpunk city
-E('cy_go', 20, 50, () => { enterRoute('cy'); return ['你签了义体改造协议，醒来时左眼换成了机械眼。', '透过它，你第一次看清了这座霓虹城市。']; }, { w: () => tal('yiti') ? 2 : .002, fx: { INT: 2 }, em: 'bang', big: '义体改造!' });
+// the city drifts into the neon age over a few years before your own eye goes
+const CY_DUE = () => 22 + (L.ta || 0) * 5, CY_PRE = () => tal('yiti') && !L.path && !used('cy_go') && !used('cy_go_t');
+E('cy_pre1', 14, 60, '城里开了第一家义体诊所，门口天天排长队。', { m: 1, c: () => CY_PRE() && L.age >= CY_DUE() - 5, em: 'q', sc: 'street' });
+E('cy_pre2', 14, 60, () => '满大街的人都装上了机械手臂，' + (L.job && L.job !== 'none' ? '连你的同事都换了一只。' : '你反倒成了少数派。'), { m: 1, c: () => CY_PRE() && used('cy_pre1') && L.age >= CY_DUE() - 3, em: 'sweat', sc: 'street' });
+E('cy_pre3', 14, 60, '一场意外伤了你的左眼，医生建议直接换一只机械眼。', { m: 1, c: () => CY_PRE() && used('cy_pre2') && L.age >= CY_DUE() - 1, fx: { STR: -1 }, em: 'ill', sc: 'hosp' });
+E('cy_go', 20, 50, () => { enterRoute('cy'); return used('cy_pre3') ? ['你签了改造协议，醒来时左眼已经换成了机械眼。', '透过它看去，城市早已铺满了全息广告。'] : ['你签了义体改造协议，醒来时左眼换成了机械眼。', '透过它，你第一次看清了这座霓虹城市。']; }, { w: () => tal('yiti') ? 2 : .002, fx: { INT: 2 }, em: 'bang', big: '义体改造!' });
 const CY = { p: 'cy' };
 E('cy_arm', 0, 999, '你把右手换成了机械臂，一拳就能打穿墙壁。', Object.assign({ w: 2, fx: { STR: 3 }, f: { cyarm: 1 }, em: 'spark' }, CY));
 E('cy_chip', 0, 999, '你在后脑装了一块芯片，一秒钟就能读完一本书。', Object.assign({ w: 2, fx: { INT: 3 }, f: { chip: 1 }, em: 'spark' }, CY));
@@ -2254,7 +2259,7 @@ function statTick() {
     add(.05 + Math.max(0, a.MNY - 7) * .03, { MNY: -1 }, spend, once && (() => { L.f[once] = 1; }));
     add(a.INT <= 3 ? .09 : 0, { MNY: -1 }, pick(['【智力】你买了“高收益理财”，血本无归。', age >= 50 ? '【智力】你花好几万买了一堆“神药”。' : '【智力】你信了“刷单日赚三百”，被骗了。', '【智力】你跟风炒股，买在了最高点。']));
     add(a.MNY <= 1 ? .2 : 0, { SPR: -1 }, '【家境】你常常为钱发愁到半夜。');
-    add(a.MNY <= 1 && age >= 30 ? .08 : 0, { STR: -1 }, '【家境】你舍不得看病，小病拖成了大病。');
+    add(a.MNY <= 1 && age >= 30 ? .08 + Math.min(.1, -Math.min(0, a.MNY) * .012) : 0, { STR: -1 }, '【家境】你舍不得看病，小病拖成了大病。'); // the deeper the hole, the more it costs your health
     add(a.SPR <= 6 ? (7 - a.SPR) * .04 : 0, { STR: -1 }, a.SPR <= 3 ? '【快乐】你闷闷不乐，身体也垮了下来。' : '【快乐】你提不起精神，小感冒拖了一个月。');
     add(a.SPR >= 13 ? .08 : 0, { SPR: -1 }, '【快乐】日子久了，开心也变得平常了。');
     add(a.SPR >= 11 && !sick ? (a.SPR - 10) * .025 : 0, { STR: 1 }, '【快乐】你乐呵呵的，连感冒都很少得。');
@@ -2271,7 +2276,7 @@ function deathCheck() {
   if (save) { L.f[save] = 1; L.a.STR = 3; YR.lines.push(save === 'seasave' ? '【大海的孩子】你大病一场，梦里全是海浪声。' : '【长寿基因】你大病一场，硬是挺了过来。'); return; } // these talents promise a long life / a life at sea: one reprieve from a failing body
   if (L.a.STR <= 0) { if (a >= 50) YR.sc = 'hosp'; else if (a >= 2 && YR.sc !== 'hosp') YR.sc = 'home'; YR.solo = YR.nopet = 0; die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你在病床上离开了人世。'); return; }
   if (a < 50) return;
-  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1 + (9 - L.a.SPR) * .04, .75, 1.35) * clamp(1 + (7 - L.a.MNY) * .045, .75, 1.3); // happy and well-off lives are longer ones
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1 + (9 - L.a.SPR) * .04, .75, 1.35) * clamp(1 + (7 - L.a.MNY) * .05, .75, 2.2); // happy and well-off lives are longer ones; real poverty is dangerous
   if (chance(.0045 * Math.pow(1.09, a - 50) * m)) { if (YR.sc !== 'hosp') YR.sc = 'home'; YR.solo = YR.nopet = 0; YR.who = (YR.who || '') + ' pt kid'; die(naturalDeath()); } // the family gathers round at home (or by the hospital bed), even when a ninth life brings you back
 }
 function runYear() {
@@ -3425,7 +3430,7 @@ function drawTomb(oy, st) {
 }
 function endPanel(st) {
   panel(4, 150, 172, 144);
-  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])]]);
+  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])], L.mx[k] - L.a[k] >= 5 ? L.a[k] : undefined]); // peak value; the final one too when life ended far below it
   const ag = ageGrade(L.age); rows_.push(['享年', L.age, L.asc ? (L.path === 'cy' ? '意识永生' : '飞升成仙') : ag[1], GCOL[L.asc ? 5 : ag[0]]]);
   rows_.forEach((r, i) => {
     const y = 162 + i * 17, show = st > .15 + i * .12;
@@ -3433,6 +3438,7 @@ function endPanel(st) {
     txt(r[0], 12, y, 7.5, '#6a4a2a', 'left', null);
     txt(String(r[1]), 46, y, 9, '#3a2a1a', 'center', null);
     txt(r[2], 58, y, 7.5, r[3], 'left', OUT);
+    if (r[4] !== undefined) txt('终' + r[4], 112, y + 1, 6, '#a0886a', 'right', null);
   });
   box(g, 116, 156, 54, 66, '#fff8e0', '#ffffff');
   txt('总评', 143, 163, 7, '#8a6a4a', 'center', null);
@@ -3453,9 +3459,9 @@ function makeShare() {
   txt('人生重开物语 · 第' + META.lives + '世', 90, 9, 8, '#ffe14a');
   drawTomb(18, 9);
   panel(4, 152, 172, 122);
-  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])]]);
+  const rows_ = STATS.map(k => [SNAME[k], L.mx[k], GRADES[k][gIdx(L.mx[k])], GCOL[gIdx(L.mx[k])], L.mx[k] - L.a[k] >= 5 ? L.a[k] : undefined]); // peak value; the final one too when life ended far below it
   const ag = ageGrade(L.age); rows_.push(['享年', L.age, L.asc ? (L.path === 'cy' ? '意识永生' : '飞升成仙') : ag[1], GCOL[L.asc ? 5 : ag[0]]]);
-  rows_.forEach((r, i) => { const y = 162 + i * 13; txt(r[0], 12, y, 7, '#6a4a2a', 'left', null); txt(String(r[1]), 46, y, 8, '#3a2a1a', 'center', null); txt(r[2], 58, y, 7, r[3], 'left', OUT); });
+  rows_.forEach((r, i) => { const y = 162 + i * 13; txt(r[0], 12, y, 7, '#6a4a2a', 'left', null); txt(String(r[1]), 46, y, 8, '#3a2a1a', 'center', null); txt(r[2], 58, y, 7, r[3], 'left', OUT); if (r[4] !== undefined) txt('终' + r[4], 112, y, 5.5, '#a0886a', 'right', null); });
   box(g, 116, 156, 54, 60, '#fff8e0', '#ffffff');
   txt('总评', 143, 163, 7, '#8a6a4a', 'center', null); txt(L.grade, 143, 182, L.grade.length > 2 ? 17 : 23, LCOL[L.grade], 'center', OUT); txt(lifeTitle(), 143, 207, 7, '#6a3a1a', 'center', null);
   const hl = (L.hl || []).slice(0, 5).map(h => h.a + '岁' + h.s);
