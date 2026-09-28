@@ -953,7 +953,8 @@ function randLook(g_) { return { g: g_, hair: pick(['black', 'black', 'black', '
 // a person's hairstyle adjusted for their age
 function styleAt(style, g_, st) { if (!style) return undefined; if (g_ === 'f' && st === 'old' && style !== 'bob' && style !== 'curly') return 'bun'; if (g_ === 'f' && (st === 'tod' || st === 'kid') && (style === 'wavy' || style === 'long')) return 'pony'; return style; }
 const casualOf = (look, st) => st === 'old' ? 'elder' : (look && look.cv) || 'casual';
-function newPartner(o) { return Object.assign(randLook(L.g === 'm' ? 'f' : 'm'), o || {}); }
+const PG = () => L.pt ? L.pt.g : L.f.same ? L.g : (L.g === 'm' ? 'f' : 'm'), PGF = () => PG() === 'f'; // the partner's sex (or the sex you'd fall for)
+function newPartner(o) { return Object.assign(randLook(PG()), o || {}); }
 function startLove(o) { L.love = 1; L.loveAge = L.age; L.f.loved = 1; L.pt = newPartner(o); L.pt.world = L.path; } // a costume given here belongs to the world you met in
 function endLove() { L.love = 0; L.mar = 0; L.pt = null; }
 // The partner leaves the story for good (death, ascension): they also leave the stage.
@@ -977,13 +978,13 @@ function homeSc() {
 }
 function fmt(s) {
   return s.replace(/\{(\w+)\}/g, (m, k) => {
-    const pg = L.pt ? L.pt.g : (L.g === 'm' ? 'f' : 'm');
+    const pg = PG();
     switch (k) {
       case 'sex': return L.g === 'm' ? '男孩' : '女孩';
-      case 'opp': return L.g === 'm' ? '女生' : '男生';
+      case 'opp': return pg === 'f' ? '女生' : '男生';
       case 'ta': return pg === 'm' ? '他' : '她';
       case 'spouse': return pg === 'm' ? '老公' : '老婆';
-      case 'bf': return L.g === 'm' ? '女朋友' : '男朋友';
+      case 'bf': return pg === 'f' ? '女朋友' : '男朋友';
       case 'kid': { const k = L.kids[L.kids.length - 1]; return k ? (k.g === 'm' ? '儿子' : '女儿') : '孩子'; }
       case 'kid0': return L.kids[0] ? (L.kids[0].g === 'm' ? '儿子' : '女儿') : '孩子';
       case 'grand': return L.g === 'm' ? '孙子' : '孙女';
@@ -1023,7 +1024,7 @@ CH.layoff = { o: [['去送外卖', () => { setJob('rider'); return L.a.MNY >= 9 
 CH.marry = { o: [['结婚！', () => { const again = L.f.mar1; marry(); addFx({ SPR: 2 }); YR.big = again ? '再婚!' : '喜结连理!'; YR.sc = 'wedding'; YR.em = 'heart'; return [again ? (L.f.widowed ? '你和{ta}再婚了。你终于又有了一个可以说说话的人。' : L.f.divorced ? '你和{ta}再婚了。经历过一次失败的婚姻，这一次你更懂得珍惜。' : '你和{ta}结婚了，这回是在这个世界领的证。') : '你和{ta}结婚了！', L.a.MNY >= 8 ? '你们在海岛上办了一场盛大的婚礼。' : L.a.MNY <= 2 ? '婚礼很简单，但你们很幸福。' : null]; }], ['再等等', () => { addFx({ SPR: -1 }); return '你说还没准备好，{ta}有些失落。'; }]] };
 CH.nokid = { o: [['去医院调理', () => { if (chance(.55)) { const k = addKid(); YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; YR.sc = 'hosp'; addFx({ SPR: 3 }); return '调理了一年多，你们终于迎来了一个{kid}！'; } L.f.infertile = 1; addFx({ SPR: -2 }); return '医生说希望很渺茫。你们抱头哭了一场，决定顺其自然。'; }],
   ['领养一个孩子', () => { const k = addKid(); k.born = L.age - ri(2, 5); k.adopted = 1; addFx({ SPR: 3 }); YR.sc = 'home'; return '你们从福利院领养了一个' + (L.age - k.born) + '岁的{kid}，给了{ta}一个家。'.replace('{ta}', k.g === 'm' ? '他' : '她'); }]] };
-CH.kid = { o: [['要一个', () => { L.f.wantkid = 1; L.wantAge = L.age; return '你们开始认真备孕。'; }], ['过二人世界', () => { L.f.dink = 1; addFx({ SPR: 1 }); return '你们决定好好享受二人世界，养了一阳台的花。'; }]] };
+CH.kid = { o: [['要一个', () => { L.f.wantkid = 1; L.wantAge = L.age; return L.pt && L.pt.g === L.g ? '你们开始准备领养。' : '你们开始认真备孕。'; }], ['过二人世界', () => { L.f.dink = 1; addFx({ SPR: 1 }); return '你们决定好好享受二人世界，养了一阳台的花。'; }]] };
 CH.lotto = { o: [['辞职环游世界', () => { if (L.job && L.job !== 'retired') { L.oldJob = L.job; setJob('none'); } addFx({ SPR: 3 }); return '你辞掉了工作，花了三年走遍了全世界。'; }], ['低调存起来', () => { addFx({ MNY: 1 }); return '你谁也没告诉，照常上班，只是偷偷换了个好一点的保温杯。'; }]] };
 CH.house = { o: [['贷款买房', () => { L.f.house = L.age; L.f.loan = 1; addFx({ SPR: -1 }); return '你咬咬牙买下了它，背上了三十年的房贷。'; }], ['继续租房', () => { addFx({ SPR: 1, MNY: 1 }); return '你决定继续租房，把首付拿去旅游了。'; }]] };
 CH.midlife = { o: [['买辆摩托车', () => { L.f.moto = 1; addFx({ SPR: 2 }); return '你买了一辆摩托车，在山路上狂飙，找回了年轻时的感觉。'; }], ['报个画画班', () => { addFx({ SPR: 1, INT: 1 }); return '你报了个油画班，画的第一幅画被家人挂在了客厅正中间。'; }]] };
@@ -1361,10 +1362,10 @@ E('meet', 18, 45, () => { startLove(); const [p, s] = pick([['咖啡馆', 'shop'
 E('blind', 25, 42, () => { if (L.a.CHR >= 6 || chance(.3)) { startLove(); return ['你被安排去相亲。', '对方对你一见钟情，你们开始交往了。']; } addFx({ SPR: -1 }); return ['你被安排去相亲。', '对方吃完饭就说家里有事，先走了。']; }, { who: 'pt', c: canLove, w: .8, rep: 1, cd: 3, em: 'heart', sc: 'shop', love: 1 });
 E('breakup', 18, 45, () => '你们因为' + pick(['异地恋', '性格不合', '谁先回消息', '你忘了{ta}的生日', '{ta}要出国']) + '分手了。', { c: () => L.love && !L.mar && L.age - L.loveAge >= 1, w: () => L.a.SPR <= 4 ? 1 : .45, rep: 1, fx: { SPR: -2 }, do: () => { endLove(); }, em: 'sad', sc: 'street' });
 E('marry', 22, 60, () => { YR.ch = 'marry'; const d = L.par.dad.alive, m = L.par.mom.alive; if ((d || m) && !L.f.pdiv) YR.who = 'par'; return L.f.mar1 ? '你和{ta}交往了一段时间，想一起走完下半辈子。要不要再婚？' : !(d || m) ? '你和{ta}交往很久了，是时候谈婚论嫁了。' : !L.f.pdiv ? '你和{ta}交往很久了，两家父母都在催婚。' : d && m ? '你和{ta}交往很久了。爸妈离婚这么多年，催婚的电话倒是一个比一个打得勤。' : '你和{ta}交往很久了，' + (d ? '爸爸' : '妈妈') + '天天打电话催你结婚。'; }, { sc: 'home', m: 1, c: () => L.love && !L.mar && L.age - L.loveAge >= (L.age < 22 ? 3 : 1), rep: 1, cd: 2, em: 'heart' }); // a year together and the question comes up; "not yet" puts it off two more
-E('kidwait', 25, 60, () => { YR.ch = 'nokid'; return '你们备孕了好几年，一直没有好消息。'; }, { c: () => L.mar && L.f.wantkid && !L.kids.length && !L.f.infertile && L.age - (L.wantAge || L.marAge) >= 3, w: 8, em: 'q', sc: 'home' });
+E('kidwait', 25, 60, () => { YR.ch = 'nokid'; return '你们备孕了好几年，一直没有好消息。'; }, { c: () => L.mar && L.f.wantkid && !L.kids.length && !L.f.infertile && !(L.pt && L.pt.g === L.g) && L.age - (L.wantAge || L.marAge) >= 3, w: 8, em: 'q', sc: 'home' });
 E('c_kid', 23, 44, () => { L.f.kidq = 1; if (tal('duozi')) { L.f.wantkid = 1; L.wantAge = L.age; return '你们都喜欢孩子，决定要一个热热闹闹的大家庭。'; } YR.ch = 'kid'; return '{spouse}问你：“我们要个孩子吧？”'; }, { c: () => L.mar && !L.kids.length && !tal('dingke') && !L.f.kidq && L.age - L.marAge >= 1, m: 1, em: 'q', sc: 'home' }); // a year into marriage
-E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return '你们迎来了一个' + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? (L.age - (L.wantAge || L.marAge) >= 1 ? 40 : 12) : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
-E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
+E('baby', 23, 45, () => { const k = addKid(); if (L.kids.length === 1) YR.big = k.g === 'm' ? '喜得贵子!' : '喜得千金!'; return (L.pt && L.pt.g === L.g ? '你们领养了一个' : '你们迎来了一个') + (k.g === 'm' ? '儿子' : '女儿') + '！'; }, { c: () => L.mar && !tal('dingke') && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid || L.path) && L.kids.length < (tal('duozi') ? 5 : 3) && (!L.kids.length || kidAge(L.kids.length - 1) >= 2), w: () => !L.kids.length ? (L.age - (L.wantAge || L.marAge) >= 1 ? 40 : 12) : tal('duozi') ? 8 : .5, rep: 1, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' });
+E('twins', 24, 40, () => { addKid().g = 'm'; addKid().g = 'f'; return L.pt && L.pt.g === L.g ? '你们领养了一对龙凤胎！' : '你们生了一对龙凤胎！'; }, { c: () => L.mar && tal('duozi') && L.kids.length < 3 && !L.f.dink && !L.f.infertile && (L.kids.length || L.f.wantkid), w: 1.2, fx: { SPR: 3 }, em: 'heart', sc: 'hosp', big: '龙凤胎!' });
 E('quarrel', 25, 75, '你和{spouse}因为谁洗碗的问题吵了一架。', { c: () => L.mar, em: 'anger', sc: 'home' });
 E('anniv', 28, 80, '结婚纪念日，你给{spouse}准备了一个惊喜，{ta}感动得哭了。', { c: () => L.mar && L.age - L.marAge >= 5, fx: { SPR: 1 }, em: 'heart', sc: 'home' });
 E('divorce', 28, 65, () => { const t = '你和{spouse}因为性格不合，离婚了。'; return t; }, { c: () => L.mar, w: () => L.a.SPR <= 3 ? .6 : .07, fx: { SPR: -2 }, do: () => { endLove(); L.f.divorced = 1; }, em: 'sad', sc: 'street' });
@@ -1533,12 +1534,12 @@ E('ab_return', 22, 35, '你决定回国发展，爸妈又高兴又舍不得。',
 // ---------------- story arcs: a childhood sweetheart, a best friend, a pet's life
 const QM_N = { m: ['阿杰', '小宇', '浩浩', '阿哲', '小北'], f: ['小雨', '小满', '甜甜', '阿晴', '小鹿'] };
 const BRO_N = { m: ['胖子', '猴子', '大壮', '阿飞', '小黑'], f: ['圆圆', '阿琳', '佳佳', '小美', '朵朵'] };
-E('qm1', 3, 6, () => { const g_ = L.g === 'm' ? 'f' : 'm'; L.qm = { n: pick(QM_N[g_]), g: g_, hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; return '邻居家的{qm}和你同一年出生，你们成了形影不离的小伙伴。'; }, { c: () => !L.qm, w: 3.5, em: 'heart', sc: 'park' });
+E('qm1', 3, 6, () => { const g_ = PG(); L.qm = { n: pick(QM_N[g_]), g: g_, hair: pick(['black', 'brown']), top: pick(TOPS), bot: pick(BOTS), skirt: chance(.5) ? 1 : 0 }; return '邻居家的{qm}和你同一年出生，你们成了形影不离的小伙伴。'; }, { c: () => !L.qm, w: 3.5, em: 'heart', sc: 'park' });
 E('qm2', 7, 11, '你和{qm}一起偷摘邻居家的枣，被追了半条街。', { who: 'pals', c: () => L.qm, w: 7, fx: { SPR: 1 }, em: 'note', sc: 'street' });
 E('qm3', 8, 13, '{qm}拉着你的手说，长大以后要{qmsay}。你红着脸跑开了。', { c: () => L.qm && !tal('danshen'), w: 6, em: 'heart', sc: 'park' });
 E('qm4', 12, 16, '{qm}跟着爸妈搬去了外地。临走前，你们约好要一直写信。', { c: () => L.qm && used('qm2'), w: 7, fx: { SPR: -2 }, f: { qmgone: 1 }, em: 'sad', sc: 'street' });
 E('qm5', 15, 22, '你和{qm}的信越来越少，后来就断了联系。', { c: () => L.f.qmgone, w: 9, em: 'sad' });
-E('qm6', 21, 40, () => { YR.ch = 'qm'; const t = '你在同学聚会上又见到了{qm}，对方笑着说：“好久不见。”'; return L.love ? [t, '可你已经有{bf}了。'] : t; }, { c: () => used('qm5') && !L.mar && !tal('danshen') && L.qm.g !== L.g, w: 12, em: 'heart', sc: 'shop', love: 1 });
+E('qm6', 21, 40, () => { YR.ch = 'qm'; const t = '你在同学聚会上又见到了{qm}，对方笑着说：“好久不见。”'; return L.love ? [t, '可你已经有{bf}了。'] : t; }, { c: () => used('qm5') && !L.mar && !tal('danshen'), w: 12, em: 'heart', sc: 'shop', love: 1 });
 E('qm7', 55, 95, '你和{qm}从穿开裆裤就认识，到现在已经过了大半个世纪。', { c: () => L.f.qmlove && L.mar, w: 4, fx: { SPR: 2 }, em: 'heart', sc: 'park' });
 E('bro1', 7, 10, () => { L.bro = { n: pick(BRO_N[L.g]) }; return '同桌{bro}成了你最好的朋友，你们一起分享了人生中第一包辣条。'; }, { c: () => !L.bro, w: 2.5, fx: { SPR: 1 }, em: 'note', sc: 'class' });
 E('bro2', 12, 16, '你和{bro}一起逃课去网吧，第二天被班主任拎到讲台前罚站了一节课。', { c: () => L.bro && SCH(), w: 5, em: 'sweat', sc: 'class' });
@@ -1638,7 +1639,7 @@ E('is_slime', 0, 999, '你打倒了一只史莱姆，升到了2级。', { p: 'is
 E('is_party', 0, 999, '你组建了一支冒险小队：精灵弓手、兽耳剑士，还有一个只会喊加油的女神。', { p: 'isekai', c: () => L.f.guild && !used('is_demon'), fx: { SPR: 2 }, em: 'note', sc: 'istown' });
 E('is_mayo', 0, 999, '你用前世的知识做出了蛋黄酱，在异世界卖到脱销。', { p: 'isekai', fx: { MNY: 3 }, em: 'coin', sc: 'istown' });
 E('is_dragon', 0, 999, () => (YR.solo = 1, '你单挑了一头巨龙，然后把它收成了坐骑。'), { p: 'isekai', c: () => L.f.guild, fx: { STR: 2 }, em: 'star', sc: 'isekai' });
-E('is_elf', 0, 999, () => { startLove({ hair: 'silver', fit: 'robe', ears: 2 }); return '你和精灵族的' + (L.g === 'm' ? '公主' : '王子') + '坠入了爱河。'; }, { p: 'isekai', c: () => canLove() && !(L.leftHome && L.leftHome.mar), fx: { SPR: 2 }, em: 'heart' });
+E('is_elf', 0, 999, () => { startLove({ hair: 'silver', fit: 'robe', ears: 2 }); return '你和精灵族的' + (PGF() ? '公主' : '王子') + '坠入了爱河。'; }, { p: 'isekai', c: () => canLove() && !(L.leftHome && L.leftHome.mar), fx: { SPR: 2 }, em: 'heart' });
 E('is_wed', 0, 999, () => { marry(); return '你和{ta}在世界树下举行了婚礼。'; }, { p: 'isekai', c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', sc: 'isekai', big: '喜结连理!' });
 E('is_kid', 0, 999, () => { const k = addKid(), more = L.kids.length > 1; if (L.pt && L.pt.hair === 'silver') k.elf = 1; return '你们' + (more ? '又' : '') + '有了一个{kid}，' + (L.pt && L.pt.hair === 'silver' ? (more ? '耳朵也是尖尖的。' : '长着一对尖尖的耳朵。') : L.f.royal ? '王都放了三天三夜的烟花。' : '哭声大得把屋檐下的史莱姆都震了下来。'); }, { p: 'isekai', c: () => L.mar && L.age <= 45 && L.kids.length < 2 && !tal('dingke'), rep: 1, fx: { SPR: 2 }, em: 'heart' });
 E('is_demon', 0, 999, () => { YR.ch = 'demon'; YR.solo = 1; return (used('is_party') ? '你带领小队攻入魔王城。' : '你单枪匹马杀进了魔王城。') + '魔王却向你伸出了手：“和我一起统治这个世界吧！”'; }, { p: 'isekai', c: () => L.f.guild && L.age - L.isAge >= 4, w: .8, em: 'bang', sc: 'darkcastle' });
@@ -1716,7 +1717,7 @@ E('gu_xiang', 0, 999, '你一路升迁，最后官拜宰相。', Object.assign({
 E('gu_emperor', 0, 999, '老皇帝驾崩，没有留下子嗣。群臣商议之后，把你推上了龙椅。', Object.assign({ c: () => L.f.zaixiang && !L.f.guretire && L.a.CHR + L.a.INT >= 20, w: .12, fx: { MNY: 5 }, f: { emperor: 1 }, em: 'star', sc: 'gu', big: '登基!' }, GU));
 E('gu_hotpot', 0, 999, '你用现代的配方开了一家火锅店，全城的人都来排队。', Object.assign({ fx: { MNY: 3 }, f: { gushop: 1 }, em: 'coin', sc: 'shop' }, GU));
 E('gu_soap', 0, 999, '你又做出了肥皂和玻璃镜子，富甲一方。', Object.assign({ c: () => L.f.gushop, fx: { MNY: 4 }, em: 'coin' }, GU));
-E('gu_love', 0, 999, () => { startLove({ fit: L.g === 'm' || L.age >= 40 ? 'hanfu' : 'armor' }); marry(); return '你和一位' + (L.g === 'm' ? '温婉的大家闺秀' : L.age < 25 ? '英俊的少年将军' : L.age < 40 ? '英武的将军' : '刚刚解甲归田的将军') + '拜了堂。'; }, Object.assign({ c: () => canLove() && !(L.leftHome && L.leftHome.mar) && L.age >= 16, w: 1.5, fx: { SPR: 2 }, em: 'heart', sc: 'wedding', big: '喜结连理!' }, GU)); // a spouse still waiting back home rules out a second wedding here
+E('gu_love', 0, 999, () => { startLove({ fit: PGF() || L.age >= 40 ? 'hanfu' : 'armor' }); marry(); return '你和一位' + (PGF() ? '温婉的大家闺秀' : L.age < 25 ? '英俊的少年将军' : L.age < 40 ? '英武的将军' : '刚刚解甲归田的将军') + '拜了堂。'; }, Object.assign({ c: () => canLove() && !(L.leftHome && L.leftHome.mar) && L.age >= 16, w: 1.5, fx: { SPR: 2 }, em: 'heart', sc: 'wedding', big: '喜结连理!' }, GU)); // a spouse still waiting back home rules out a second wedding here
 // the general wears his armour through the fighting years, then hangs it up for good
 E('gu_unarmor', 0, 999, '你家那位将军卸甲归田了。盔甲挂上了墙，他从此天天在后花园里陪你赏花喝茶。', Object.assign({ m: 1, c: () => L.pt && L.pt.fit === 'armor' && (L.age >= 45 || L.age - L.marAge >= 15), do: () => { L.pt.fit = 'hanfu'; }, fx: { SPR: 1 }, em: 'heart', sc: 'gu', who: 'pt' }, GU));
 E('gu_kid', 0, 999, () => { addKid(); return L.kids.length > 1 ? '你们又添了一个{kid}。满月那天，你偷偷在襁褓里塞了一张手写的元素周期表。' : '你们有了一个{kid}。你已经盘算好了，等{kid}会说话，就偷偷教{kid}背乘法口诀表。'; }, Object.assign({ c: () => L.mar && L.age <= 45 && L.kids.length < 2 && !tal('dingke'), rep: 1, cd: 3, fx: { SPR: 2 }, em: 'heart', sc: 'gu' }, GU));
@@ -1765,7 +1766,7 @@ E('cy_chip', 0, 999, '你在后脑装了一块芯片，一秒钟就能读完一�
 E('cy_hack', 0, 999, '你黑进了巨型公司的服务器，偷走了一个亿的加密货币。', Object.assign({ c: () => L.f.chip && !L.f.corp, w: 1.5, fx: { MNY: 4 }, f: { hacker: 1 }, em: 'coin', big: '黑客!' }, CY));
 E('cy_hunted', 0, 999, '公司派出赏金猎人追杀你，你在霓虹灯下狂奔了一整夜。', Object.assign({ c: () => L.f.hacker && !L.f.corp, fx: { SPR: -2 }, em: 'sweat' }, CY));
 E('cy_psycho', 0, 999, '你装了太多义体，开始分不清自己是人还是机器。', Object.assign({ c: () => L.f.cyarm && L.f.chip, w: .5, fx: { SPR: -3 }, em: 'q' }, CY));
-E('cy_bar', 0, 999, () => { startLove({ hair: 'pink' }); return '你在霓虹酒吧里认识了' + (L.age < 45 ? '一个{opp}' : '一位' + (L.g === 'm' ? '女士' : '先生')) + '，{ta}的头发会随着心情变色' + (L.age >= 56 ? '，可惜上了年纪，它大多数时候只剩下灰白一种颜色。' : '。'); }, Object.assign({ c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 }, CY));
+E('cy_bar', 0, 999, () => { startLove({ hair: 'pink' }); return '你在霓虹酒吧里认识了' + (L.age < 45 ? '一个{opp}' : '一位' + (PGF() ? '女士' : '先生')) + '，{ta}的头发会随着心情变色' + (L.age >= 56 ? '，可惜上了年纪，它大多数时候只剩下灰白一种颜色。' : '。'); }, Object.assign({ c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 }, CY));
 E('cy_wed', 0, 999, () => { marry(); return '你们在全息投影的樱花雨下结了婚。'; }, Object.assign({ c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' }, CY));
 E('cy_meat', 0, 999, () => '你已经' + (rYrs() >= 5 ? '很多年' : rYrs() >= 3 ? '好几年' : '好几个月') + '没吃过真正的蔬菜了，合成肉吃起来像纸板。', Object.assign({ fx: { SPR: -1 }, em: 'sad' }, CY));
 E('cy_cat', 0, 999, () => { const lp = L.lastPet; getPet('cat'); L.pet.mech = 1; L.pet.n = pick(['螺丝', '齿轮', '电池', '像素']); L.lastPet = lp; return '你领养了一只机械猫，取名叫“{pn}”。它永远不会掉毛，就是偶尔需要充电。'; }, Object.assign({ c: () => !L.pet, em: 'heart' }, CY));
@@ -1783,7 +1784,7 @@ E('pi_navy', 0, 999, '海军追了你们三天三夜，你们借着一场大雾�
 E('pi_captain', 0, 999, () => !L.f.oldcapdead ? '老船长受伤退休，把船长帽交给了你。' : L.age - L.at.pi_oldcrew <= 2 ? '老船长走后，全船人一致推举你接过了他的船长帽。' : '老船长走后，船上换了好几任船长，谁都没能服众。最后，全船人一致推举你戴上了他留下的船长帽。', Object.assign({ c: () => L.a.STR + L.a.INT >= 15 && L.age - L.routeAge >= 5, w: .8, fx: { SPR: 2 }, f: { captain: 1 }, em: 'star', big: '成为船长!' }, PI));
 E('pi_kraken', 0, 999, '海面上伸出了巨大的触手——是海怪克拉肯！你抄起鱼竿和它拔河了一整天，最后把它钓了上来。', Object.assign({ c: () => L.f.captain, w: .4, fx: { STR: 2 }, f: { kraken: 1 }, em: 'bang', big: '钓起海怪!' }, PI));
 E('pi_parrot', 0, 999, () => '你养了一只鹦鹉，它学会的第一句话是“开饭啦”。它整天蹲在' + (L.f.ashore ? '屋后的椰子树上' : '桅杆顶上') + '，除了开饭，谁叫都不下来。', Object.assign({ fx: { SPR: 1 }, em: 'note' }, PI));
-E('pi_mer', 0, 999, () => { const lv = leftLover(); startLove({ hair: 'silver', fit: 'mer' }); return [lv ? '离家' + rYrs() + '年，岸上的{bf}大概早已放下。' : '', '你在礁石上遇到一位' + (L.g === 'm' ? '美人鱼' : '人鱼王子') + '，一见钟情。']; }, Object.assign({ c: () => canLove() && !(L.leftHome && L.leftHome.mar) && !(leftLover() && rYrs() < 5), fx: { SPR: 2 }, em: 'heart', love: 1 }, PI));
+E('pi_mer', 0, 999, () => { const lv = leftLover(); startLove({ hair: 'silver', fit: 'mer' }); return [lv ? '离家' + rYrs() + '年，岸上的{bf}大概早已放下。' : '', '你在礁石上遇到一位' + (PGF() ? '美人鱼' : '人鱼王子') + '，一见钟情。']; }, Object.assign({ c: () => canLove() && !(L.leftHome && L.leftHome.mar) && !(leftLover() && rYrs() < 5), fx: { SPR: 2 }, em: 'heart', love: 1 }, PI));
 E('pi_wed', 0, 999, () => { marry(); return L.f.admiral ? '你们在旗舰的甲板上举行了婚礼，全舰的水兵都喝得东倒西歪。' : '你们在船头举行了婚礼，全船的海盗都喝得东倒西歪。'; }, Object.assign({ c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', big: '喜结连理!' }, PI));
 E('pi_king', 0, 999, () => used('pi_rival2') ? '你统一了七大洋的海盗，连红胡子都第一个举杯向你致敬。你成为了海贼王！' : '你统一了七大洋的海盗，成为了海贼王！', Object.assign({ c: () => L.f.captain && L.f.treasure && L.f.kraken && L.a.MNY >= 9 && !L.f.admiral && (!L.f.pirival || used('pi_rival2')), w: .6, fx: { MNY: 3, SPR: 3 }, f: { pirateking: 1 }, em: 'star', big: '海贼王!' }, PI));
 E('pi_island', 55, 999, '你老了，在一座小岛上盖了间木屋，每天坐在门口看大海。', Object.assign({ x: 'piretire', fx: { SPR: 2 }, f: { ashore: 1 }, em: 'heart', sc: 'port' }, PI));
@@ -1854,8 +1855,8 @@ IE('is_potion', '女神下凡视察，看你过得不错，偷偷往你背包里
 IE('is_sage', () => (YR.sc = L.f.dark ? 'darkcastle' : 'istown', L.f.dark) ? '你在魔王城里开了一所学校，教小魔物们九九乘法表，它们都尊称你为“贤者大人”。' : '你在王都开了一所学校，教孩子们九九乘法表，被尊称为“贤者大人”。', { c: () => L.a.INT >= 7, fx: { INT: 2, SPR: 1 }, f: { sage: 1 }, em: 'book' });
 IE('is_statue', () => '王都广场为你立了一座雕像，比你本人' + (L.g === 'm' ? '帅' : '美') + '多了。', { c: () => L.f.hero, fx: { SPR: 1 }, em: 'star', sc: 'istown' });
 IE('is_war', () => (YR.sc = L.f.dark ? 'darkcastle' : 'istown', YR.solo = !L.f.dark, L.f.dark) ? '人类联军打上魔王城，你挥手把城外的焦土变成了一片花田。联军看傻了，撤兵了。' : '邻国趁乱发兵来犯，你' + (L.f.holysword ? '带着圣剑' : '提着一把砍卷了刃的铁剑') + '单枪匹马守住了城门。', { c: () => L.f.hero || L.f.dark, fx: { STR: 2 }, em: 'star' });
-CH.royal = { o: [['向{ta}求婚', () => { startLove({ hair: 'dye', fit: L.g === 'm' ? 'princess' : 'prince' }); marry(); L.f.royal = 1; YR.big = '王室联姻!'; YR.em = 'heart'; YR.sc = 'castle'; YR.sc = 'castle'; return '国王大喜，为你们办了一场全国同庆的婚礼。'; }], ['送回王宫就走', () => { addFx({ SPR: 1 }); return '你婉拒了国王的赏赐，背起行囊继续冒险。'; }]] };
-IE('is_rescue', () => { YR.ch = 'royal'; return '一位' + (L.g === 'm' ? '公主' : '王子') + '被魔物掳走了，你杀进魔窟把{ta}救了回来。'; }, { c: () => L.f.guild && !L.f.dark && canLove() && !(L.leftHome && L.leftHome.mar), w: 1.2, em: 'heart', sc: 'isekai' });
+CH.royal = { o: [['向{ta}求婚', () => { startLove({ hair: 'dye', fit: PGF() ? 'princess' : 'prince' }); marry(); L.f.royal = 1; YR.big = '王室联姻!'; YR.em = 'heart'; YR.sc = 'castle'; YR.sc = 'castle'; return '国王大喜，为你们办了一场全国同庆的婚礼。'; }], ['送回王宫就走', () => { addFx({ SPR: 1 }); return '你婉拒了国王的赏赐，背起行囊继续冒险。'; }]] };
+IE('is_rescue', () => { YR.ch = 'royal'; return '一位' + (PGF() ? '公主' : '王子') + '被魔物掳走了，你杀进魔窟把{ta}救了回来。'; }, { c: () => L.f.guild && !L.f.dark && canLove() && !(L.leftHome && L.leftHome.mar), w: 1.2, em: 'heart', sc: 'isekai' });
 CH.portal = { o: [['回到原来的世界', () => { const n = L.age - L.isAge; L.f.isback = 1; YR.sc = 'hosp'; return ['一道白光闪过，你在病床上醒来，已经昏迷了' + n + '年。'].concat(comeHome()); }],
   ['留下来', () => { L.f.isstay = 1; addFx({ SPR: 2 }); return '你摇了摇头：“这里才是我的家。”'; }]] };
 IE('is_portal', () => { YR.ch = 'portal'; return '女神出现在你面前：“我可以送你回原来的世界，要回去吗？”'; }, { c: () => isYrs() >= 8 && L.age < 70, w: .5, em: 'q' });
@@ -1886,7 +1887,7 @@ ZE('zb_mall', '你一个人在空无一人的商场里试穿了所有名牌衣�
 ZE('zb_family', () => L.par.mom.alive || L.par.dad.alive ? '你冒着危险回到老家，发现爸妈把自己锁在地窖里，还活着！' : '你回到老家，在爸妈的坟前放了一束野花。', { who: 'par', c: () => rYrs() <= 4, w: 1.5, fx: { SPR: 2 }, em: 'heart' });
 ZE('zb_kid', () => { addKid(); const two = L.kids.length > 1, sib = L.kids[0].g === 'm' ? '哥哥' : '姐姐', lil = L.kids[L.kids.length - 1].g === 'm' ? '弟弟' : '妹妹'; return L.f.zbpeace ? (two ? '你们又有了一个{kid}，' + sib + '趴在育婴室的玻璃外面，看了' + lil + '整整一下午。' : '你们有了一个{kid}，护士笑着说：“又一个和平宝宝。”') : two ? '你们又有了一个{kid}，' + sib + '大方地把自己最宝贝的罐头盒让给了' + lil + '。' : '你们在末日里有了一个{kid}，{kid}的第一个玩具是一只罐头盒。'; }, { c: () => L.mar && L.age <= 45 && !L.f.dink && !L.f.infertile && L.kids.length < 2 && !tal('dingke'), rep: 1, cd: 4, fx: { SPR: 2 }, em: 'heart', sc: 'hosp' }); // born in the ruins while the dead still walk; in a real hospital once the city is back
 // zombies: survivors
-ZE('zb_love', () => { if (L.f.zbpeace) { startLove(); YR.sc = 'street'; return '你在菜市场和' + (L.age < 45 ? '一个{opp}' : '一位' + (L.g === 'm' ? '女士' : '先生')) + '抢最后一把青菜，抢着抢着，就约好了一起吃饭。'; } startLove({ fit: 'survivor' }); return '你在一次搜物资时救下了' + (L.age < 45 ? '一个{opp}' : L.age < 60 ? '一位和你年纪相仿的幸存者' : '一位同样上了年纪的幸存者') + '，{ta}回头给了你一记漂亮的爆头掩护。'; }, { c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 });
+ZE('zb_love', () => { if (L.f.zbpeace) { startLove(); YR.sc = 'street'; return '你在菜市场和' + (L.age < 45 ? '一个{opp}' : '一位' + (PGF() ? '女士' : '先生')) + '抢最后一把青菜，抢着抢着，就约好了一起吃饭。'; } startLove({ fit: 'survivor' }); return '你在一次搜物资时救下了' + (L.age < 45 ? '一个{opp}' : L.age < 60 ? '一位和你年纪相仿的幸存者' : '一位同样上了年纪的幸存者') + '，{ta}回头给了你一记漂亮的爆头掩护。'; }, { c: canLove, fx: { SPR: 2 }, em: 'heart', love: 1 });
 ZE('zb_wed', () => { marry(); if (L.f.zbpeace) return '你们在城里的礼堂办了婚礼，喜糖总算不是过期的了。'; return (L.f.base ? '你们在基地楼顶结了婚' : '你们在废楼天台上结了婚') + '，' + (rYrs() <= 5 ? '喜糖是过期的巧克力。' : '喜糖是野蜂蜜熬的。'); }, { c: () => L.love && !L.mar, w: 2, fx: { SPR: 2 }, em: 'heart', sc: 'wedding', big: () => L.f.zbpeace ? '喜结连理!' : '末日婚礼!' }); // the wedding hall only once the city is rebuilt; before that it falls back to the ruins
 ZE('zb_doctor', '基地里唯一的医生教会了你缝合伤口，你成了半个大夫。', { c: () => L.f.base, fx: { INT: 1, SPR: 1 }, em: 'book' });
 ZE('zb_school', '你在基地里办了一间学校，给孩子们讲“以前的世界”，他们都不相信有外卖这种东西。', { c: () => L.f.base, fx: { INT: 1, SPR: 1 }, em: 'book' });
@@ -2118,6 +2119,7 @@ function newLife(tids, pts) {
   { const m = L.a.MNY + (TAL.shoufu && tids.includes('shoufu') ? 9 : 0), w = m <= 2 ? [.7, .3, 0, 0] : m <= 5 ? [.25, .45, .3, 0] : m <= 8 ? [0, .25, .7, .05] : [0, 0, .7, .3];
     let r = Math.random(), i = 0; for (; i < 3; i++) { if (r < w[i]) break; r -= w[i]; } L.bp = ['village', 'county', 'city', 'abroad'][i]; }
   L.look = Object.assign(randLook(L.g), { elder: pick(ELDER_TOPS), beard: chance(.35) });
+  L.f.same = chance(.08) ? 1 : 0; // about one life in twelve falls for the same sex; the story treats it like any other
   for (const id of tids) { L.t[id] = 1; const fx = TAL[id].fx; if (fx) for (const k in fx) L.a[k] += fx[k]; }
   if (tal('jinshi')) L.f.glasses = 1;
   for (const k of STATS) L.mx[k] = L.a[k];
