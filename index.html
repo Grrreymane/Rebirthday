@@ -4628,9 +4628,9 @@ function deathCheck() {
   const save = L.a.STR <= 0 && a >= 2 && (tal('haizi') && !L.path && !used('pi_go') && !used('pi_go_t') && !L.f.seasave ? 'seasave' : tal('changshou') && a < 60 && !L.f.genesave ? 'genesave' : null);
   if (save) { L.f[save] = 1; L.a.STR = 3; YR.lines.push(save === 'seasave' ? '【大海的孩子】你大病一场，梦里全是海浪声。' : '【长寿基因】你大病一场，硬是挺了过来。'); return; } // these talents promise a long life / a life at sea: one reprieve from a failing body
   if (L.a.STR <= 0) { if (a >= 50) YR.sc = 'hosp'; else if (a >= 2 && YR.sc !== 'hosp') YR.sc = 'home'; YR.solo = YR.nopet = 0; die(a <= 1 ? '你先天不足，没能熬过出生后的第一个冬天。' : a < 50 ? '你的身体越来越差，最终没能撑过去。' : '你在病床上离开了人世。'); return; }
-  if (a < 50) return;
-  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (L.f.elfwater ? .5 : 1) * (tal('duanming') ? 1.7 : 1) * clamp(1 + (9 - L.a.SPR) * .04, .75, 1.35) * clamp(1 + (7 - L.a.MNY) * .05, .75, 2.2); // happy and well-off lives are longer ones; real poverty is dangerous
-  if (chance(.0045 * Math.pow(1.09, a - 50) * m)) { if (YR.sc !== 'hosp') YR.sc = 'home'; YR.solo = YR.nopet = 0; YR.who = (YR.who || '') + ' pt kid'; die(naturalDeath()); } // the family gathers round at home (or by the hospital bed), even when a ninth life brings you back
+  if (a < (tal('duanming') ? 25 : 50)) return; // a short-lived soul's clock starts early
+  const m = clamp(1.3 - .06 * L.a.STR, .35, 1.8) * (tal('changshou') ? .5 : 1) * (L.f.elfwater ? .5 : 1) * (tal('duanming') ? 3.5 : 1) * clamp(1 + (9 - L.a.SPR) * .04, .75, 1.35) * clamp(1 + (7 - L.a.MNY) * .05, .75, 2.2); // happy and well-off lives are longer ones; real poverty is dangerous
+  if (chance(.0095 * Math.pow(1.09, a - 50) * m)) { if (YR.sc !== 'hosp') YR.sc = 'home'; YR.solo = YR.nopet = 0; YR.who = (YR.who || '') + ' pt kid'; die(naturalDeath()); } // the family gathers round at home (or by the hospital bed), even when a ninth life brings you back
 }
 function runYear() {
   YR = { lines: [], sc: null, em: null, big: null, d: {}, g: 0, dead: false };
