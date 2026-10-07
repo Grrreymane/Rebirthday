@@ -4819,7 +4819,21 @@ const UPG = [
   { id: 'inh2', n: '双重继承', d: '转世时可以带走 2 个天赋', max: 1, cost: [30] },
 ];
 const GRADE_RP = { D: 1, C: 2, B: 3, A: 4, S: 5, SS: 6, SSS: 8 };
-const saveMeta = () => save('rl-meta', META);
+const saveMeta = () => { save('rl-meta', META); reportProgress(); };
+// AI Made Games platform: inside the site's in-site player, report a one-line progress summary
+// that shows as "your save" on the game page. Does nothing when the game runs anywhere else.
+var platformEmbed = window.parent !== window, platformTimer = 0, platformLast = '';
+function reportProgress() {
+  if (!platformEmbed) return;
+  clearTimeout(platformTimer);
+  platformTimer = setTimeout(() => {
+    const text = META.lives ? '已重开 ' + META.lives + ' 次人生 · 最长活到 ' + META.best + ' 岁' : '';
+    if (!text || text === platformLast) return;
+    platformLast = text;
+    try { window.parent.postMessage({ source: 'aimadegames', v: 1, type: 'progress', text: text }, '*'); } catch (e) {}
+  }, 1500);
+}
+reportProgress();
 let SAVED = load('rl-run', null);
 if (SAVED && (SAVED.v !== 1 || SAVED.end || !Array.isArray(SAVED.log) || !SAVED.a || !SAVED.f || !SAVED.look || !SAVED.par)) SAVED = null;
 function saveRun() { if (L && !L.end) { SAVED = L; save('rl-run', L); } }
