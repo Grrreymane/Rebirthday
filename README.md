@@ -6,6 +6,8 @@
 
 **在线试玩：** https://grrreymane.github.io/Rebirthday/
 
+宣传视频：[trailer.mp4](trailer.mp4)（竖屏 16 秒，`tools/trailer.js` 生成）
+
 ## 怎么玩
 
 - **天赋扭蛋**：先开出一颗命运胶囊，里面的「天命」天赋锁定不可改（可能是传说，也可能是诅咒，诅咒补偿 3 个属性点）；再从十连抽里自选 2 个
