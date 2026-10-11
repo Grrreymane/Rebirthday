@@ -3589,7 +3589,7 @@ E('forever', 40, 70, '同学聚会上，大家都老了，只有你看起来还�
 E('house', 25, 45, () => { YR.ch = 'house'; return '你看中了一套房子，首付要掏空全家的积蓄。'; }, { c: () => !L.f.house && L.a.MNY >= 3 && L.a.MNY <= 8, w: 1.5, em: 'coin', sc: 'home1' });
 E('house2', 25, 50, '你全款买下了一套江景大平层。', { c: () => !L.f.house && L.a.MNY >= 9, do: () => { L.f.house = L.age; }, fx: { SPR: 2 }, em: 'star', sc: 'home2' });
 E('car', 24, 50, () => L.a.MNY >= 10 || L.job === 'heir' ? '你买了一辆限量版跑车，一脚油门下去，推背感让你笑出了声。' : '你买了一辆车，周末终于可以' + (L.mar || L.kids.length ? '带家人' : '') + '出去兜风了。', { c: () => !L.f.car && L.a.MNY >= 4, f: { car: 1 }, fx: { SPR: 1 }, em: 'note', sc: 'street' });
-E('debt', 28, 55, '房价跌了，你的房子成了负资产，房贷却一分没少。', { c: () => L.f.loan && L.age - L.f.house < 30 && L.a.MNY <= 7, fx: { SPR: -2 }, em: 'sad' });
+E('house_debt', 28, 55, '房价跌了，你的房子成了负资产，房贷却一分没少。', { c: () => L.f.loan && L.age - L.f.house < 30 && L.a.MNY <= 7, fx: { SPR: -2 }, em: 'sad' });
 E('reunion', 30, 55, '你参加同学聚会，发现当年的班花和班草都已经发福了。', { em: 'sweat', sc: 'shop' });
 E('scamcall', 25, 60, '你接到一个自称“公检法”的电话，差点被骗走二十万。', { c: () => L.a.INT <= 5, fx: { MNY: -1 }, em: 'bang' });
 E('charity', 25, 80, () => L.a.MNY >= 10 ? '你匿名捐钱，给山区盖了一所小学。' : '你匿名捐了积蓄，给山区小学修了一块操场。', { c: () => L.a.MNY >= 8, fx: { SPR: 2 }, em: 'heart', sc: 'field' }); // on the school playground: a classroom would seat an old donor among white-haired pupils
@@ -4004,7 +4004,8 @@ E('zb_garden', 0, 999, '你在商场楼顶开了一片菜园，种出了末日�
 E('zb_siege', 0, 999, '尸潮围攻基地，你带着大家守了三天三夜。', Object.assign({ c: () => L.f.base && !L.f.zbpeace, fx: { STR: 1, SPR: -1 }, em: 'anger' }, ZB));
 E('zb_bandit', 0, 999, '你遇到一伙抢物资的强盗，只好交出了一半的罐头。', Object.assign({ c: () => !L.f.zbpeace, fx: { SPR: -1 }, em: 'anger' }, ZB));
 E('zb_radio', 0, 999, () => L.f.zbpeace ? '研究所的人找上门来：“城里是太平了，可城外的丧尸还数不清。要彻底结束末日，我们需要你的抗体。”' : '你收到一段无线电：“这里是最后的研究所，我们需要一个有抗体的人。”', Object.assign({ c: () => L.f.immune && !L.f.radio, w: .5, f: { radio: 1 }, em: 'q' }, ZB));
-E('zb_cure', 0, 999, () => { const peace = L.f.zbpeace; YR.sc = 'lab'; if (chance(.5)) { L.f.radio = 0; addFx({ SPR: -2 }); return peace ? '你赶到研究所，可实验一次次失败，你的血样被冻进了冰箱。' : '你穿越半个国家赶到研究所，那里早已被尸潮攻陷。'; } L.path = null; L.f.savior = 1; outOfSchool(); return peace ? ['你赶到研究所，科学家用你的血做出了疫苗。', '一年后，末日真的结束了。'] : ['你穿越半个国家赶到研究所，科学家用你的血做出了疫苗。', '一年后，城市重新亮起了灯。']; }, Object.assign({ c: () => L.f.radio, w: 2, fx: { SPR: 3 }, em: 'star', big: '拯救世界!' }, ZB));
+E('zb_cure', 0, 999, () => { const peace = L.f.zbpeace; YR.sc = 'lab'; if (chance(.5)) { L.f.radio = 0; addFx({ SPR: -2 }); return peace ? '你赶到研究所，可实验一次次失败，你的血样被冻进了冰箱。' : '你穿越半个国家赶到研究所，那里早已被尸潮攻陷。'; } L.path = null; L.f.savior = 1; outOfSchool(); addFx({ SPR: 3 }); YR.em = 'star'; YR.big = '拯救世界!'; return peace ? ['你赶到研究所，科学家用你的血做出了疫苗。', '一年后，末日真的结束了。'] : ['你穿越半个国家赶到研究所，科学家用你的血做出了疫苗。', '一年后，城市重新亮起了灯。']; }, Object.assign({ c: () => L.f.radio, w: 2 }, ZB));
+EVI.zb_cure._g = 1; // preserve luck weighting without marking a failed cure as a positive outcome
 E('zb_fill', 0, 999, () => { if (!L.f.zbpeace) return fresh(['你在废墟里又熬过了一年。', '你在屋顶守了一整夜，天亮时看到了日出。', '你用两个罐头换了一本旧书，读了整整一个冬天。', '你在废弃的加油站里过了一个安静的夏天。', L.f.base ? '你把基地的围墙又加高了一米。' : '你把藏身处的门窗又钉牢了一层。']); const y = L.age - L.at.zb_rebuild, gk = L.age - L.at.zb_grandkid, [t, s] = fresh([['你在院子里晒了一年的太阳，偶尔擦一擦那根老球棍。', 'home'], ['你教' + (gk >= 4 && gk <= 14 ? '孙辈们' : '街坊的孩子们') + '辨认哪些野菜能吃，哪些不能。', 'park'], ['你在' + (y <= 5 ? '新盖的' : '街心') + '广场上下了一年的棋，' + (y <= 15 ? '没人相信你当年砍过丧尸。' : '棋友换了好几茬，还是没人相信你当年砍过丧尸。'), 'park'], ['你去菜市场转了一圈，看着堆成小山的新鲜蔬菜，站在摊位前傻笑了半天。', 'street'], ['你去电影院看了一部丧尸片，全程都在小声挑毛病：“丧尸才不是这么跑的。”', 'street'], ['你的储藏室里还囤着一整面墙的罐头，谁劝都没用，你一罐也舍不得扔。', 'home']]); YR.sc = s; return t; }, Object.assign({ rep: 1, cd: 1, w: .2, em: 'zzz' }, ZB));
 // the cyberpunk city
 // the city drifts into the neon age over a few years before your own eye goes
@@ -4473,6 +4474,7 @@ EVI.xmeet.w = () => hasRouteTal() ? 0 : .01;
 EVI.moinvite.w = () => hasRouteTal() ? 0 : .03;
 // ============================================================ life engine
 function newLife(tids, pts) {
+  tids = [...new Set(tids)]; // a talent contributes its effects only once
   const look = () => ({ hair: pick(['black', 'black', 'black', 'brown']), top: pick(TOPS), bot: pick(BOTS) });
   L = {
     v: 1, age: -1, g: chance(.5) ? 'm' : 'f',
@@ -4837,14 +4839,25 @@ function reportProgress() {
 }
 reportProgress();
 let SAVED = load('rl-run', null);
-if (SAVED && (SAVED.v !== 1 || SAVED.end || !Array.isArray(SAVED.log) || !SAVED.a || !SAVED.f || !SAVED.look || !SAVED.par)) SAVED = null;
-function saveRun() { if (L && !L.end) { SAVED = L; save('rl-run', L); } }
+if (SAVED && (SAVED.v !== 1 || (SAVED.end && (!SAVED.settled || !LCOL[SAVED.grade])) || !Array.isArray(SAVED.log) || !SAVED.a || !SAVED.f || !SAVED.look || !SAVED.par)) SAVED = null;
+// Older saves used "debt" for both events. Recover their separate histories from the log.
+if (SAVED && SAVED.used && !SAVED.used.house_debt) {
+  const house = SAVED.log.find(e => e.l.includes(EVI.house_debt.t));
+  if (house) {
+    SAVED.at = SAVED.at || {}; SAVED.used.house_debt = 1; SAVED.at.house_debt = house.a;
+    const debts = SAVED.log.filter(e => e.l.includes('你欠了一屁股债，催债电话一天打十几个。'));
+    if (debts.length) { SAVED.used.debt = debts.length; SAVED.at.debt = debts[debts.length - 1].a; }
+    else { delete SAVED.used.debt; delete SAVED.at.debt; }
+  }
+}
+function saveRun() { if (L && (!L.end || L.settled)) { SAVED = L; save('rl-run', L); } }
 function clearRun() { SAVED = null; try { localStorage.removeItem('rl-run'); } catch (e) {} }
 let TOASTS = [];
 function checkAch() {
   for (const a of ACH) if (!META.ach[a[0]] && a[3]()) { META.ach[a[0]] = 1; L.newAch = (L.newAch || 0) + 1; TOASTS.push({ n: a[1], t: 0 }); saveMeta(); }
 }
 function finishLife() {
+  if (L.settled) return;
   META.lives++; META.best = Math.max(META.best, L.age);
   L.score = lifeScore(); L.grade = letterOf(L.score);
   checkAch();
@@ -4854,7 +4867,9 @@ function finishLife() {
     age: L.age, job: j && JOBS[j] && j !== 'retired' && j !== 'none' ? JOBS[j].n : null, ep: L.ep || (L.ep = epitaph()), young: L.age < 30 && !L.asc, rich: !!(L.f.richest || L.f.lotto || L.a.MNY >= 12), asc: L.asc };
   const e0 = L.end; L.end = false; const lk = meLook(0, 0); L.end = e0; Object.assign(lk, { mood: 'h', blink: 0, fr: 0 });
   META.book = [{ n: META.lives, age: L.age, grade: L.grade, title: lifeTitle(), ep: L.ep, job: L.path === 'xian' ? XSD().who : L.path === 'isekai' ? '异世界' : ROUTES[L.path] ? ROUTES[L.path].label() : META.last.job, by: L.by, bp: { village: '山村', county: '县城', city: '城市', abroad: '海外' }[L.bp] || '', lk }].concat(META.book || []).slice(0, 60);
-  saveMeta(); clearRun();
+  // Keep the completed life until inheritance is confirmed; resuming it must not pay rewards again.
+  L.settled = true;
+  saveMeta(); saveRun();
 }
 function rarityOdds() {
   const n = Object.keys(META.ach).length, o = [.6, .26, .1 + n * .004, .04 + n * .003];
@@ -4868,8 +4883,8 @@ function drawFate(ex) {
   const pool = TAL_IDS.filter(id => TAL[id].r === tier && !ex.includes(id) && !(ROUTE_TIDS.includes(id) && ex.some(i => ROUTE_TIDS.includes(i)))); return pool.length ? pick(pool) : pick(curses);
 }
 function drawTalents(fate) { // at most one hidden-route talent per life (counting the fate talent), so no route promise is left unkept
-  const odds = rarityOdds(), out = [], seen = new Set();
-  for (const id of getInh()) { out.push(id); seen.add(id); }
+  const odds = rarityOdds(), out = [], seen = new Set([fate]);
+  for (const id of getInh()) { if (!seen.has(id)) { out.push(id); seen.add(id); } }
   let guard = 0;
   while (out.length < 10 + upLv('pool') && guard++ < 500) {
     let r = Math.random(), tier = 0; for (; tier < 3; tier++) { if (r < odds[tier]) break; r -= odds[tier]; }
@@ -5213,7 +5228,7 @@ function startLife() {
 }
 function resumeLife() {
   L = SAVED; L.at = L.at || {}; if (L.xage === undefined) { L.xage = ri(7, 13); L.yage = ri(12, 17); } logScroll = 0; auto = 0; endT = 0; cast = []; banner = null; POPS = []; P = []; emote = null; lastG = 0;
-  curScene = resolveScene(defaultScene()); setupCast(); go('life'); yearT = 9; SFX.click();
+  curScene = resolveScene(defaultScene()); setupCast(); go(L.end ? 'end' : 'life'); if (L.end) st = 5; yearT = 9; SFX.click();
 }
 // Hidden routes stay in their own world: a modern scene asked for there falls back to the route's scene (the red 囍 wedding hall suits an ancient wedding).
 const ROUTE_SCENES = { gu: ['gu', 'gustreet', 'wedding'], zb: ['ruins'], cy: ['neon', 'space', 'hosp'], pi: ['ship', 'port'], isekai: ['isekai', 'istown', 'castle', 'darkcastle'] };
@@ -5666,7 +5681,7 @@ function drawTitle() {
   txt('REBIRTHDAY', 90, 103, 8, '#dff6ff', 'center', OUT);
   txt('抽天赋 · 分属性 · 过一生', 90, 116, 7.5, '#ffffff', 'center', '#2a4a8a');
   if (SAVED) {
-    button(BTN.tCont, '继续人生 · ' + SAVED.age + '岁', { green: 1 });
+    button(BTN.tCont, (SAVED.end ? '人生总结 · ' : '继续人生 · ') + SAVED.age + '岁', { green: 1 });
     button(BTN.tNew2, '重新投胎', { size: 7 }); button(BTN.tAch2, '成就', { blue: 1, size: 7 }); button(BTN.tShop2, '轮回殿', { red: 1, size: 7 }); redDot(BTN.tShop2); button(BTN.tBook2, '轮回簿', { size: 7 });
   } else {
     button(BTN.tNew, '开始新人生');
@@ -6117,7 +6132,7 @@ function tapInherit(p) {
   const cap = upLv('inh2') ? 2 : 1;
   inhList().forEach((id, i) => { if (!inR(p, [20, 94 + i * 29, 140, 26])) return; const j = inhSel.indexOf(id); if (j >= 0) inhSel.splice(j, 1); else if (inhSel.length < cap) inhSel.push(id); else inhSel = [id]; SFX.select(); });
   if (inR(p, [20, 183, 140, 16])) { inhSel = []; SFX.click(); }
-  if (inR(p, BTN.inhGo)) { META.inh = inhSel[0] || null; META.inh2 = inhSel[1] || null; saveMeta(); startGacha(); SFX.start(); }
+  if (inR(p, BTN.inhGo)) { META.inh = inhSel[0] || null; META.inh2 = inhSel[1] || null; saveMeta(); clearRun(); startGacha(); SFX.start(); }
 }
 function tapMenu(p) {
   if (inR(p, BTN.mResume)) { menuOpen = false; SFX.click(); }
@@ -6145,7 +6160,7 @@ window.addEventListener('pointerdown', e => {
   if (shareEl) return;
   e.preventDefault(); initAudio();
   const p = toLogical(e);
-  const area = (state === 'life' || state === 'review') && !menuOpen && inR(p, [LOG.x, LOG.y, LOG.w, LOG.h]) ? 'log' : state === 'ach' && inR(p, [4, 24, 172, 268]) ? 'ach' : state === 'book' && inR(p, [4, 24, 172, 268]) ? 'book' : null;
+  const area = statInfo ? null : (state === 'life' || state === 'review') && !menuOpen && inR(p, [LOG.x, LOG.y, LOG.w, LOG.h]) ? 'log' : state === 'ach' && inR(p, [4, 24, 172, 268]) ? 'ach' : state === 'book' && inR(p, [4, 24, 172, 268]) ? 'book' : null;
   ptr = { x0: p.x, y0: p.y, moved: false, s0: area === 'ach' ? achScroll : area === 'book' ? bookScroll : logScroll, area };
 }, { passive: false });
 window.addEventListener('pointermove', e => {
@@ -6158,8 +6173,13 @@ window.addEventListener('pointermove', e => {
 });
 window.addEventListener('pointerup', e => { if (!ptr || shareEl) return; const p = toLogical(e), wasTap = !ptr.moved; ptr = null; if (wasTap) onTap(p); });
 window.addEventListener('pointercancel', () => { ptr = null; });
-window.addEventListener('wheel', e => { if (state === 'book') bookScroll = clamp(bookScroll + e.deltaY * .3, 0, bookMax); else if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
+window.addEventListener('wheel', e => { if (statInfo) return; if (state === 'book') bookScroll = clamp(bookScroll + e.deltaY * .3, 0, bookMax); else if (state === 'ach') achScroll = clamp(achScroll + e.deltaY * .3, 0, achMax); else if (state === 'life' || state === 'review') logScroll = clamp(logScroll - e.deltaY * .3, 0, logMax); }, { passive: true });
 window.addEventListener('keydown', e => {
+  if (statInfo) {
+    if (['1', '2', ' ', 'Enter', 'Escape'].includes(e.key)) e.preventDefault();
+    if (e.key === 'Escape' && !e.repeat) { statInfo = false; SFX.click(); }
+    return;
+  }
   if (e.repeat) return;
   if ((e.key === '1' || e.key === '2') && state === 'life' && L && L.pend && !menuOpen) { choose(+e.key - 1); return; }
   if ((e.key === ' ' || e.key === 'Enter') && state === 'life' && !menuOpen && L && !L.end && !L.pend) { e.preventDefault(); initAudio(); if (banner && banner.t < 1.4) banner.t = 1.4; else nextYear(); }
@@ -6171,7 +6191,7 @@ window.addEventListener('contextmenu', e => { if (!shareEl) e.preventDefault(); 
 
 // ============================================================ loop
 function update(dt) {
-  T += dt; st += dt; yearT += dt; shake = Math.max(0, shake - dt * 6);
+  T += dt; st += dt; if (!statInfo) yearT += dt; shake = Math.max(0, shake - dt * 6);
   if (state === 'gacha') {
     const G = gacha; G.t += dt;
     if (G.ph === 'shake' && G.t > .9) { G.ph = 'drop'; G.t = 0; SFX.pop(); }
@@ -6187,7 +6207,7 @@ function update(dt) {
       if (Math.abs(d) < 1) { a.wait = rand(1.2, 3.5); a.tx = clamp(a.x + rand(-45, 45), sc.walk[0], sc.walk[1]); a.mv = false; }
       else { a.x += Math.sign(d) * Math.min(Math.abs(d), sp * dt); a.mv = true; }
     }
-    if (state === 'life' && auto && !L.end && !L.pend && !menuOpen && !banner && yearT >= (auto === 1 ? 1.25 : .55)) nextYear();
+    if (state === 'life' && auto && !L.end && !L.pend && !menuOpen && !statInfo && !banner && yearT >= (auto === 1 ? 1.25 : .55)) nextYear();
     if (L.end) endT += dt;
   }
   if (state === 'end' && st > 1 && st - dt <= 1) { tone(180, .18, 'square', .08, 90); noise(.15, .12, 800); shake = 2; if (L.grade === 'SSS' || L.grade === 'SS') { confetti(50, 170); SFX.big(); } }
