@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="人生重开物语 Rebirthday">
 <meta property="og:description" content="抽三个天赋，分二十点属性，然后一年一年地过完这一生。这辈子不行？那就重开。">
-<meta property="og:url" content="https://grrreymane.github.io/Rebirthday/">
+<meta property="og:url" content="https://www.aiwanna.games/games/game-300cbc62dd89a419">
 <meta property="og:image" content="https://grrreymane.github.io/Rebirthday/cover.png">
 <meta property="og:image:width" content="1920">
 <meta property="og:image:height" content="1080">
@@ -5908,7 +5908,7 @@ function makeShare() {
   g.fillStyle = OUT; g.fillRect(qx - 4, qy - 4, QR.length + 8, QR.length + 8); g.fillStyle = '#ffffff'; g.fillRect(qx - 3, qy - 3, QR.length + 6, QR.length + 6);
   g.fillStyle = '#1b1b2f'; QR.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] === '1') g.fillRect(qx + x, qy + y, 1, 1); });
   txt('扫码，重开你的人生', 48, 290, 8.5, '#ffffff', 'left');
-  txt('grrreymane.github.io/Rebirthday', 48, 304, 6, '#9fe8ff', 'left');
+  txt('aiwanna.games', 48, 304, 6, '#9fe8ff', 'left');
   const S2 = 4, out = mk(W * S2, H * S2), o = out.getContext('2d'), k0 = K;
   o.imageSmoothingEnabled = false; if (hiY >= 0) { o.drawImage(hi, 0, 0, hi.width, hiH * 2, 0, hiY * S2, W * S2, hiH * S2); hiY = -1; } o.drawImage(low, 0, 0, W * S2, H * S2);
   K = S2;
@@ -5916,7 +5916,7 @@ function makeShare() {
   o.globalAlpha = 1; K = k0; TQ = []; g.clearRect(0, 0, W, H);
   showShare(out);
 }
-const QR = ['11111110100111111110001111111','10000010000111000011101000001','10111010011100011100101011101','10111010110001101010101011101','10111010111001111000001011101','10000010110101100001001000001','11111110101010101010101111111','00000000110110110110000000000','10001011111000001100111111001','01111001110010011010001111111','00110011010010011000101110001','00101101001110101101101101011','10100011001110101111110100010','11001000001110111110011111111','11010111100011110010010111101','10001101100010111101101100011','00000010100111110100110100010','11000000111100111110101111011','00011111001111111100100110101','00110001100111001110101100011','11100011101111000101111111001','00000000100011111111100010001','11111110110100010011101011101','10000010001010110111100010011','10111010101101100111111111001','10111010010100011111010100001','10111010011011111011110001111','10000010001111101110111011011','11111110111110001000110111010'];
+const QR = ['11111110011111000111101111111', '10000010111000111000101000001', '10111010010010111000001011101', '10111010100011010100001011101', '10111010011100101011101011101', '10000010110001011000101000001', '11111110101010101010101111111', '00000000011010111001100000000', '11111011100101000100010101010', '11101001101110101001111110001', '11010111110010011110010000000', '00101000111010010001100101010', '10110111110101010111000001100', '00011001100110101111011010001', '00010110100010011100111101100', '00000101011000001000000110010', '01101011001011110100000101100', '11000100111100001011101110101', '10010010010011011100000100100', '10110001111000101001101110010', '10000011111011100101111110111', '00000000100100000010100011111', '11111110111011011011101011100', '10000010011110000001100010000', '10111010100001111100111110100', '10111010110110001110100101101', '10111010100011011001111111110', '10000010110100111000110101010', '11111110100001010101000111100'];
 let shareEl = null;
 function showShare(cvs) {
   const url = cvs.toDataURL('image/png'), name = 'rebirthday-' + META.lives + '.png';
@@ -5933,7 +5933,7 @@ function showShare(cvs) {
     cvs.toBlob(blob => {
       if (!blob || !navigator.canShare) return;
       const file = new File([blob], name, { type: 'image/png' });
-      if (navigator.canShare({ files: [file] })) btn('分享给朋友', '#4a88e0', () => { navigator.share({ files: [file], title: '人生重开物语', text: '我这辈子活成了这样，你也来重开一次吧：https://grrreymane.github.io/Rebirthday/' }).catch(() => {}); });
+      if (navigator.canShare({ files: [file] })) btn('分享给朋友', '#4a88e0', () => { navigator.share({ files: [file], title: '人生重开物语', text: '我这辈子活成了这样，你也来重开一次吧：https://www.aiwanna.games/games/game-300cbc62dd89a419' }).catch(() => {}); });
     });
   } catch (e) {}
   btn('关闭', '#8a8a9a', () => { el.remove(); shareEl = null; });
